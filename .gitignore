@@ -1,5 +1,6 @@
 # ignore experiment data
 runs/
+dump/
 
 # editors
 .vscode/
