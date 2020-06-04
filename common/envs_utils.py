@@ -657,14 +657,15 @@ def get_mirror_function(indices):
     left_action_indices = indices[5]
 
     def mirror_function(trajectory_samples):
-        observations_batch = trajectory_samples[0]
-        states_batch = trajectory_samples[1]
-        actions_batch = trajectory_samples[2]
-        value_preds_batch = trajectory_samples[3]
-        return_batch = trajectory_samples[4]
-        masks_batch = trajectory_samples[5]
-        old_action_log_probs_batch = trajectory_samples[6]
-        adv_targ = trajectory_samples[7]
+        (
+            observations_batch,
+            actions_batch,
+            value_preds_batch,
+            return_batch,
+            masks_batch,
+            old_action_log_probs_batch,
+            adv_targ,
+        ) = trajectory_samples
 
         def swap_lr(t, r, l):
             t[:, np.concatenate((r, l))] = t[:, np.concatenate((l, r))]
@@ -682,7 +683,6 @@ def get_mirror_function(indices):
         # Others need to be repeated
         observations_batch = torch.cat([observations_batch, observations_clone])
         actions_batch = torch.cat([actions_batch, actions_clone])
-        states_batch = states_batch.repeat((2, 1))
         value_preds_batch = value_preds_batch.repeat((2, 1))
         return_batch = return_batch.repeat((2, 1))
         masks_batch = masks_batch.repeat((2, 1))
@@ -691,7 +691,6 @@ def get_mirror_function(indices):
 
         return (
             observations_batch,
-            states_batch,
             actions_batch,
             value_preds_batch,
             return_batch,

@@ -1,5 +1,7 @@
 # ignore experiment data
+.ipynb_checkpoints/
 runs/
+logs/
 dump/
 
 # editors
