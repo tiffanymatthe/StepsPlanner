@@ -3,6 +3,8 @@
 runs/
 logs/
 dump/
+*.pt
+*.csv
 
 # editors
 .vscode/

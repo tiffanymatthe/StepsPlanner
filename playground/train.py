@@ -7,7 +7,6 @@ python train.py with env=<ENV>
 ```
 """
 
-import copy
 import os
 import time
 from collections import deque
@@ -188,12 +187,11 @@ def main(_seed, _config, _run):
         else:
             model_name = "{}_latest.pt".format(env_name)
 
-        save_model = copy.deepcopy(actor_critic).cpu()
-        torch.save(save_model, os.path.join(args.save_dir, model_name))
+        torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
         if len(episode_rewards) > 1 and np.mean(episode_rewards) > max_ep_reward:
             max_ep_reward = np.mean(episode_rewards)
-            torch.save(save_model, os.path.join(args.save_dir, f"{env_name}_best.pt"))
+            torch.save(actor_critic, os.path.join(args.save_dir, f"{env_name}_best.pt"))
 
         if len(episode_rewards) > 1:
             end = time.time()

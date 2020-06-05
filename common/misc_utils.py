@@ -41,7 +41,7 @@ class EpisodeRunner(object):
             self.max_steps = max_steps or env.max_timestep
 
             now_str = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-            self.filename = os.path.join(self.dump_dir, "{}.mp4".format(now_str))
+            self.filename = os.path.join(self.dump_dir, f"{now_str}.mp4")
             print("\nRecording... Close to terminate recording.")
 
         self.progress_bar = None
