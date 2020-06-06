@@ -31,6 +31,7 @@ def config():
     net = None
     save = False
     render = True
+    ffmpeg = False
     experiment_dir = "."
     # loads saved configs
     config_file = os.path.join(experiment_dir, "configs.json")
@@ -43,8 +44,13 @@ def main(_config):
     args = SimpleNamespace(**_config)
     assert args.env != ""
 
+    # Save options:
+    #   1) render=True ffmpeg=False -> Dump frame by frame using getCameraImage, high quality
+    #   2) render=True ffmpeg=True -> Use pybullet.connect option
+    #   3) render=False -> Use EGL and getCameraImage
     use_egl = args.save and not args.render
-    env = make_env(args.env, render=args.render, use_egl=use_egl)
+    use_ffmpeg = args.render and args.ffmpeg
+    env = make_env(args.env, render=args.render, use_egl=use_egl, use_ffmpeg=use_ffmpeg)
     env.seed(1093)
 
     model_path = args.net or os.path.join(args.save_dir, f"{args.env}_best.pt")
@@ -52,12 +58,14 @@ def main(_config):
     print("Env: {}".format(args.env))
     print("Model: {}".format(os.path.basename(model_path)))
 
-    actor_critic = torch.load(model_path)
+    actor_critic = torch.load(model_path).to("cpu")
 
     # Set global no_grad
     torch._C.set_grad_enabled(False)
 
-    with EpisodeRunner(env, save=args.save, max_steps=args.len, csv=args.csv) as runner:
+    with EpisodeRunner(
+        env, save=args.save, use_ffmpeg=use_ffmpeg, max_steps=args.len, csv=args.csv
+    ) as runner:
         obs = env.reset()
         ep_reward = 0
 

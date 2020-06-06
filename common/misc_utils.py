@@ -16,13 +16,16 @@ class StringEnum(tuple):
 
 
 class EpisodeRunner(object):
-    def __init__(self, env, save=False, dir=None, max_steps=None, csv=None):
+    def __init__(
+        self, env, save=False, use_ffmpeg=False, dir=None, max_steps=None, csv=None
+    ):
         self.env = env
         self.save = save
-        self.done = False
+        self.use_ffmpeg = use_ffmpeg
         self.csv = csv
 
         self.max_steps = max_steps or float("inf")
+        self.done = False
         self.step = 0
 
         base_dir = os.path.dirname(os.path.realpath(inspect.stack()[-1][1]))
@@ -75,7 +78,13 @@ class EpisodeRunner(object):
 
         def new_step(self, *args):
             ret = old_step_func(*args)
-            runner.store_current_frame()
+
+            if runner.use_ffmpeg:
+                pc = self.camera._p
+                pc.configureDebugVisualizer(pc.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+            else:
+                runner.store_current_frame()
+
             runner.save_csv_render_data()
             runner.step += 1
 

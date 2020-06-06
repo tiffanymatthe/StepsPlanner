@@ -38,8 +38,8 @@ def make_env_fns(env_id, seed, rank, log_dir):
     return _thunk
 
 
-def make_env(env_id, render=False, use_egl=False):
-    env = gym.make(env_id, render=render, use_egl=use_egl)
+def make_env(env_id, **kwargs):
+    env = gym.make(env_id, **kwargs)
     return env
 
 

@@ -34,7 +34,7 @@ from common.sacred_utils import ex, init
 
 @ex.config
 def configs():
-    env = "environments:Walker3DStepperEnv-v0"
+    env = "mocca_envs:Walker3DStepperEnv-v0"
 
     # Auxiliary configurations
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
