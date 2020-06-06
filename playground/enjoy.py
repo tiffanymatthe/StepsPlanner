@@ -30,6 +30,7 @@ def config():
     len = float("inf")
     net = None
     save = False
+    render = True
     experiment_dir = "."
     # loads saved configs
     config_file = os.path.join(experiment_dir, "configs.json")
@@ -42,7 +43,8 @@ def main(_config):
     args = SimpleNamespace(**_config)
     assert args.env != ""
 
-    env = make_env(args.env, render=True)
+    use_egl = args.save and not args.render
+    env = make_env(args.env, render=args.render, use_egl=use_egl)
     env.seed(1093)
 
     model_path = args.net or os.path.join(args.save_dir, f"{args.env}_best.pt")
