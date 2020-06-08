@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 FixedNormal = torch.distributions.Normal
 
 log_prob_normal = FixedNormal.log_prob
@@ -51,31 +50,44 @@ def init(module, weight_init, bias_init, gain=1):
     return module
 
 
+init_s_ = lambda m: init(
+    m,
+    nn.init.orthogonal_,
+    lambda x: nn.init.constant_(x, 0),
+    nn.init.calculate_gain("sigmoid"),
+)
+init_r_ = lambda m: init(
+    m,
+    nn.init.orthogonal_,
+    lambda x: nn.init.constant_(x, 0),
+    nn.init.calculate_gain("relu"),
+)
+init_t_ = lambda m: init(
+    m,
+    nn.init.orthogonal_,
+    lambda x: nn.init.constant_(x, 0),
+    nn.init.calculate_gain("tanh"),
+)
+
+
 class Policy(nn.Module):
     def __init__(self, controller):
         super(Policy, self).__init__()
         self.actor = controller
         self.dist = DiagGaussian(controller.action_dim)
 
-        init_ = lambda m: init(
-            m,
-            nn.init.orthogonal_,
-            lambda x: nn.init.constant_(x, 0),
-            nn.init.calculate_gain("relu"),
-        )
-
         state_dim = controller.state_dim
         h_size = 256
         self.critic = nn.Sequential(
-            init_(nn.Linear(state_dim, h_size)),
+            init_r_(nn.Linear(state_dim, h_size)),
             nn.ReLU(),
-            init_(nn.Linear(h_size, h_size)),
+            init_r_(nn.Linear(h_size, h_size)),
             nn.ReLU(),
-            init_(nn.Linear(h_size, h_size)),
+            init_r_(nn.Linear(h_size, h_size)),
             nn.ReLU(),
-            init_(nn.Linear(h_size, h_size)),
+            init_r_(nn.Linear(h_size, h_size)),
             nn.ReLU(),
-            init_(nn.Linear(h_size, 1)),
+            init_r_(nn.Linear(h_size, 1)),
         )
 
     def forward(self, inputs, states, masks):
@@ -116,25 +128,10 @@ class SoftsignPolicy(Policy):
     def __init__(self, controller):
         super(SoftsignPolicy, self).__init__(controller)
 
-        init_s_ = lambda m: init(
-            m,
-            nn.init.orthogonal_,
-            lambda x: nn.init.constant_(x, 0),
-            nn.init.calculate_gain("sigmoid"),
-        )
-        init_r_ = lambda m: init(
-            m,
-            nn.init.orthogonal_,
-            lambda x: nn.init.constant_(x, 0),
-            nn.init.calculate_gain("relu"),
-        )
-
         state_dim = controller.state_dim
         h_size = 256
         self.critic = nn.Sequential(
             init_s_(nn.Linear(state_dim, h_size)),
-            nn.Softsign(),
-            init_s_(nn.Linear(h_size, h_size)),
             nn.Softsign(),
             init_s_(nn.Linear(h_size, h_size)),
             nn.Softsign(),
@@ -154,40 +151,18 @@ class SoftsignActor(nn.Module):
         self.state_dim = env.observation_space.shape[0]
         self.action_dim = env.action_space.shape[0]
 
-        init_s_ = lambda m: init(
-            m,
-            nn.init.orthogonal_,
-            lambda x: nn.init.constant_(x, 0),
-            nn.init.calculate_gain("sigmoid"),
-        )
-        init_r_ = lambda m: init(
-            m,
-            nn.init.orthogonal_,
-            lambda x: nn.init.constant_(x, 0),
-            nn.init.calculate_gain("relu"),
-        )
-        init_t_ = lambda m: init(
-            m,
-            nn.init.orthogonal_,
-            lambda x: nn.init.constant_(x, 0),
-            nn.init.calculate_gain("tanh"),
-        )
-
         h_size = 256
-        self.fc1 = init_s_(nn.Linear(self.state_dim, h_size))
-        self.fc2 = init_s_(nn.Linear(h_size, h_size))
-        self.fc3 = init_s_(nn.Linear(h_size, h_size))
-        self.fc4 = init_r_(nn.Linear(h_size, h_size))
-        self.fc5 = init_r_(nn.Linear(h_size, h_size))
-        self.out = init_t_(nn.Linear(h_size, self.action_dim))
-
-        self.train()
+        self.net = nn.Sequential(
+            init_s_(nn.Linear(self.state_dim, h_size)),
+            nn.Softsign(),
+            init_s_(nn.Linear(h_size, h_size)),
+            nn.Softsign(),
+            init_r_(nn.Linear(h_size, h_size)),
+            nn.ReLU(),
+            init_r_(nn.Linear(h_size, h_size)),
+            nn.ReLU(),
+            init_t_(nn.Linear(h_size, self.action_dim)),
+        )
 
     def forward(self, x):
-        x = F.softsign(self.fc1(x))
-        x = F.softsign(self.fc2(x))
-        x = F.softsign(self.fc3(x))
-        x = F.relu(self.fc4(x))
-        x = F.relu(self.fc5(x))
-        x = torch.tanh(self.out(x))
-        return x
+        return torch.tanh(self.net(x))

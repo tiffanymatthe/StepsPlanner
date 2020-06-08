@@ -1,3 +1,4 @@
+import cloudpickle
 import contextlib
 import csv
 import ctypes
@@ -5,13 +6,10 @@ import glob
 import json
 import multiprocessing
 import os
+import pickle
 import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-
-current_dir = os.path.dirname(os.path.realpath(__file__))
-parent_dir = os.path.dirname(current_dir)
-os.sys.path.append(parent_dir)
 
 import gym
 from gym import spaces
@@ -113,7 +111,11 @@ class Monitor(Wrapper):
     def reset_state(self):
         if not self.allow_early_resets and not self.needs_reset:
             raise RuntimeError(
-                "Tried to reset an environment before done. If you want to allow early resets, wrap your env with Monitor(env, path, allow_early_resets=True)"
+                (
+                    "Tried to reset an environment before done. "
+                    "If you want to allow early resets, wrap your env "
+                    "with Monitor(env, path, allow_early_resets=True)"
+                )
             )
         self.rewards = []
         self.needs_reset = False
@@ -322,13 +324,9 @@ class CloudpickleWrapper(object):
         self.x = x
 
     def __getstate__(self):
-        import cloudpickle
-
         return cloudpickle.dumps(self.x)
 
     def __setstate__(self, ob):
-        import pickle
-
         self.x = pickle.loads(ob)
 
 
@@ -412,9 +410,11 @@ class DummyVecEnv(VecEnv):
 @contextlib.contextmanager
 def clear_mpi_env_vars():
     """
-    from mpi4py import MPI will call MPI_Init by default.  If the child process has MPI environment variables, MPI will think that the child process is an MPI process just like the parent and do bad things such as hang.
-    This context manager is a hacky way to clear those environment variables temporarily such as when we are starting multiprocessing
-    Processes.
+    from mpi4py import MPI will call MPI_Init by default.
+    If the child process has MPI environment variables, MPI will think
+    that the child process is an MPI process just like the parent and do bad things such as hang.
+    This context manager is a hacky way to clear those environment variables temporarily such
+    as when we are starting multiprocessing Processes.
     """
     removed_environment = {}
     for k, v in list(os.environ.items()):
@@ -426,49 +426,6 @@ def clear_mpi_env_vars():
         yield
     finally:
         os.environ.update(removed_environment)
-
-
-def obs_space_info(obs_space):
-    """
-    Get dict-structured information about a gym.Space.
-    Returns:
-      A tuple (keys, shapes, dtypes):
-        keys: a list of dict keys.
-        shapes: a dict mapping keys to shapes.
-        dtypes: a dict mapping keys to dtypes.
-    """
-    if isinstance(obs_space, gym.spaces.Dict):
-        assert isinstance(obs_space.spaces, OrderedDict)
-        subspaces = obs_space.spaces
-    else:
-        subspaces = {None: obs_space}
-    keys = []
-    shapes = {}
-    dtypes = {}
-    for key, box in subspaces.items():
-        keys.append(key)
-        shapes[key] = box.shape
-        dtypes[key] = box.dtype
-    return keys, shapes, dtypes
-
-
-def dict_to_obs(obs_dict):
-    """
-    Convert an observation dict into a raw array if the
-    original observation space was not a Dict space.
-    """
-    if set(obs_dict.keys()) == {None}:
-        return obs_dict[None]
-    return obs_dict
-
-
-def obs_to_dict(obs):
-    """
-    Convert an observation into a dict.
-    """
-    if isinstance(obs, dict):
-        return obs
-    return {None: obs}
 
 
 _NP_TO_CT = {
@@ -499,16 +456,11 @@ class ShmemVecEnv(VecEnv):
         del dummy
 
         VecEnv.__init__(self, len(env_fns), observation_space, action_space)
-        self.obs_keys, self.obs_shapes, self.obs_dtypes = obs_space_info(
-            observation_space
-        )
+        self.obs_shape = observation_space.shape
+        self.obs_dtype = observation_space.dtype
+
         self.obs_bufs = [
-            {
-                k: ctx.Array(
-                    _NP_TO_CT[self.obs_dtypes[k].type], int(np.prod(self.obs_shapes[k]))
-                )
-                for k in self.obs_keys
-            }
+            ctx.Array(_NP_TO_CT[self.obs_dtype.type], int(np.prod(self.obs_shape)))
             for _ in env_fns
         ]
         self.parent_pipes = []
@@ -524,9 +476,8 @@ class ShmemVecEnv(VecEnv):
                         parent_pipe,
                         wrapped_fn,
                         obs_buf,
-                        self.obs_shapes,
-                        self.obs_dtypes,
-                        self.obs_keys,
+                        self.obs_shape,
+                        self.obs_dtype,
                     ),
                 )
                 proc.daemon = True
@@ -580,34 +531,18 @@ class ShmemVecEnv(VecEnv):
         return [pipe.recv() for pipe in self.parent_pipes]
 
     def _decode_obses(self, obs):
-        result = {}
-        for k in self.obs_keys:
-
-            bufs = [b[k] for b in self.obs_bufs]
-            o = [
-                np.frombuffer(b.get_obj(), dtype=self.obs_dtypes[k]).reshape(
-                    self.obs_shapes[k]
-                )
-                for b in bufs
-            ]
-            result[k] = np.array(o)
-        return dict_to_obs(result)
+        bufs = self.obs_bufs
+        o = [np.frombuffer(b.get_obj(), dtype=self.obs_dtype) for b in bufs]
+        return np.array(o)
 
 
-def _subproc_worker(
-    pipe, parent_pipe, env_fn_wrapper, obs_bufs, obs_shapes, obs_dtypes, keys
-):
+def _subproc_worker(pipe, parent_pipe, env_fn_wrapper, obs_buf, obs_shape, obs_dtype):
     """
     Control a single environment instance using IPC and
     shared memory.
     """
-
-    def _write_obs(maybe_dict_obs):
-        flatdict = obs_to_dict(maybe_dict_obs)
-        for k in keys:
-            dst = obs_bufs[k].get_obj()
-            dst_np = np.frombuffer(dst, dtype=obs_dtypes[k]).reshape(obs_shapes[k])
-            np.copyto(dst_np, flatdict[k])
+    dst = obs_buf.get_obj()
+    dst_np = np.frombuffer(dst, dtype=obs_dtype).reshape(obs_shape)
 
     env = env_fn_wrapper.x()
     parent_pipe.close()
@@ -615,12 +550,14 @@ def _subproc_worker(
         while True:
             cmd, data = pipe.recv()
             if cmd == "reset":
-                pipe.send(_write_obs(env.reset()))
+                np.copyto(dst_np, env.reset())
+                pipe.send(None)
             elif cmd == "step":
                 obs, reward, done, info = env.step(data)
                 if done:
                     obs = env.reset()
-                pipe.send((_write_obs(obs), reward, done, info))
+                np.copyto(dst_np, obs)
+                pipe.send((None, reward, done, info))
             elif cmd == "set_env_params":
                 env.set_env_params(data)
             elif cmd == "set_robot_params":
