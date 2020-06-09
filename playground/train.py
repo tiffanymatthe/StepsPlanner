@@ -40,14 +40,16 @@ def configs():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     seed = 16
     save_every = 1e7
-    log_interval = 1
+    log_interval = 2
     net = None
     use_mirror = True
+    use_curriculum = True
+    reward_threshold = 1000
 
     # Sampling parameters
     num_frames = 6e7
     episode_steps = 40000
-    num_processes = 40
+    num_processes = 64
     num_steps = episode_steps // num_processes
     mini_batch_size = 1024
     num_mini_batch = episode_steps // mini_batch_size
@@ -127,6 +129,11 @@ def main(_seed, _config, _run):
         log_dir=args.experiment_dir, console_log_interval=args.log_interval
     )
 
+    if args.use_curriculum:
+        current_curriculum = 0
+        max_curriculum = dummy_env.unwrapped.max_curriculum
+        envs.set_env_params({"curriculum": current_curriculum})
+
     for iteration in range(num_updates):
 
         if args.lr_decay_type == "linear":
@@ -174,6 +181,15 @@ def main(_seed, _config, _run):
 
             next_value = actor_critic.get_value(rollouts.observations[-1]).detach()
 
+            # Update curriculum after roll-out
+            if (
+                args.use_curriculum
+                and np.mean(episode_rewards) > args.reward_threshold
+                and current_curriculum < max_curriculum
+            ):
+                current_curriculum += 1
+                envs.set_env_params({"curriculum": current_curriculum})
+
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
         value_loss, action_loss, dist_entropy = agent.update(rollouts)
@@ -198,6 +214,7 @@ def main(_seed, _config, _run):
             logger.log_epoch(
                 {
                     "iter": iteration + 1,
+                    "curriculum": current_curriculum if args.use_curriculum else 0,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,

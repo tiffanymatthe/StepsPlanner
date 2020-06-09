@@ -135,6 +135,8 @@ class SoftsignPolicy(Policy):
             nn.Softsign(),
             init_s_(nn.Linear(h_size, h_size)),
             nn.Softsign(),
+            init_s_(nn.Linear(h_size, h_size)),
+            nn.Softsign(),
             init_r_(nn.Linear(h_size, h_size)),
             nn.ReLU(),
             init_r_(nn.Linear(h_size, h_size)),
@@ -154,6 +156,8 @@ class SoftsignActor(nn.Module):
         h_size = 256
         self.net = nn.Sequential(
             init_s_(nn.Linear(self.state_dim, h_size)),
+            nn.Softsign(),
+            init_s_(nn.Linear(h_size, h_size)),
             nn.Softsign(),
             init_s_(nn.Linear(h_size, h_size)),
             nn.Softsign(),

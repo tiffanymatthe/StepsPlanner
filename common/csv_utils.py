@@ -38,28 +38,18 @@ class ConsoleCSVLogger(CSVLogger):
     def log_epoch(self, data):
         super().log_epoch(data)
 
-        if data["iter"] % self.console_log_interval == 0:
-            print(
-                (
-                    "Updates {}, "
-                    "num timesteps {}, "
-                    "FPS {}, "
-                    "mean/median reward {:.1f}/{:.1f}, "
-                    "min/max reward {:.1f}/{:.1f}, "
-                    "entropy {:.5f}, "
-                    "value loss {:.5f}, "
-                    "policy loss {:.5f}"
-                ).format(
-                    data["iter"],
-                    data["total_num_steps"],
-                    data["fps"],
-                    data["mean_rew"],
-                    data["median_rew"],
-                    data["min_rew"],
-                    data["max_rew"],
-                    data["entropy"],
-                    data["value_loss"],
-                    data["action_loss"],
-                ),
-                flush=True,
-            )
+        flush = data["iter"] % self.console_log_interval == 0
+        print(
+            (
+                f'Updates {data["iter"]}, '
+                f'curriculum {data["curriculum"]}, '
+                f'num timesteps {data["total_num_steps"]}, '
+                f'FPS {data["fps"]}, '
+                f'mean/median reward {data["mean_rew"]:.1f}/{data["median_rew"]:.1f}, '
+                f'min/max reward {data["min_rew"]:.1f}/{data["max_rew"]:.1f}, '
+                f'entropy {data["entropy"]:.5f}, '
+                f'value loss {data["value_loss"]:.5f}, '
+                f'policy loss {data["action_loss"]:.5f}'
+            ),
+            flush=flush,
+        )
