@@ -63,9 +63,18 @@ def main(_config):
     # Set global no_grad
     torch._C.set_grad_enabled(False)
 
-    with EpisodeRunner(
-        env, save=args.save, use_ffmpeg=use_ffmpeg, max_steps=args.len, csv=args.csv
-    ) as runner:
+    runner_options = {
+        "save": args.save,
+        "use_ffmpeg": use_ffmpeg,
+        "max_steps": args.len,
+        "csv": args.csv,
+    }
+
+    with EpisodeRunner(env, **runner_options) as runner:
+
+        max_curriculum = env.unwrapped.max_curriculum
+        env.set_env_params({"curriculum": max_curriculum})
+
         obs = env.reset()
         ep_reward = 0
 
