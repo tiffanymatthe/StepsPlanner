@@ -55,7 +55,7 @@ def make_vec_envs(env_id, seed, num_processes, log_dir):
 class TimeLimitMask(gym.Wrapper):
     def step(self, action):
         obs, rew, done, info = self.env.step(action)
-        if done and self.env._max_episode_steps == self.env._elapsed_steps:
+        if self.env._max_episode_steps == self.env._elapsed_steps:
             info["bad_transition"] = True
 
         return obs, rew, done, info
@@ -514,6 +514,11 @@ class ShmemVecEnv(VecEnv):
         for pipe in self.parent_pipes:
             pipe.send(("set_robot_params", params_dict))
 
+    def get_env_param(self, param_name, default):
+        for pipe in self.parent_pipes:
+            pipe.send(("get_env_param", (param_name, default)))
+        return [pipe.recv() for pipe in self.parent_pipes]
+
     def close_extras(self):
         if self.waiting_step:
             self.step_wait()
@@ -562,6 +567,9 @@ def _subproc_worker(pipe, parent_pipe, env_fn_wrapper, obs_buf, obs_shape, obs_d
                 env.set_env_params(data)
             elif cmd == "set_robot_params":
                 env.set_robot_params(data)
+            elif cmd == "get_env_param":
+                param = env.get_env_param(*data)
+                pipe.send(param)
             elif cmd == "render":
                 pipe.send(env.render(mode="rgb_array"))
             elif cmd == "close":

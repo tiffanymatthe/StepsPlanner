@@ -44,7 +44,7 @@ def configs():
     net = None
     use_mirror = True
     use_curriculum = True
-    reward_threshold = 1000
+    steps_threshold = 12
 
     # Sampling parameters
     num_frames = 6e7
@@ -63,7 +63,7 @@ def configs():
     lr = 3e-4
 
     ppo_params = {
-        "use_clipped_value_loss": True,
+        "use_clipped_value_loss": False,
         "num_mini_batch": num_mini_batch,
         "entropy_coef": 0.0,
         "value_loss_coef": 1.0,
@@ -119,6 +119,7 @@ def main(_seed, _config, _run):
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
+    num_steps_reached = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -132,6 +133,7 @@ def main(_seed, _config, _run):
     if args.use_curriculum:
         current_curriculum = 0
         max_curriculum = dummy_env.unwrapped.max_curriculum
+        max_steps = dummy_env.unwrapped.n_steps
         envs.set_env_params({"curriculum": current_curriculum})
 
     for iteration in range(num_updates):
@@ -158,13 +160,14 @@ def main(_seed, _config, _run):
 
                 bad_masks = np.ones((args.num_processes, 1))
                 for p_index, info in enumerate(infos):
-                    keys = info.keys()
-                    # This information is added by algorithms.utils.TimeLimitMask
-                    if "bad_transition" in keys:
+                    # This information is added by common.envs_utils.TimeLimitMask
+                    if "bad_transition" in info:
                         bad_masks[p_index] = 0.0
-                    # This information is added by baselines.bench.Monitor
-                    if "episode" in keys:
+                    # This information is added by common.envs_utils.Monitor
+                    if "episode" in info:
                         episode_rewards.append(info["episode"]["r"])
+                    if "steps_reached" in info:
+                        num_steps_reached.append(info["steps_reached"])
 
                 masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
                 bad_masks = torch.from_numpy(bad_masks)
@@ -184,7 +187,8 @@ def main(_seed, _config, _run):
             # Update curriculum after roll-out
             if (
                 args.use_curriculum
-                and np.mean(episode_rewards) > args.reward_threshold
+                and len(num_steps_reached) > 0
+                and np.mean(num_steps_reached) > args.steps_threshold
                 and current_curriculum < max_curriculum
             ):
                 current_curriculum += 1
@@ -215,6 +219,7 @@ def main(_seed, _config, _run):
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
+                    "steps_reached": np.mean(num_steps_reached),
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,

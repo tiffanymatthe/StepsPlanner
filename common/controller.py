@@ -22,11 +22,9 @@ class DiagGaussian(nn.Module):
 
     def forward(self, action_mean):
         #  An ugly hack for my KFAC implementation.
-        zeros = torch.zeros(action_mean.size())
-        if action_mean.is_cuda:
-            zeros = zeros.cuda()
-
-        action_logstd = self.logstd(zeros)
+        zeros = torch.zeros_like(action_mean)
+        condition = self.logstd._bias.mean() >= -1.5
+        action_logstd = self.logstd(zeros) if condition else zeros - 1.5
         return FixedNormal(action_mean, action_logstd.exp())
 
 
