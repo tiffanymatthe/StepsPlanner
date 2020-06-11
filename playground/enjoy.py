@@ -32,6 +32,7 @@ def config():
     save = False
     render = True
     ffmpeg = False
+    curriculum = None
     experiment_dir = "."
     # loads saved configs
     config_file = os.path.join(experiment_dir, "configs.json")
@@ -53,7 +54,7 @@ def main(_config):
     env = make_env(args.env, render=args.render, use_egl=use_egl, use_ffmpeg=use_ffmpeg)
     env.seed(1093)
 
-    model_path = args.net or os.path.join(args.save_dir, f"{args.env}_best.pt")
+    model_path = args.net or os.path.join(args.save_dir, f"{args.env}_latest.pt")
 
     print("Env: {}".format(args.env))
     print("Model: {}".format(os.path.basename(model_path)))
@@ -73,7 +74,8 @@ def main(_config):
     with EpisodeRunner(env, **runner_options) as runner:
 
         max_curriculum = env.unwrapped.max_curriculum
-        env.set_env_params({"curriculum": max_curriculum})
+        curriculum = args.curriculum or max_curriculum
+        env.set_env_params({"curriculum": int(curriculum)})
 
         obs = env.reset()
         ep_reward = 0
