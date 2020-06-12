@@ -102,6 +102,7 @@ def main():
         for j, column in enumerate(args.columns):
             b = df[args.row].iloc[-1]
             xlim_max = b if b > xlim_max else xlim_max
+
             if args.final:
                 y = df[column][-1:].item()
                 x = float(legends[i])
@@ -117,10 +118,12 @@ def main():
                         line_num=i,
                     )
 
+            processed_label = " ".join(map(lambda x: x.title(), column.split("_")))
+            plots[j].subplot.set_ylabel(processed_label)
+
     for j, _ in enumerate(args.columns):
         plots[j].subplot.set_xlim(0, xlim_max)
         plots[j].subplot.set_xlabel("Samples")
-        plots[j].subplot.set_ylabel("Episode Reward")
         if args.legend:
             plots[j].subplot.legend(legends)
             args.legend = False
