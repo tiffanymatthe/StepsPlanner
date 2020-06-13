@@ -74,7 +74,8 @@ def main(_config):
     with EpisodeRunner(env, **runner_options) as runner:
 
         max_curriculum = env.unwrapped.max_curriculum
-        curriculum = args.curriculum or max_curriculum
+        curriculum = args.curriculum if args.curriculum is not None else max_curriculum
+        print(curriculum)
         env.set_env_params({"curriculum": int(curriculum)})
 
         obs = env.reset()
