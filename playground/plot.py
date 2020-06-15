@@ -1,9 +1,13 @@
 import argparse
-import re
 import math
 import os
+import re
 import warnings
 from collections import OrderedDict
+
+current_dir = os.path.dirname(os.path.realpath(__file__))
+parent_dir = os.path.dirname(current_dir)
+os.sys.path.insert(0, parent_dir)
 
 import pandas as pd
 import numpy as np
