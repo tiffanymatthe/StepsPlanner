@@ -49,6 +49,7 @@ def configs():
     init_curriculum = 0
     steps_threshold = 12
     random_reward = False
+    plank_class = "LargePlank"
 
     # Sampling parameters
     num_frames = 6e7
@@ -84,7 +85,12 @@ def main(_seed, _config, _run):
 
     env_name = args.env
 
-    dummy_env = make_env(env_name, random_reward=args.random_reward, render=False)
+    dummy_env = make_env(
+        env_name,
+        random_reward=args.random_reward,
+        plank_class=args.plank_class,
+        render=False,
+    )
 
     cleanup_log_dir(args.log_dir)
 
@@ -118,6 +124,12 @@ def main(_seed, _config, _run):
     rollouts = RolloutStorage(args.num_steps, args.num_processes, obs_shape, action_dim)
     rollouts.to(args.device)
 
+    # This has to be done before reset
+    if args.use_curriculum:
+        current_curriculum = args.init_curriculum
+        max_curriculum = dummy_env.unwrapped.max_curriculum
+        envs.set_env_params({"curriculum": current_curriculum})
+
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
@@ -132,11 +144,6 @@ def main(_seed, _config, _run):
     logger = ConsoleCSVLogger(
         log_dir=args.experiment_dir, console_log_interval=args.log_interval
     )
-
-    if args.use_curriculum:
-        current_curriculum = args.init_curriculum
-        max_curriculum = dummy_env.unwrapped.max_curriculum
-        envs.set_env_params({"curriculum": current_curriculum})
 
     for iteration in range(num_updates):
 

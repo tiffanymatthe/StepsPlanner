@@ -31,6 +31,7 @@ def config():
     net = None
     save = False
     render = True
+    plank_class = "Plank"
     ffmpeg = False
     curriculum = None
     experiment_dir = "."
@@ -51,7 +52,13 @@ def main(_config):
     #   3) render=False -> Use EGL and getCameraImage
     use_egl = args.save and not args.render
     use_ffmpeg = args.render and args.ffmpeg
-    env = make_env(args.env, render=args.render, use_egl=use_egl, use_ffmpeg=use_ffmpeg)
+    env = make_env(
+        args.env,
+        render=args.render,
+        plank_class=args.plank_class,
+        use_egl=use_egl,
+        use_ffmpeg=use_ffmpeg,
+    )
     env.seed(1093)
 
     model_path = args.net or os.path.join(args.save_dir, f"{args.env}_latest.pt")
