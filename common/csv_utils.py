@@ -43,14 +43,14 @@ class ConsoleCSVLogger(CSVLogger):
             (
                 f'Updates {data["iter"]}, '
                 f'curriculum {data["curriculum"]}, '
-                f'steps reached {data["steps_reached"]}, '
+                f'steps reached {data["steps_reached"]:.2f}, '
                 f'num timesteps {data["total_num_steps"]}, '
                 f'FPS {data["fps"]}, '
                 f'mean/median reward {data["mean_rew"]:.1f}/{data["median_rew"]:.1f}, '
                 f'min/max reward {data["min_rew"]:.1f}/{data["max_rew"]:.1f}, '
-                f'entropy {data["entropy"]:.5f}, '
-                f'value loss {data["value_loss"]:.5f}, '
-                f'policy loss {data["action_loss"]:.5f}'
+                f'entropy {data["entropy"]:.2f}, '
+                f'value loss {data["value_loss"]:.2f}, '
+                f'policy loss {data["action_loss"]:.3f}'
             ),
             flush=flush,
         )

@@ -44,6 +44,7 @@ def configs():
     net = None
     use_mirror = True
     use_curriculum = True
+    init_curriculum = 0
     steps_threshold = 12
 
     # Sampling parameters
@@ -57,7 +58,6 @@ def configs():
     # Algorithm hyper-parameters
     use_gae = True
     lr_decay_type = "exponential"
-    robot_power_decay_type = "exponential"
     gamma = 0.99
     gae_lambda = 0.95
     lr = 3e-4
@@ -131,9 +131,8 @@ def main(_seed, _config, _run):
     )
 
     if args.use_curriculum:
-        current_curriculum = 0
+        current_curriculum = args.init_curriculum
         max_curriculum = dummy_env.unwrapped.max_curriculum
-        max_steps = dummy_env.unwrapped.n_steps
         envs.set_env_params({"curriculum": current_curriculum})
 
     for iteration in range(num_updates):
