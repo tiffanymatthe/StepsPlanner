@@ -42,10 +42,13 @@ def configs():
     save_every = 1e7
     log_interval = 2
     net = None
+
+    # Env settings
     use_mirror = True
     use_curriculum = True
     init_curriculum = 0
     steps_threshold = 12
+    random_reward = False
 
     # Sampling parameters
     num_frames = 6e7
@@ -81,7 +84,7 @@ def main(_seed, _config, _run):
 
     env_name = args.env
 
-    dummy_env = make_env(env_name, render=False)
+    dummy_env = make_env(env_name, random_reward=args.random_reward, render=False)
 
     cleanup_log_dir(args.log_dir)
 
