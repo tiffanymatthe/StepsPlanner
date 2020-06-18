@@ -85,12 +85,9 @@ def main(_seed, _config, _run):
 
     env_name = args.env
 
-    dummy_env = make_env(
-        env_name,
-        random_reward=args.random_reward,
-        plank_class=args.plank_class,
-        render=False,
-    )
+    env_kwargs = {"random_reward": args.random_reward, "plank_class": args.plank_class}
+
+    dummy_env = make_env(env_name, **env_kwargs)
 
     cleanup_log_dir(args.log_dir)
 
@@ -99,7 +96,9 @@ def main(_seed, _config, _run):
 
     torch.set_num_threads(1)
 
-    envs = make_vec_envs(env_name, args.seed, args.num_processes, args.log_dir)
+    envs = make_vec_envs(
+        env_name, args.seed, args.num_processes, args.log_dir, **env_kwargs
+    )
 
     obs_shape = envs.observation_space.shape
     obs_shape = (obs_shape[0], *obs_shape[1:])
