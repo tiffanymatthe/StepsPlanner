@@ -117,8 +117,10 @@ def main():
                 if args.group:
                     plots[j].fill_between(
                         df[args.row],
-                        smoothing_method(df[column + "_min"]),
-                        smoothing_method(df[column + "_max"]),
+                        # smoothing_method(df[column + "_min"]),
+                        # smoothing_method(df[column + "_max"]),
+                        smoothing_method(df[column] - df[column + "_std"]),
+                        smoothing_method(df[column] + df[column + "_std"]),
                         line_num=i,
                     )
 
@@ -163,7 +165,7 @@ def compute_group_data(data, group_names, row, columns):
         for i, _ in enumerate(dfs):
             dfs[i] = dfs[i].truncate(after=min_ - 1)
 
-    stat_funcs = {"": np.mean, "_min": np.min, "_max": np.max}
+    stat_funcs = {"": np.mean, "_min": np.min, "_max": np.max, "_std": np.std}
 
     for key, dfs in groups.items():
         df_column_names = [row] + [
