@@ -3,14 +3,12 @@ Helper script used for rendering the best learned policy for an existing experim
 
 Usage:
 ```bash
-python -m playground.enjoy with experiment_dir=runs/<EXPERIMENT_DIRECTORY>
-or
-python enjoy.py with env=<ENV> net=<PATH/TO/NET> len=<STEPS>
+python enjoy.py --env <ENV> --dir
+python enjoy.py --env <ENV> --net <PATH/TO/NET> --len <STEPS>
 ```
 """
-
+import argparse
 import os
-from types import SimpleNamespace
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -20,31 +18,28 @@ import torch
 
 from common.envs_utils import make_env
 from common.misc_utils import EpisodeRunner
-from common.sacred_utils import ex
 
 
-@ex.config
-def config():
-    csv = None
-    env = ""
-    len = float("inf")
-    net = None
-    save = False
-    render = True
-    plank_class = "Plank"
-    ffmpeg = False
-    curriculum = None
-    experiment_dir = "."
-    # loads saved configs
-    config_file = os.path.join(experiment_dir, "configs.json")
-    if os.path.exists(config_file):
-        ex.add_config(config_file)
-
-
-@ex.automain
-def main(_config):
-    args = SimpleNamespace(**_config)
-    assert args.env != ""
+def main():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Examples:\n"
+            "   python enjoy.py --env <ENV> --net <NET>\n"
+            "   (Remote) python enjoy.py --env <ENV> --net <NET> --len 1000 --render False --save True\n"
+            "   (Faster) python enjoy.py --env <ENV> --net <NET> --len 1000 --save True --ffmpeg True\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--env", type=str, required=True)
+    parser.add_argument("--net", type=str, required=True)
+    parser.add_argument("--curriculum", type=int, default=None)
+    parser.add_argument("--len", type=int, default=float("inf"))
+    parser.add_argument("--plank_class", type=str, default="Plank")
+    parser.add_argument("--render", type=bool, default=True)
+    parser.add_argument("--save", type=bool, default=False)
+    parser.add_argument("--ffmpeg", type=bool, default=False)
+    parser.add_argument("--csv", type=str, default=None)
+    args = parser.parse_args()
 
     # Save options:
     #   1) render=True ffmpeg=False -> Dump frame by frame using getCameraImage, high quality
@@ -99,3 +94,7 @@ def main(_config):
                 print("--- Episode reward:", ep_reward)
                 ep_reward = 0
                 obs = env.reset(reset_runner=False)
+
+
+if __name__ == "__main__":
+    main()
