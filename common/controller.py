@@ -23,8 +23,8 @@ class DiagGaussian(nn.Module):
     def forward(self, action_mean):
         #  An ugly hack for my KFAC implementation.
         zeros = torch.zeros_like(action_mean)
-        condition = self.logstd._bias.mean() >= -1.5
-        action_logstd = self.logstd(zeros) if condition else zeros - 1.5
+        condition = self.logstd._bias.mean() >= -2.5
+        action_logstd = self.logstd(zeros) if condition else zeros - 2.5
         return FixedNormal(action_mean, action_logstd.exp())
 
 
@@ -163,8 +163,8 @@ class SoftsignActor(nn.Module):
             nn.ReLU(),
             init_r_(nn.Linear(h_size, h_size)),
             nn.ReLU(),
-            init_t_(nn.Linear(h_size, self.action_dim)),
+            nn.Linear(h_size, self.action_dim),
         )
 
     def forward(self, x):
-        return torch.tanh(self.net(x))
+        return torch.sin(self.net(x))
