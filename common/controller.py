@@ -167,4 +167,4 @@ class SoftsignActor(nn.Module):
         )
 
     def forward(self, x):
-        return torch.sin(self.net(x))
+        return torch.tanh(self.net(x))

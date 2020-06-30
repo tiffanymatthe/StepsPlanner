@@ -92,8 +92,8 @@ def main():
 
             if done:
                 print("--- Episode reward:", ep_reward)
-                ep_reward = 0
                 obs = env.reset(reset_runner=False)
+                ep_reward = 0
 
 
 if __name__ == "__main__":
