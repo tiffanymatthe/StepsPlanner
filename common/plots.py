@@ -16,7 +16,7 @@ from matplotlib.colors import Normalize
 import numpy as np
 
 plt.ion()
-matplotlib.use("TkAgg", warn=False, force=True)
+matplotlib.use("TkAgg", force=True)
 
 
 class Plot(object):
