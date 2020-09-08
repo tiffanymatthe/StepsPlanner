@@ -75,7 +75,7 @@ def main():
 
     with EpisodeRunner(env, **runner_options) as runner:
 
-        max_curriculum = env.unwrapped.max_curriculum
+        max_curriculum = getattr(env.unwrapped, "max_curriculum", 10)
         curriculum = args.curriculum if args.curriculum is not None else max_curriculum
         env.set_env_params({"curriculum": int(curriculum)})
 
