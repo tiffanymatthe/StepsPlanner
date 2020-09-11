@@ -25,8 +25,8 @@ def main():
         description=(
             "Examples:\n"
             "   python enjoy.py --env <ENV> --net <NET>\n"
-            "   (Remote) python enjoy.py --env <ENV> --net <NET> --len 1000 --render False --save True\n"
-            "   (Faster) python enjoy.py --env <ENV> --net <NET> --len 1000 --save True --ffmpeg True\n"
+            "   (Remote) python enjoy.py --env <ENV> --net <NET> --len 1000 --render 0 --save 1\n"
+            "   (Faster) python enjoy.py --env <ENV> --net <NET> --len 1000 --save 1 --ffmpeg 1\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -35,9 +35,9 @@ def main():
     parser.add_argument("--curriculum", type=int, default=None)
     parser.add_argument("--len", type=int, default=float("inf"))
     parser.add_argument("--plank_class", type=str, default="Plank")
-    parser.add_argument("--render", type=bool, default=True)
-    parser.add_argument("--save", type=bool, default=False)
-    parser.add_argument("--ffmpeg", type=bool, default=False)
+    parser.add_argument("--render", type=int, default=1)
+    parser.add_argument("--save", type=int, default=0)
+    parser.add_argument("--ffmpeg", type=int, default=0)
     parser.add_argument("--csv", type=str, default=None)
     args = parser.parse_args()
 
