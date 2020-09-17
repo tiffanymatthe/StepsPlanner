@@ -54,7 +54,7 @@ def configs():
     # Sampling parameters
     num_frames = 6e7
     episode_steps = 40000
-    num_processes = 64
+    num_processes = 64 if os.name != "nt" else torch.multiprocessing.cpu_count()
     num_steps = episode_steps // num_processes
     mini_batch_size = 1024
     num_mini_batch = episode_steps // mini_batch_size
@@ -84,6 +84,9 @@ def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
 
     env_name = args.env
+
+    env_name_parts = env_name.split(":")
+    save_name = '-'.join(env_name_parts) if len(env_name_parts) > 1 else env_name
 
     env_kwargs = {"random_reward": args.random_reward, "plank_class": args.plank_class}
 
@@ -210,16 +213,16 @@ def main(_seed, _config, _run):
 
         frame_count = (iteration + 1) * args.num_steps * args.num_processes
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
-            model_name = f"{env_name}_{int(next_checkpoint)}.pt"
+            model_name = f"{save_name}_{int(next_checkpoint)}.pt"
             next_checkpoint += args.save_every
         else:
-            model_name = "{}_latest.pt".format(env_name)
+            model_name = f"{save_name}_latest.pt"
 
         torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
         if len(episode_rewards) > 1 and np.mean(episode_rewards) > max_ep_reward:
             max_ep_reward = np.mean(episode_rewards)
-            torch.save(actor_critic, os.path.join(args.save_dir, f"{env_name}_best.pt"))
+            torch.save(actor_critic, os.path.join(args.save_dir, f"{save_name}_best.pt"))
 
         if len(episode_rewards) > 1:
             end = time.time()
