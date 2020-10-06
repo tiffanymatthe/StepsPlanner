@@ -86,7 +86,7 @@ def main(_seed, _config, _run):
     env_name = args.env
 
     env_name_parts = env_name.split(":")
-    save_name = '-'.join(env_name_parts) if len(env_name_parts) > 1 else env_name
+    save_name = "-".join(env_name_parts) if len(env_name_parts) > 1 else env_name
 
     env_kwargs = {"random_reward": args.random_reward, "plank_class": args.plank_class}
 
@@ -222,7 +222,8 @@ def main(_seed, _config, _run):
 
         if len(episode_rewards) > 1 and np.mean(episode_rewards) > max_ep_reward:
             max_ep_reward = np.mean(episode_rewards)
-            torch.save(actor_critic, os.path.join(args.save_dir, f"{save_name}_best.pt"))
+            model_name = f"{save_name}_best.pt"
+            torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
         if len(episode_rewards) > 1:
             end = time.time()
