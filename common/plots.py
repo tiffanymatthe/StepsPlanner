@@ -146,7 +146,7 @@ class LinePlot(Plot):
 
     def update(self, points, line_num=0):
         """
-            points: should have the shape (N*2) and consist of x,y coordinates
+        points: should have the shape (N*2) and consist of x,y coordinates
         """
         self.sc[line_num].set_data(points[:, 0], points[:, 1])
         self.xlim = [
@@ -202,8 +202,8 @@ class ScatterPlot(Plot):
 
     def update(self, points, values):
         """
-            points: should have the shape (N*2) and consist of x,y coordinates
-            values: should have the shape (N) and consist of the values at these coordinates (i.e. points)
+        points: should have the shape (N*2) and consist of x,y coordinates
+        values: should have the shape (N) and consist of the values at these coordinates (i.e. points)
         """
         # self.sc.set_offsets(np.c_[x,y])
         self.sc.set_offsets(points)
@@ -253,8 +253,8 @@ class SurfacePlot(Plot):
 
     def update(self, X, Y, Z):
         """
-            points: should have the shape (N*2) and consist of x,y coordinates
-            values: should have the shape (N) and consist of the values at these coordinates (i.e. points)
+        points: should have the shape (N*2) and consist of x,y coordinates
+        values: should have the shape (N) and consist of the values at these coordinates (i.e. points)
         """
         # self.sc.set_offsets(np.c_[x,y])
         self.sc.remove()
@@ -280,8 +280,8 @@ class QuiverPlot(Plot):
 
     def update(self, points, dirs):
         """
-            points: should have the shape (N*2) and consist of x,y coordinates
-            values: should have the shape (N*2) and consist of the vector values in these coordinates (i.e. points)
+        points: should have the shape (N*2) and consist of x,y coordinates
+        values: should have the shape (N*2) and consist of the vector values in these coordinates (i.e. points)
         """
         self.sc.set_offsets(points)
         U, V = np.array(dirs).transpose()

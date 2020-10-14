@@ -75,7 +75,11 @@ class PPO(object):
                         adv_targ,
                     ) = sample
 
-                values, action_log_probs, dist_entropy = self.actor_critic.evaluate_actions(
+                (
+                    values,
+                    action_log_probs,
+                    dist_entropy,
+                ) = self.actor_critic.evaluate_actions(
                     observations_batch, actions_batch
                 )
 
