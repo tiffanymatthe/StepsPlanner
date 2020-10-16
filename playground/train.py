@@ -36,18 +36,9 @@ from common.sacred_utils import ex, init
 def configs():
     env = "mocca_envs:Walker3DStepperEnv-v0"
 
-    # Auxiliary configurations
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    seed = 16
-    save_every = 1e7
-    log_interval = 2
-    net = None
-
     # Env settings
     use_mirror = True
     use_curriculum = True
-    init_curriculum = 0
-    steps_threshold = 12
     random_reward = False
     plank_class = "LargePlank"
 
@@ -58,6 +49,13 @@ def configs():
     num_steps = episode_steps // num_processes
     mini_batch_size = 1024
     num_mini_batch = episode_steps // mini_batch_size
+
+    # Auxiliary configurations
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    seed = 16
+    save_every = int(num_frames // 5)
+    log_interval = 2
+    net = None
 
     # Algorithm hyper-parameters
     use_gae = True
@@ -128,15 +126,16 @@ def main(_seed, _config, _run):
 
     # This has to be done before reset
     if args.use_curriculum:
-        current_curriculum = args.init_curriculum
+        current_curriculum = dummy_env.unwrapped.curriculum
         max_curriculum = dummy_env.unwrapped.max_curriculum
+        advance_threshold = dummy_env.unwrapped.advance_threshold
         envs.set_env_params({"curriculum": current_curriculum})
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
-    num_steps_reached = deque(maxlen=args.num_processes)
+    curriculum_metric = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -177,8 +176,8 @@ def main(_seed, _config, _run):
                     # This information is added by common.envs_utils.Monitor
                     if "episode" in info:
                         episode_rewards.append(info["episode"]["r"])
-                    if "steps_reached" in info:
-                        num_steps_reached.append(info["steps_reached"])
+                    if "curriculum_metric" in info:
+                        curriculum_metric.append(info["curriculum_metric"])
 
                 masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
                 bad_masks = torch.from_numpy(bad_masks)
@@ -198,8 +197,8 @@ def main(_seed, _config, _run):
             # Update curriculum after roll-out
             if (
                 args.use_curriculum
-                and len(num_steps_reached) > 0
-                and np.mean(num_steps_reached) > args.steps_threshold
+                and len(curriculum_metric) > 0
+                and np.mean(curriculum_metric) > advance_threshold
                 and current_curriculum < max_curriculum
             ):
                 current_curriculum += 1
@@ -231,7 +230,7 @@ def main(_seed, _config, _run):
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
-                    "steps_reached": np.mean(num_steps_reached),
+                    "curriculum_metric": np.mean(curriculum_metric),
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,
