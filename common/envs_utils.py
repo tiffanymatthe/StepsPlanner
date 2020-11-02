@@ -26,10 +26,7 @@ def make_env_fns(env_id, seed, rank, log_dir, **kwargs):
         if str(env.__class__.__name__).find("TimeLimit") >= 0:
             env = TimeLimitMask(env)
 
-        if log_dir is not None:
-            env = Monitor(
-                env, os.path.join(log_dir, str(rank)), allow_early_resets=True
-            )
+        env = Monitor(env, None, allow_early_resets=True)
 
         return env
 

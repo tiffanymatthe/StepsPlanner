@@ -64,7 +64,7 @@ def main():
     actor_critic = torch.load(model_path).to("cpu")
 
     # Set global no_grad
-    torch._C.set_grad_enabled(False)
+    torch.set_grad_enabled(False)
 
     runner_options = {
         "save": args.save,
