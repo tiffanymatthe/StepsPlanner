@@ -45,7 +45,7 @@ def configs():
     # Sampling parameters
     num_frames = 6e7
     episode_steps = 40000
-    num_processes = 128 if os.name != "nt" else torch.multiprocessing.cpu_count()
+    num_processes = 125 if os.name != "nt" else torch.multiprocessing.cpu_count()
     num_steps = episode_steps // num_processes
     mini_batch_size = 1024
     num_mini_batch = episode_steps // mini_batch_size
