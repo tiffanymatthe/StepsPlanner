@@ -6,11 +6,11 @@ import os
 import time
 import types
 
+from numba import njit
 import numpy as np
-import numba as nb
 
 
-@nb.njit(fastmath=True)
+@njit(fastmath=True)
 def numba_norm2_2d(a, out):
     for row in range(a.shape[0]):
         sum = 0
@@ -19,7 +19,7 @@ def numba_norm2_2d(a, out):
         out[row] = np.sqrt(sum)
 
 
-@nb.njit(fastmath=True)
+@njit(fastmath=True)
 def numba_norm2(a):
     sum = 0
     for i in range(len(a)):
@@ -27,7 +27,7 @@ def numba_norm2(a):
     return sum
 
 
-@nb.njit(fastmath=True)
+@njit(fastmath=True)
 def numba_finite_all(a):
     return np.isfinite(a).all()
 
