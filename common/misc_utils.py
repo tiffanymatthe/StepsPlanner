@@ -102,10 +102,7 @@ class EpisodeRunner(object):
         def new_step(self, *args):
             ret = old_step_func(*args)
 
-            if runner.use_ffmpeg:
-                pc = self.camera._p
-                pc.configureDebugVisualizer(pc.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
-            else:
+            if not runner.use_ffmpeg:
                 runner.store_current_frame()
 
             runner.save_csv_render_data()
