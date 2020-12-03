@@ -6,30 +6,7 @@ import os
 import time
 import types
 
-from numba import njit
 import numpy as np
-
-
-@njit(fastmath=True)
-def numba_norm2_2d(a, out):
-    for row in range(a.shape[0]):
-        sum = 0
-        for col in range(a.shape[1]):
-            sum += np.square(a[row, col])
-        out[row] = np.sqrt(sum)
-
-
-@njit(fastmath=True)
-def numba_norm2(a):
-    sum = 0
-    for i in range(len(a)):
-        sum += np.square(a[i])
-    return sum
-
-
-@njit(fastmath=True)
-def numba_finite_all(a):
-    return np.isfinite(a).all()
 
 
 class StringEnum(tuple):
