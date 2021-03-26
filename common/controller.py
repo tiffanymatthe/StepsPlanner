@@ -168,3 +168,84 @@ class SoftsignActor(nn.Module):
 
     def forward(self, x):
         return torch.tanh(self.net(x))
+
+
+class MixedActor(nn.Module):
+    def __init__(
+        self,
+        env,
+        num_experts=1,
+    ):
+        super().__init__()
+
+        self.state_dim = env.observation_space.shape[0]
+        self.action_dim = env.action_space.shape[0]
+        self.num_experts = num_experts
+
+        input_size = self.state_dim
+        output_size = self.action_dim
+        hidden_size = 256
+
+        self.decoder_layers = [
+            (
+                nn.Parameter(torch.empty(num_experts, input_size, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                F.softsign,
+            ),
+            (
+                nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                F.softsign,
+            ),
+            (
+                nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                F.softsign,
+            ),
+            (
+                nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                F.relu,
+            ),
+            (
+                nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                F.relu,
+            ),
+            (
+                nn.Parameter(torch.empty(num_experts, hidden_size, output_size)),
+                nn.Parameter(torch.zeros(num_experts, output_size)),
+                torch.tanh,
+            ),
+        ]
+
+        for index, (weight, bias, _) in enumerate(self.decoder_layers):
+            torch.nn.init.kaiming_uniform_(weight)
+            # bias.data.fill_(0)
+            self.register_parameter(f"w{index}", weight)
+            self.register_parameter(f"b{index}", bias)
+
+        # Gating network
+        gate_hsize = 64
+        self.gate = nn.Sequential(
+            nn.Linear(input_size, gate_hsize),
+            nn.ELU(),
+            nn.Linear(gate_hsize, gate_hsize),
+            nn.ELU(),
+            nn.Linear(gate_hsize, num_experts),
+        )
+
+    def forward(self, x):
+        coefficients = F.softmax(self.gate(x), dim=1)
+        batch_size = coefficients.shape[0]
+        x = x.unsqueeze(1)
+
+        for (weight, bias, activation) in self.decoder_layers:
+            flat_weight = weight.flatten(start_dim=1, end_dim=2)
+            mixed_weight = coefficients.matmul(flat_weight).view(
+                batch_size, *weight.shape[1:3]
+            )
+            mixed_bias = coefficients.matmul(bias).unsqueeze(1)
+            x = activation(torch.baddbmm(mixed_bias, x, mixed_weight))
+
+        return torch.tanh(x.squeeze(1))

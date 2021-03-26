@@ -20,7 +20,7 @@ import torch
 
 from algorithms.ppo import PPO
 from algorithms.storage import RolloutStorage
-from common.controller import SoftsignActor, Policy
+from common.controller import SoftsignActor, MixedActor, Policy
 from common.envs_utils import (
     make_env,
     make_vec_envs,
@@ -40,6 +40,9 @@ def configs():
     use_mirror = True
     use_curriculum = True
     plank_class = "LargePlank"
+
+    # Network settings
+    actor_class = "SoftsignActor"
 
     # Sampling parameters
     num_frames = 6e7
@@ -108,6 +111,8 @@ def main(_seed, _config, _run):
         print(f"Loading model {args.net}")
         actor_critic = torch.load(args.net)
     else:
+        actor_class = globals().get(args.actor_class)
+        print(f"Actor Class: {actor_class}")
         controller = SoftsignActor(dummy_env)
         actor_critic = Policy(controller)
 

@@ -1,3 +1,0 @@
-[submodule ".environments"]
-	path = .environments
-	url = git@github.com:UBCMOCCA/mocca_envs.git
