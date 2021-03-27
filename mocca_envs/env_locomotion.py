@@ -55,7 +55,8 @@ class Walker3DCustomEnv(EnvBase):
         self.stall_torque_cost = 0.225
         self.joints_at_limit_cost = 0.1
 
-        high = np.inf * np.ones(self.robot.observation_space.shape[0] + 2)
+        R = self.robot.observation_space.shape[0]
+        high = np.inf * np.ones(R + 2, dtype=np.float32)
         self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
         self.action_space = self.robot.action_space
 

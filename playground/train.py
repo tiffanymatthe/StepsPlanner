@@ -113,7 +113,7 @@ def main(_seed, _config, _run):
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
-        controller = SoftsignActor(dummy_env)
+        controller = actor_class(dummy_env)
         actor_critic = Policy(controller)
 
     actor_critic = actor_critic.to(args.device)

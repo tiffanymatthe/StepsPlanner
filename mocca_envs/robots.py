@@ -48,12 +48,12 @@ class WalkerBase:
         self.base_power = power
 
         self.action_dim = len(self.power_coef)
-        high = np.ones(self.action_dim)
+        high = np.ones(self.action_dim, dtype=np.float32)
         self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 
         # globals + angles + speeds + contacts
         self.state_dim = 6 + self.action_dim * 2 + len(self.foot_names)
-        high = np.inf * np.ones(self.state_dim)
+        high = np.inf * np.ones(self.state_dim, dtype=np.float32)
         self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
 
         self.joint_angles, self.joint_speeds = np.zeros(

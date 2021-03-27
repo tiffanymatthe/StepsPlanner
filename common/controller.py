@@ -174,7 +174,7 @@ class MixedActor(nn.Module):
     def __init__(
         self,
         env,
-        num_experts=1,
+        num_experts=4,
     ):
         super().__init__()
 
@@ -186,66 +186,77 @@ class MixedActor(nn.Module):
         output_size = self.action_dim
         hidden_size = 256
 
-        self.decoder_layers = [
+        self.layers = [
             (
                 nn.Parameter(torch.empty(num_experts, input_size, hidden_size)),
-                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                # Avoid unsqueeze in the future, otherwise 1 has no meaning.
+                nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
                 F.softsign,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
-                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
                 F.softsign,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
-                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
                 F.softsign,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
-                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
                 F.relu,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
-                nn.Parameter(torch.zeros(num_experts, hidden_size)),
+                nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
                 F.relu,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, output_size)),
-                nn.Parameter(torch.zeros(num_experts, output_size)),
+                nn.Parameter(torch.zeros(num_experts, 1, output_size)),
                 torch.tanh,
             ),
         ]
 
-        for index, (weight, bias, _) in enumerate(self.decoder_layers):
-            torch.nn.init.kaiming_uniform_(weight)
+        for index, (weight, bias, activation) in enumerate(self.layers):
+
+            # Initialize each expert separately
+            if activation == F.softsign:
+                gain = nn.init.calculate_gain("sigmoid")
+            elif activation == F.relu:
+                gain = nn.init.calculate_gain("relu")
+            elif activation == torch.tanh:
+                gain = nn.init.calculate_gain("tanh")
+            else:
+                gain = 1.0
+
+            for w in weight:
+                nn.init.orthogonal_(w, gain=gain)
+
             # bias.data.fill_(0)
             self.register_parameter(f"w{index}", weight)
             self.register_parameter(f"b{index}", bias)
 
         # Gating network
-        gate_hsize = 64
         self.gate = nn.Sequential(
-            nn.Linear(input_size, gate_hsize),
+            init_r_(nn.Linear(input_size, hidden_size)),
             nn.ELU(),
-            nn.Linear(gate_hsize, gate_hsize),
+            init_r_(nn.Linear(hidden_size, hidden_size)),
             nn.ELU(),
-            nn.Linear(gate_hsize, num_experts),
+            init_r_(nn.Linear(hidden_size, num_experts)),
         )
 
     def forward(self, x):
-        coefficients = F.softmax(self.gate(x), dim=1)
-        batch_size = coefficients.shape[0]
-        x = x.unsqueeze(1)
+        coefficients = F.softmax(self.gate(x), dim=1).transpose(0, 1).unsqueeze(-1)
 
-        for (weight, bias, activation) in self.decoder_layers:
-            flat_weight = weight.flatten(start_dim=1, end_dim=2)
-            mixed_weight = coefficients.matmul(flat_weight).view(
-                batch_size, *weight.shape[1:3]
+        for (weight, bias, activation) in self.layers:
+            x = activation(
+                x.matmul(weight)  # (N, B, H), B = Batch, H = hidden
+                .add(bias)  # (N, B, H)
+                .mul(coefficients)  # (B, H)
+                .sum(dim=0)
             )
-            mixed_bias = coefficients.matmul(bias).unsqueeze(1)
-            x = activation(torch.baddbmm(mixed_bias, x, mixed_weight))
 
-        return torch.tanh(x.squeeze(1))
+        return x
