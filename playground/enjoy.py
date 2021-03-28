@@ -16,6 +16,7 @@ os.sys.path.append(parent_dir)
 
 import torch
 
+from common.controller import MixedActor
 from common.envs_utils import make_env
 from common.misc_utils import EpisodeRunner
 
@@ -62,6 +63,26 @@ def main():
     print("Model: {}".format(os.path.basename(model_path)))
 
     actor_critic = torch.load(model_path).to("cpu")
+    actor = actor_critic.actor
+
+    if type(actor) == MixedActor:
+        from mocca_utils.plots.visplot import Figure, TimeSeriesPlot
+        import matplotlib.cm as mpl_color
+        import numpy as np
+
+        fig = Figure(size=(400, 400), decorate=True, title="Expert Activations")
+        ts_plot = TimeSeriesPlot(
+            figure=fig,
+            tile_rows=slice(0, 1),
+            tile_cols=slice(0, 1),
+            ylim=[-0.2, 1.2],
+            window_size=500,
+            num_lines=actor.num_experts + 2,
+            y_axis_options={}
+        )
+
+        cmap = mpl_color.get_cmap("tab20")
+        colours = cmap(np.linspace(0, 1, actor.num_experts))
 
     # Set global no_grad
     torch.set_grad_enabled(False)
@@ -86,6 +107,15 @@ def main():
             obs = torch.from_numpy(obs).float().unsqueeze(0)
             value, action, _ = actor_critic.act(obs, deterministic=True)
             cpu_actions = action.squeeze().cpu().numpy()
+
+            if type(actor) == MixedActor:
+                expert_activations = torch.softmax(actor.gate(obs), dim=-1).squeeze().cpu()
+                for eid, (a, c) in enumerate(zip(expert_activations, colours)):
+                    ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
+                ts_plot.add_point(0, len(expert_activations))
+                ts_plot.add_point(1, len(expert_activations) + 1)
+                fig.redraw()
+
 
             obs, reward, done, _ = env.step(cpu_actions)
             ep_reward += reward
