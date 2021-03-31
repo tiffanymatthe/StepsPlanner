@@ -45,9 +45,8 @@ def make_vec_envs(env_id, seed, num_processes, log_dir, **kwargs):
         make_env_fns(env_id, seed, i, log_dir, **kwargs) for i in range(num_processes)
     ]
 
-    # Windows does not have fork(), so handle separately
-    context = "spawn" if os.name == "nt" else "fork"
-    envs = ShmemVecEnv(env_fns, context=context)
+    # Using 'spawn' is more robust than 'fork'
+    envs = ShmemVecEnv(env_fns, context="spawn")
     return envs
 
 

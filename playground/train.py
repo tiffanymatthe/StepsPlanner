@@ -15,6 +15,7 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
 os.sys.path.insert(0, parent_dir)
 
+from bottleneck import nanmean
 import numpy as np
 import torch
 
@@ -38,11 +39,12 @@ def configs():
 
     # Env settings
     use_mirror = True
-    use_curriculum = True
+    use_curriculum = False
     plank_class = "LargePlank"
 
     # Network settings
     actor_class = "SoftsignActor"
+    fix_experts = False
 
     # Sampling parameters
     num_frames = 6e7
@@ -110,6 +112,23 @@ def main(_seed, _config, _run):
     if args.net is not None:
         print(f"Loading model {args.net}")
         actor_critic = torch.load(args.net)
+
+        # Disable gradients for experts
+        # Only gating network should be trainable
+        # Also reinitialize gating network weights
+        actor = actor_critic.actor
+        if args.fix_experts and type(actor) == MixedActor:
+            print("Disable gradients for experts")
+            for weight, bias, _ in actor.layers:
+                weight.requires_grad = False
+                bias.requires_grad = False
+
+            def reinit_module(m):
+                if type(m) == torch.nn.Linear:
+                    m.reset_parameters()
+
+            actor.gate.apply(reinit_module)
+
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
@@ -167,12 +186,12 @@ def main(_seed, _config, _run):
                 value, action, action_log_prob = actor_critic.act(
                     rollouts.observations[step]
                 )
-                cpu_actions = action.squeeze(1).cpu().numpy()
+                cpu_actions = action.cpu().numpy()
 
-                obs, reward, done, infos = envs.step(cpu_actions)
-                reward = torch.from_numpy(np.expand_dims(np.stack(reward), 1)).float()
+                obs, rewards, dones, infos = envs.step(cpu_actions)
 
-                bad_masks = np.ones((args.num_processes, 1))
+                masks = torch.FloatTensor(~dones).unsqueeze(1)
+                bad_masks = torch.ones((args.num_processes, 1))
                 for p_index, info in enumerate(infos):
                     # This information is added by common.envs_utils.TimeLimitMask
                     if "bad_transition" in info:
@@ -183,15 +202,12 @@ def main(_seed, _config, _run):
                     if "curriculum_metric" in info:
                         curriculum_metric.append(info["curriculum_metric"])
 
-                masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
-                bad_masks = torch.from_numpy(bad_masks)
-
                 rollouts.insert(
                     torch.from_numpy(obs),
                     action,
                     action_log_prob,
                     value,
-                    reward,
+                    torch.from_numpy(rewards).float().unsqueeze(1),
                     masks,
                     bad_masks,
                 )
@@ -202,7 +218,7 @@ def main(_seed, _config, _run):
             if (
                 args.use_curriculum
                 and len(curriculum_metric) > 0
-                and np.mean(curriculum_metric) > advance_threshold
+                and nanmean(curriculum_metric) > advance_threshold
                 and current_curriculum < max_curriculum
             ):
                 current_curriculum += 1
@@ -223,18 +239,19 @@ def main(_seed, _config, _run):
 
         torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
-        if len(episode_rewards) > 1 and np.mean(episode_rewards) > max_ep_reward:
-            max_ep_reward = np.mean(episode_rewards)
+        if len(episode_rewards) > 1 and nanmean(episode_rewards) > max_ep_reward:
+            max_ep_reward = nanmean(episode_rewards)
             model_name = f"{save_name}_best.pt"
             torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
         if len(episode_rewards) > 1:
             end = time.time()
+            mean_metric = nanmean(curriculum_metric) if args.use_curriculum else 0
             logger.log_epoch(
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
-                    "curriculum_metric": np.mean(curriculum_metric),
+                    "curriculum_metric": mean_metric,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,

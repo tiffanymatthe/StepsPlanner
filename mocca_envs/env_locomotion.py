@@ -1,7 +1,7 @@
 from math import sin, cos, atan2, sqrt
 import os
 
-from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin
+from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin, nanmean
 import gym
 from numba import njit
 import numpy as np
@@ -44,7 +44,6 @@ class Walker3DCustomEnv(EnvBase):
     def __init__(self, **kwargs):
         super().__init__(self.robot_class, **kwargs)
         self.robot.set_base_pose(pose="running_start")
-        self.eval_mode = False
 
         # Fix-ordered Curriculum, dummies
         self.curriculum = 1
@@ -66,24 +65,24 @@ class Walker3DCustomEnv(EnvBase):
         self.target = VSphere(self._p, radius=0.15, pos=None)
 
     def randomize_target(self):
-        if self.eval_mode:
-            self.dist = 4
-            self.angle = 0
-        else:
-            self.dist = self.np_random.uniform(3, 5)
-            self.angle = self.np_random.uniform(-np.pi / 2, np.pi / 2)
+        self.dist = self.np_random.uniform(3, 5)
+        self.angle = self.np_random.uniform(-np.pi / 2, np.pi / 2)
         self.stop_frames = self.np_random.choice([30.0, 60.0])
 
-    def evaluation_mode(self):
-        self.eval_mode = True
+    def get_observation_components(self):
+        sin_ = self.distance_to_target * sin(self.angle_to_target)
+        sin_ = sin_ / (1 + abs(sin_))
+        cos_ = self.distance_to_target * cos(self.angle_to_target)
+        cos_ = cos_ / (1 + abs(cos_))
+        return self.robot_state, [sin_, cos_]
 
     def reset(self):
         self.done = False
-        self.add_angular_progress = True
         self.randomize_target()
 
-        self.walk_target = np.array(
-            [self.dist * cos(self.angle), self.dist * sin(self.angle), 1.0]
+        self.walk_target = np.fromiter(
+            [self.dist * cos(self.angle), self.dist * sin(self.angle), 1.0],
+            dtype=np.float32,
         )
         self.close_count = 0
 
@@ -100,12 +99,8 @@ class Walker3DCustomEnv(EnvBase):
 
         self.calc_potential()
 
-        sin_ = self.distance_to_target * sin(self.angle_to_target)
-        sin_ = sin_ / (1 + abs(sin_))
-        cos_ = self.distance_to_target * cos(self.angle_to_target)
-        cos_ = cos_ / (1 + abs(cos_))
-
-        state = concatenate((self.robot_state, [sin_], [cos_]))
+        # call after on calc_potential and robot.calc_state()
+        state = concatenate(self.get_observation_components())
 
         return state
 
@@ -113,21 +108,14 @@ class Walker3DCustomEnv(EnvBase):
         self.robot.apply_action(action)
         self.scene.global_step()
 
-        if self.eval_mode:
-            self.walk_target = np.array([self.robot.body_xyz[0] + 4, 0, 1.0])
-
         self.robot_state = self.robot.calc_state(self.ground_ids)
         self.calc_env_state(action)
 
         reward = self.progress + self.target_bonus - self.energy_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
 
-        sin_ = self.distance_to_target * sin(self.angle_to_target)
-        sin_ = sin_ / (1 + abs(sin_))
-        cos_ = self.distance_to_target * cos(self.angle_to_target)
-        cos_ = cos_ / (1 + abs(cos_))
-
-        state = concatenate((self.robot_state, [sin_], [cos_]))
+        # call after on calc_potential and robot.calc_state()
+        state = concatenate(self.get_observation_components())
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard()
@@ -143,7 +131,7 @@ class Walker3DCustomEnv(EnvBase):
 
     def calc_potential(self):
 
-        walk_target_theta = np.arctan2(
+        walk_target_theta = atan2(
             self.walk_target[1] - self.robot.body_xyz[1],
             self.walk_target[0] - self.robot.body_xyz[0],
         )
@@ -153,25 +141,15 @@ class Walker3DCustomEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
 
         self.linear_potential = -self.distance_to_target / self.scene.dt
-        self.angular_potential = cos(self.angle_to_target)
 
     def calc_base_reward(self, action):
 
         # Bookkeeping stuff
         old_linear_potential = self.linear_potential
-        old_angular_potential = self.angular_potential
-
         self.calc_potential()
-
-        if self.distance_to_target < 1:
-            self.add_angular_progress = False
-
         linear_progress = self.linear_potential - old_linear_potential
-        angular_progress = self.angular_potential - old_angular_potential
 
         self.progress = linear_progress
-        # if self.add_angular_progress:
-        #     self.progress += 100 * angular_progress
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -181,9 +159,9 @@ class Walker3DCustomEnv(EnvBase):
             self.posture_penalty += abs(self.robot.body_rpy[0])
 
         self.energy_penalty = self.electricity_cost * float(
-            np.abs(action * self.robot.joint_speeds).mean()
+            nanmean(np.abs(action * self.robot.joint_speeds))
         )
-        self.energy_penalty += self.stall_torque_cost * float(np.square(action).mean())
+        self.energy_penalty += self.stall_torque_cost * float(ss(action) / len(action))
 
         self.joints_penalty = float(
             self.joints_at_limit_cost * self.robot.joints_at_limit
@@ -211,9 +189,10 @@ class Walker3DCustomEnv(EnvBase):
 
         if self.close_count >= self.stop_frames:
             self.close_count = 0
-            self.add_angular_progress = True
             self.randomize_target()
-            delta = self.dist * np.array([cos(self.angle), sin(self.angle), 0.0])
+            delta = self.dist * np.fromiter(
+                [cos(self.angle), sin(self.angle), 0.0], dtype=np.float32
+            )
             self.walk_target += delta
             self.calc_potential()
 

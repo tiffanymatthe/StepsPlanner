@@ -67,7 +67,7 @@ def main():
     actor = actor_critic.actor
 
     if type(actor) == MixedActor and args.plot:
-        from mocca_utils.plots.visplot import Figure, TimeSeriesPlot, ScatterPlot
+        from mocca_utils.plots.visplot import Figure, TimeSeriesPlot
         import matplotlib.cm as mpl_color
         import numpy as np
 
@@ -110,7 +110,9 @@ def main():
             cpu_actions = action.squeeze().cpu().numpy()
 
             if type(actor) == MixedActor and args.plot:
-                expert_activations = torch.softmax(actor.gate(obs), dim=-1).squeeze().cpu()
+                expert_activations = (
+                    torch.softmax(actor.gate(obs), dim=-1).squeeze().cpu()
+                )
                 for eid, (a, c) in enumerate(zip(expert_activations, colours)):
                     ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
                 ts_plot.add_point(0, len(expert_activations))

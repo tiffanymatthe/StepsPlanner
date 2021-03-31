@@ -338,7 +338,7 @@ class Scene:
         The idea is: apply motor torques for all robots, then call global_step(), then collect
         observations from robots using step() with the same action.
         """
-        self.cpp_world.step(self.frame_skip)
+        self.cpp_world.step()
 
 
 class World:
@@ -359,8 +359,8 @@ class World:
             numSubSteps=self.frame_skip,
         )
 
-    def step(self, frame_skip):
-        self._p.stepSimulation()
+    def step(self):
+        pybullet.stepSimulation(physicsClientId=self._p._client)
 
 
 class StadiumScene(Scene):

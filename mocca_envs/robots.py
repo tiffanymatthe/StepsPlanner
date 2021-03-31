@@ -4,36 +4,18 @@ import os
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
 from bottleneck import nanmin
+from scipy.linalg.blas import sgemv as GEMV
+from scipy.linalg.blas import sscal as SCAL
+
 import gym
 from numba import njit
 import numpy as np
 from numpy import concatenate
-import scipy.linalg
 import pybullet
 
 from mocca_envs.bullet_utils import BodyPart, Joint
 
 DEG2RAD = np.pi / 180
-FSCAL = scipy.linalg.get_blas_funcs("scal", arrays=(np.array(1, dtype=np.float32),))
-# FCOPY = scipy.linalg.get_blas_funcs("copy", arrays=(np.array(1, dtype=np.float32),))
-# FAXPY = scipy.linalg.get_blas_funcs("axpy", arrays=(np.array(1, dtype=np.float32),))
-
-
-@njit(fastmath=True)
-def count_nonzero_abs(a, b):
-    count = 0
-    for i in range(len(a)):
-        count += abs(a[i]) > b
-    return count
-
-
-@njit(fastmath=True)
-def clip(a, amin, amax):
-    for i in range(len(a)):
-        if a[i] > amax:
-            a[i] = amax
-        elif a[i] < amin:
-            a[i] = amin
 
 
 class WalkerBase:
@@ -62,7 +44,7 @@ class WalkerBase:
         self.normalized_joint_angles = np.zeros_like(self.joint_angles)
 
     def apply_action(self, a):
-        forces = self.matrix_joint_base_gains.dot(a).dot(self.applied_gain)
+        forces = GEMV(self.applied_gain, self.matrix_joint_base_gains, a)
         pybullet.setJointMotorControlArray(
             bodyUniqueId=self.id,
             jointIndices=self.ordered_joint_ids,
@@ -73,15 +55,6 @@ class WalkerBase:
 
     def calc_state(self, contact_object_ids=None):
 
-        # Use pybullet's array version, should be faster
-        # joint_info = pybullet.getJointStates(
-        #     self.id, self.ordered_joint_ids, physicsClientId=self._p._client
-        # )
-        #
-        # joint_angle_and_vel = np.array([j[0:2] for j in joint_info], dtype=np.float32)
-        # self.joint_angles = joint_angle_and_vel[:, 0]
-        # self.joint_speeds = 0.1 * joint_angle_and_vel[:, 1]
-
         pybullet.getJointStates2(
             self.id,
             self.ordered_joint_ids,
@@ -89,10 +62,12 @@ class WalkerBase:
             self.joint_speeds,
             physicsClientId=self._p._client,
         )
-        FSCAL(0.1, self.joint_speeds)
+        SCAL(0.1, self.joint_speeds)
 
         self.to_normalized(self.joint_angles, self.normalized_joint_angles)
-        self.joints_at_limit = count_nonzero_abs(self.normalized_joint_angles, 0.99)
+        self.joints_at_limit = np.count_nonzero(
+            np.abs(self.normalized_joint_angles) > 0.99
+        )
 
         if self.root_and_foot_ids is not None:
             link_states = pybullet.getLinkStates(
@@ -133,26 +108,16 @@ class WalkerBase:
         vx, vy, vz = self.body_vel
 
         if contact_object_ids is not None:
-            self.feet_contact = np.array(
-                [
-                    min(
-                        len(
-                            contact_object_ids
-                            & set((x[2], x[4]) for x in f.contact_list())
-                        ),
-                        1,
-                    )
-                    for f in self.feet
-                ]
-            )
+            for index, f in enumerate(self.feet):
+                contacts = set((x[2], x[4]) for x in f.contact_list())
+                self.feet_contact[index] = float(bool(contact_object_ids & contacts))
 
         # bottleneck is faster if data is ndarray, otherwise use built-in min()
         height = self.body_xyz[2] - nanmin(self.feet_xyz[:, 2])
 
         # Faster than np.clip()
-        clip(self.joint_speeds, -5, 5)
-        # self.joint_speeds[self.joint_speeds < -5] = -5
-        # self.joint_speeds[self.joint_speeds > +5] = +5
+        self.joint_speeds[self.joint_speeds < -5] = -5
+        self.joint_speeds[self.joint_speeds > +5] = +5
 
         state = concatenate(
             (
