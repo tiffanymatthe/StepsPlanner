@@ -174,7 +174,7 @@ class MixedActor(nn.Module):
     def __init__(
         self,
         env,
-        num_experts=4,
+        num_experts=6,
     ):
         super().__init__()
 
@@ -182,13 +182,16 @@ class MixedActor(nn.Module):
         self.action_dim = env.action_space.shape[0]
         self.num_experts = num_experts
 
-        input_size = self.state_dim
+        self.robot_state_dim = env.robot.observation_space.shape[0]
+
+        expert_input_size = self.robot_state_dim
+        gate_input_size = self.state_dim
         output_size = self.action_dim
         hidden_size = 256
 
         self.layers = [
             (
-                nn.Parameter(torch.empty(num_experts, input_size, hidden_size)),
+                nn.Parameter(torch.empty(num_experts, expert_input_size, hidden_size)),
                 # Avoid unsqueeze in the future, otherwise 1 has no meaning.
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
                 F.softsign,
@@ -241,7 +244,9 @@ class MixedActor(nn.Module):
 
         # Gating network
         self.gate = nn.Sequential(
-            init_r_(nn.Linear(input_size, hidden_size)),
+            init_r_(nn.Linear(gate_input_size, hidden_size)),
+            nn.ELU(),
+            init_r_(nn.Linear(hidden_size, hidden_size)),
             nn.ELU(),
             init_r_(nn.Linear(hidden_size, hidden_size)),
             nn.ELU(),
@@ -250,13 +255,14 @@ class MixedActor(nn.Module):
 
     def forward(self, x):
         coefficients = F.softmax(self.gate(x), dim=1).transpose(0, 1).unsqueeze(-1)
+        out = x[:, : self.robot_state_dim]
 
         for (weight, bias, activation) in self.layers:
-            x = activation(
-                x.matmul(weight)  # (N, B, H), B = Batch, H = hidden
+            out = activation(
+                out.matmul(weight)  # (N, B, H), B = Batch, H = hidden
                 .add(bias)  # (N, B, H)
                 .mul(coefficients)  # (B, H)
                 .sum(dim=0)
             )
 
-        return x
+        return out

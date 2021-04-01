@@ -234,15 +234,13 @@ def main(_seed, _config, _run):
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
             model_name = f"{save_name}_{int(next_checkpoint)}.pt"
             next_checkpoint += args.save_every
-        else:
-            model_name = f"{save_name}_latest.pt"
-
-        torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+            torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
         if len(episode_rewards) > 1 and nanmean(episode_rewards) > max_ep_reward:
             max_ep_reward = nanmean(episode_rewards)
             model_name = f"{save_name}_best.pt"
             torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+            torch.save(agent.optimizer, os.path.join(args.save_dir, model_name + ".optim"))
 
         if len(episode_rewards) > 1:
             end = time.time()

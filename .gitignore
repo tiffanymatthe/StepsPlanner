@@ -4,6 +4,7 @@ runs/
 logs/
 dump/
 *.pt
+*.optim
 *.csv
 
 # editors

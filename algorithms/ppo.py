@@ -48,6 +48,8 @@ class PPO(object):
         action_loss_epoch = 0
         dist_entropy_epoch = 0
 
+        clip_param = self.clip_param
+
         for e in range(self.ppo_epoch):
             data_generator = rollouts.feed_forward_generator(
                 advantages, self.num_mini_batch
@@ -83,18 +85,15 @@ class PPO(object):
                     observations_batch, actions_batch
                 )
 
-                ratio = torch.exp(action_log_probs - old_action_log_probs_batch)
+                ratio = (action_log_probs - old_action_log_probs_batch).exp()
                 surr1 = ratio * adv_targ
-                surr2 = (
-                    torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
-                    * adv_targ
-                )
+                surr2 = ratio.clamp(1.0 - clip_param, 1.0 + clip_param) * adv_targ
                 action_loss = -torch.min(surr1, surr2).mean()
 
                 if self.use_clipped_value_loss:
                     value_pred_clipped = value_preds_batch + (
                         values - value_preds_batch
-                    ).clamp(-self.clip_param, self.clip_param)
+                    ).clamp(-clip_param, clip_param)
                     value_losses = (values - return_batch).pow(2)
                     value_losses_clipped = (value_pred_clipped - return_batch).pow(2)
                     value_loss = (
