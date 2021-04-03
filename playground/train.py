@@ -15,13 +15,12 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
 os.sys.path.insert(0, parent_dir)
 
-from bottleneck import nanmean
 import numpy as np
 import torch
 
 from algorithms.ppo import PPO
 from algorithms.storage import RolloutStorage
-from common.controller import SoftsignActor, MixedActor, Policy
+from common.controller import SoftsignActor, MixedActor, Policy, init_r_
 from common.envs_utils import (
     make_env,
     make_vec_envs,
@@ -125,9 +124,12 @@ def main(_seed, _config, _run):
 
             def reinit_module(m):
                 if type(m) == torch.nn.Linear:
-                    m.reset_parameters()
+                    # m.reset_parameters()
+                    init_r_(m)
 
             actor.gate.apply(reinit_module)
+            # Reinstantiate policy -> forget value function and DiagGaussian
+            actor_critic = Policy(actor)
 
     else:
         actor_class = globals().get(args.actor_class)
@@ -158,7 +160,7 @@ def main(_seed, _config, _run):
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
-    curriculum_metric = deque(maxlen=args.num_processes)
+    curriculum_metrics = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -200,7 +202,7 @@ def main(_seed, _config, _run):
                     if "episode" in info:
                         episode_rewards.append(info["episode"]["r"])
                     if "curriculum_metric" in info:
-                        curriculum_metric.append(info["curriculum_metric"])
+                        curriculum_metrics.append(info["curriculum_metric"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -217,8 +219,9 @@ def main(_seed, _config, _run):
             # Update curriculum after roll-out
             if (
                 args.use_curriculum
-                and len(curriculum_metric) > 0
-                and nanmean(curriculum_metric) > advance_threshold
+                and len(curriculum_metrics) > 0
+                and (sum(curriculum_metrics) / len(curriculum_metrics))
+                > advance_threshold
                 and current_curriculum < max_curriculum
             ):
                 current_curriculum += 1
@@ -236,15 +239,21 @@ def main(_seed, _config, _run):
             next_checkpoint += args.save_every
             torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
-        if len(episode_rewards) > 1 and nanmean(episode_rewards) > max_ep_reward:
-            max_ep_reward = nanmean(episode_rewards)
+        mean_ep_reward = sum(episode_rewards) / len(episode_rewards)
+        if len(episode_rewards) > 1 and mean_ep_reward > max_ep_reward:
+            max_ep_reward = mean_ep_reward
             model_name = f"{save_name}_best.pt"
+            optim_name = f"{save_name}_best.optim"
             torch.save(actor_critic, os.path.join(args.save_dir, model_name))
-            torch.save(agent.optimizer, os.path.join(args.save_dir, model_name + ".optim"))
+            torch.save(agent.optimizer, os.path.join(args.save_dir, optim_name))
 
         if len(episode_rewards) > 1:
             end = time.time()
-            mean_metric = nanmean(curriculum_metric) if args.use_curriculum else 0
+            mean_metric = (
+                (sum(curriculum_metrics) / len(curriculum_metrics))
+                if args.use_curriculum
+                else 0
+            )
             logger.log_epoch(
                 {
                     "iter": iteration + 1,

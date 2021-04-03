@@ -26,7 +26,8 @@ def make_env_fns(env_id, seed, rank, log_dir, **kwargs):
         if str(env.__class__.__name__).find("TimeLimit") >= 0:
             env = TimeLimitMask(env)
 
-        env = Monitor(env, None, allow_early_resets=True)
+        # env = Monitor(env, None, allow_early_resets=True)
+        env = LiteMonitor(env)
 
         return env
 
@@ -60,6 +61,23 @@ class TimeLimitMask(gym.Wrapper):
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
+
+
+class LiteMonitor(Wrapper):
+    def __init__(self, env):
+        Wrapper.__init__(self, env=env)
+
+    def reset(self, **kwargs):
+        self.rewards = []
+        return self.env.reset(**kwargs)
+
+    def step(self, action):
+        obs, rew, done, info = self.env.step(action)
+        self.rewards.append(rew)
+        if done:
+            eprew = sum(self.rewards)
+            info["episode"] = {"r": eprew}
+        return (obs, rew, done, info)
 
 
 class Monitor(Wrapper):
