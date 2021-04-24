@@ -265,4 +265,13 @@ class MixedActor(nn.Module):
                 .sum(dim=0)
             )
 
+            # Option 2: Need too much CUDA memory during backprop
+            # But is slightly faster in inference mode
+            # out = activation(
+            #     out.unsqueeze(dim=1)
+            #     .bmm((coefficients.unsqueeze(-1) * weight.unsqueeze(1)).sum(dim=0))
+            #     .add((coefficients * bias).sum(dim=0).unsqueeze(1))
+            #     .squeeze(1)
+            # )
+
         return out

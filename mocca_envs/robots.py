@@ -8,7 +8,6 @@ from scipy.linalg.blas import sgemv as GEMV
 from scipy.linalg.blas import sscal as SCAL
 
 import gym
-from numba import njit
 import numpy as np
 from numpy import concatenate
 import pybullet
@@ -64,9 +63,9 @@ class WalkerBase:
         )
         SCAL(0.1, self.joint_speeds)
 
-        self.to_normalized(self.joint_angles, self.normalized_joint_angles)
+        self.normalized_joint_angles = self.to_normalized(self.joint_angles)
         self.joints_at_limit = np.count_nonzero(
-            np.abs(self.normalized_joint_angles) > 0.99
+            abs(self.normalized_joint_angles) > 0.99
         )
 
         if self.root_and_foot_ids is not None:
@@ -176,15 +175,11 @@ class WalkerBase:
         a = 2 / weight
         b = 2 * bias / weight + 1
 
-        @njit(fastmath=True)
         def to_radians(theta):
             return weight * (theta + 1) / 2 + bias
 
-        @njit(fastmath=True)
-        def to_normalized(angle, out):
-            # out = a * angle - b
-            for i in range(len(angle)):
-                out[i] = a[i] * angle[i] - b[i]
+        def to_normalized(angle):
+            return a * angle - b
 
         self.to_radians = to_radians
         self.to_normalized = to_normalized
@@ -251,7 +246,7 @@ class WalkerBase:
         if random_pose:
             # Add small deviations
             ds = self.np_random.uniform(low=-0.1, high=0.1, size=self.action_dim)
-            self.to_normalized(base_joint_angles + ds, ds)
+            ds = self.to_normalized(base_joint_angles + ds)
             ds[ds < -0.95] = -0.95
             ds[ds > +0.95] = +0.95
             base_joint_angles = self.to_radians(ds)

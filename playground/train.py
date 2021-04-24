@@ -111,31 +111,36 @@ def main(_seed, _config, _run):
     if args.net is not None:
         print(f"Loading model {args.net}")
         actor_critic = torch.load(args.net)
-
-        # Disable gradients for experts
-        # Only gating network should be trainable
-        # Also reinitialize gating network weights
-        actor = actor_critic.actor
-        if args.fix_experts and type(actor) == MixedActor:
-            print("Disable gradients for experts")
-            for weight, bias, _ in actor.layers:
-                weight.requires_grad = False
-                bias.requires_grad = False
-
-            def reinit_module(m):
-                if type(m) == torch.nn.Linear:
-                    # m.reset_parameters()
-                    init_r_(m)
-
-            actor.gate.apply(reinit_module)
-            # Reinstantiate policy -> forget value function and DiagGaussian
-            actor_critic = Policy(actor)
-
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
         controller = actor_class(dummy_env)
         actor_critic = Policy(controller)
+
+    # Disable gradients for experts
+    # Only gating network should be trainable
+    # Also reinitialize gating network weights
+    if (
+        args.fix_experts
+        and type(actor_critic.actor) == MixedActor
+        and args.net is not None
+    ):
+        trained_actor = actor_critic.actor
+
+        # Reinitialize gating network with correct input dim
+        # Also reinitialize the critic network
+        controller = MixedActor(dummy_env)
+        actor_critic = Policy(controller)
+
+        # copy weights to new controller and disable gradients
+        print("Disable gradients for experts")
+        for (weight, bias, _), (trained_weight, trained_bias, _) in zip(
+            actor_critic.actor.layers, trained_actor.layers
+        ):
+            weight.data[:] = trained_weight.data
+            bias.data[:] = trained_bias.data
+            weight.requires_grad = False
+            bias.requires_grad = False
 
     actor_critic = actor_critic.to(args.device)
 

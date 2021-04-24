@@ -1,9 +1,8 @@
 from math import sin, cos, atan2, sqrt
 import os
 
-from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin, nanmean
+from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin, nanmean, nansum
 import gym
-from numba import njit
 import numpy as np
 from numpy import concatenate
 import pybullet
@@ -50,8 +49,8 @@ class Walker3DCustomEnv(EnvBase):
         self.max_curriculum = 1
         self.advance_threshold = 1
 
-        self.electricity_cost = 4.5
-        self.stall_torque_cost = 0.225
+        self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
+        self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
 
         R = self.robot.observation_space.shape[0]
@@ -158,10 +157,11 @@ class Walker3DCustomEnv(EnvBase):
         if not -0.4 < self.robot.body_rpy[0] < 0.4:
             self.posture_penalty += abs(self.robot.body_rpy[0])
 
-        self.energy_penalty = self.electricity_cost * float(
-            nanmean(np.abs(action * self.robot.joint_speeds))
+        electricity_cost = self.electricity_cost * nansum(
+            abs(action * self.robot.joint_speeds)
         )
-        self.energy_penalty += self.stall_torque_cost * float(ss(action) / len(action))
+        stall_torque_cost = self.stall_torque_cost * ss(action)
+        self.energy_penalty = electricity_cost + stall_torque_cost
 
         self.joints_penalty = float(
             self.joints_at_limit_cost * self.robot.joints_at_limit
@@ -338,8 +338,8 @@ class Walker3DStepperEnv(EnvBase):
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
         self.applied_gain_curriculum = np.linspace(1.0, 1.2, N)
-        self.electricity_cost = 4.5
-        self.stall_torque_cost = 0.225
+        self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
+        self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
 
         # Env settings
@@ -357,7 +357,9 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        high = np.inf * np.ones(self.robot_obs_dim + K * self.step_param_dim)
+        high = np.inf * np.ones(
+            self.robot_obs_dim + K * self.step_param_dim, dtype=np.float32
+        )
         self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
         self.action_space = self.robot.action_space
 
@@ -561,23 +563,6 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         self.linear_potential = -self.distance_to_target / self.scene.dt
 
-    @staticmethod
-    @njit(fastmath=True)
-    def _calc_base_reward(action, joint_speed, electricity_coef, stall_torque_coef):
-        electricity_sum = 0
-        stall_torque_sum = 0
-        N = len(action)
-
-        for i in range(N):
-            electricity_sum += abs(action[i] * joint_speed[i])
-            stall_torque_sum += action[i] ** 2
-
-        electricity_cost = electricity_coef * electricity_sum / N
-        stall_torque_cost = stall_torque_coef * stall_torque_sum / N
-        energy_penalty = electricity_cost + stall_torque_cost
-
-        return energy_penalty
-
     def calc_base_reward(self, action):
 
         # Bookkeeping stuff
@@ -598,12 +583,11 @@ class Walker3DStepperEnv(EnvBase):
         speed = sqrt(ss(self.robot.body_vel))
         self.speed_penalty = max(speed - 1.6, 0)
 
-        self.energy_penalty = self._calc_base_reward(
-            action,
-            self.robot.joint_speeds,
-            self.electricity_cost,
-            self.stall_torque_cost,
+        electricity_cost = self.electricity_cost * nansum(
+            abs(action * self.robot.joint_speeds)
         )
+        stall_torque_cost = self.stall_torque_cost * ss(action)
+        self.energy_penalty = electricity_cost + stall_torque_cost
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
@@ -1575,12 +1559,11 @@ class Monkey3DStepperEnv(Walker3DStepperEnv):
         speed = sqrt(ss(self.robot.body_vel))
         self.speed_penalty = max(speed - 1.6, 0)
 
-        self.energy_penalty = self._calc_base_reward(
-            action,
-            self.robot.joint_speeds,
-            self.electricity_cost,
-            self.stall_torque_cost,
+        electricity_cost = self.electricity_cost * nansum(
+            abs(action * self.robot.joint_speeds)
         )
+        stall_torque_cost = self.stall_torque_cost * ss(action)
+        self.energy_penalty = electricity_cost + stall_torque_cost
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
