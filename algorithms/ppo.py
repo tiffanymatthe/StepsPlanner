@@ -9,6 +9,15 @@ import torch.nn as nn
 import torch.optim as optim
 
 
+def clip_grad_norm_(parameters, max_norm):
+    total_norm = torch.cat([p.grad.detach().view(-1) for p in parameters]).norm()
+    clip_coef = max_norm / (total_norm + 1e-6)
+    if clip_coef < 1:
+        for p in parameters:
+            p.grad.detach().mul_(clip_coef)
+    return total_norm
+
+
 class PPO(object):
     def __init__(
         self,
@@ -49,6 +58,9 @@ class PPO(object):
         dist_entropy_epoch = 0
 
         clip_param = self.clip_param
+
+        parameters = [p for p in self.actor_critic.parameters() if p.requires_grad is not None]
+        assert len(parameters) != 0, "No trainable parameters"
 
         for e in range(self.ppo_epoch):
             data_generator = rollouts.feed_forward_generator(
@@ -108,9 +120,7 @@ class PPO(object):
                     + action_loss
                     - dist_entropy * self.entropy_coef
                 ).backward()
-                nn.utils.clip_grad_norm_(
-                    self.actor_critic.parameters(), self.max_grad_norm
-                )
+                clip_grad_norm_(parameters, self.max_grad_norm)
                 self.optimizer.step()
 
                 value_loss_epoch += value_loss.item()

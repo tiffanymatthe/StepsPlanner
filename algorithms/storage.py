@@ -71,19 +71,19 @@ class RolloutStorage(object):
 
     def feed_forward_generator(self, advantages, num_mini_batch):
         num_steps, num_processes = self.rewards.size()[0:2]
+        obs_dim = self.observations.size(-1)
+        act_dim = self.actions.size(-1)
         batch_size = num_processes * num_steps
         mini_batch_size = batch_size // num_mini_batch
-        sampler = BatchSampler(
-            SubsetRandomSampler(range(batch_size)), mini_batch_size, drop_last=False
-        )
-        for indices in sampler:
-            observations_batch = self.observations[:-1].view(
-                -1, *self.observations.size()[2:]
-            )[indices]
-            actions_batch = self.actions.view(-1, self.actions.size(-1))[indices]
-            value_preds_batch = self.value_preds[:-1].view(-1, 1)[indices]
-            return_batch = self.returns[:-1].view(-1, 1)[indices]
-            masks_batch = self.masks[:-1].view(-1, 1)[indices]
+        N = mini_batch_size * num_mini_batch
+        shuffled_indices = torch.randperm(N, generator=None).view(num_mini_batch, -1)
+        for indices in shuffled_indices:
+            # indices = shuffled_indices[i * mini_batch_size : (i + 1) * mini_batch_size]
+            observations_batch = self.observations.view(-1, obs_dim)[indices]
+            actions_batch = self.actions.view(-1, act_dim)[indices]
+            value_preds_batch = self.value_preds.view(-1, 1)[indices]
+            return_batch = self.returns.view(-1, 1)[indices]
+            masks_batch = self.masks.view(-1, 1)[indices]
             old_action_log_probs_batch = self.action_log_probs.view(-1, 1)[indices]
             adv_targ = advantages.view(-1, 1)[indices]
 
