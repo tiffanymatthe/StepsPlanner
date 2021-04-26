@@ -74,7 +74,7 @@ class LiteMonitor(Wrapper):
     def step(self, action):
         obs, rew, done, info = self.env.step(action)
         self.rewards.append(rew)
-        if done and "bad_transition" not in info:
+        if done:
             eprew = sum(self.rewards)
             info["episode"] = {"r": eprew}
         return (obs, rew, done, info)
