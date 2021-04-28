@@ -11,7 +11,7 @@ import torch.optim as optim
 
 def clip_grad_norm_(parameters, max_norm):
     total_norm = torch.cat([p.grad.detach().view(-1) for p in parameters]).norm()
-    clip_coef = (max_norm / (total_norm + 1e-6)).clamp(max=1)
+    clip_coef = (max_norm / (total_norm + 1e-6)).clamp(max=1.0)
     for p in parameters:
         p.grad.detach().mul_(clip_coef)
     return total_norm

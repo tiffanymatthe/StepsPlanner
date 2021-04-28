@@ -194,27 +194,27 @@ class MixedActor(nn.Module):
                 nn.Parameter(torch.empty(num_experts, expert_input_size, hidden_size)),
                 # Avoid unsqueeze in the future, otherwise 1 has no meaning.
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                torch.sin,
+                F.softsign,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                torch.sin,
+                F.softsign,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                torch.sin,
+                F.softsign,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                torch.sin,
+                torch.relu,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                torch.sin,
+                torch.relu,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, output_size)),
@@ -226,11 +226,11 @@ class MixedActor(nn.Module):
         for index, (weight, bias, activation) in enumerate(self.layers):
 
             # Initialize each expert separately
-            if activation == F.softsign:
+            if "softsign" in activation.__name__:
                 gain = nn.init.calculate_gain("sigmoid")
-            elif activation == F.relu:
+            elif "relu" in activation.__name__:
                 gain = nn.init.calculate_gain("relu")
-            elif activation == torch.tanh:
+            elif "tanh" in activation.__name__:
                 gain = nn.init.calculate_gain("tanh")
             else:
                 gain = 1.0
@@ -254,7 +254,7 @@ class MixedActor(nn.Module):
         )
 
     def forward(self, x):
-        coefficients = F.softmax(self.gate(x), dim=1).transpose(0, 1).unsqueeze(-1)
+        coefficients = F.softmax(self.gate(x), dim=1).t().unsqueeze(-1)
         out = x[:, : self.robot_state_dim]
 
         for (weight, bias, activation) in self.layers:
