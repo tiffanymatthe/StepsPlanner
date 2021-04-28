@@ -194,27 +194,27 @@ class MixedActor(nn.Module):
                 nn.Parameter(torch.empty(num_experts, expert_input_size, hidden_size)),
                 # Avoid unsqueeze in the future, otherwise 1 has no meaning.
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                F.softsign,
+                torch.sin,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                F.softsign,
+                torch.sin,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                F.softsign,
+                torch.sin,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                F.relu,
+                torch.sin,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, hidden_size)),
                 nn.Parameter(torch.zeros(num_experts, 1, hidden_size)),
-                F.relu,
+                torch.sin,
             ),
             (
                 nn.Parameter(torch.empty(num_experts, hidden_size, output_size)),

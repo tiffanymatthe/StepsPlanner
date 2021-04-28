@@ -608,56 +608,57 @@ def cleanup_log_dir(log_dir):
             os.remove(f)
 
 
-def get_mirror_function(indices):
+def get_mirror_function(indices, device="cpu"):
 
-    negation_obs_indices = indices[0]
-    right_obs_indices = indices[1]
-    left_obs_indices = indices[2]
-    negation_action_indices = indices[3]
-    right_action_indices = indices[4]
-    left_action_indices = indices[5]
+    negation_obs_indices = torch.from_numpy(indices[0]).to(device)
+    right_obs_indices = torch.from_numpy(indices[1]).to(device)
+    left_obs_indices = torch.from_numpy(indices[2]).to(device)
+    negation_action_indices = torch.from_numpy(indices[3]).to(device)
+    right_action_indices = torch.from_numpy(indices[4]).to(device)
+    left_action_indices = torch.from_numpy(indices[5]).to(device)
+
+    orl = torch.cat((right_obs_indices, left_obs_indices))
+    olr = torch.cat((left_obs_indices, right_obs_indices))
+    arl = torch.cat((right_action_indices, left_action_indices))
+    alr = torch.cat((left_action_indices, right_action_indices))
 
     def mirror_function(trajectory_samples):
         (
             observations_batch,
             actions_batch,
             value_preds_batch,
-            return_batch,
+            returns_batch,
             masks_batch,
             old_action_log_probs_batch,
-            adv_targ,
+            advantages_batch,
         ) = trajectory_samples
 
-        def swap_lr(t, r, l):
-            t[:, np.concatenate((r, l))] = t[:, np.concatenate((l, r))]
-
         # Only observation and action needs to be mirrored
-        observations_clone = observations_batch.clone()
-        actions_clone = actions_batch.clone()
+        observations_mirror = observations_batch.clone()
+        observations_mirror[:, negation_obs_indices] *= -1
+        observations_mirror[:, orl] = observations_mirror[:, olr]
 
-        observations_clone[:, negation_obs_indices] *= -1
-        swap_lr(observations_clone, right_obs_indices, left_obs_indices)
-
-        actions_clone[:, negation_action_indices] *= -1
-        swap_lr(actions_clone, right_action_indices, left_action_indices)
+        actions_mirror = actions_batch.clone()
+        actions_mirror[:, negation_action_indices] *= -1
+        actions_mirror[:, arl] = actions_mirror[:, alr]
 
         # Others need to be repeated
-        observations_batch = torch.cat([observations_batch, observations_clone])
-        actions_batch = torch.cat([actions_batch, actions_clone])
+        observations_batch = torch.cat([observations_batch, observations_mirror])
+        actions_batch = torch.cat([actions_batch, actions_mirror])
         value_preds_batch = value_preds_batch.repeat((2, 1))
-        return_batch = return_batch.repeat((2, 1))
+        returns_batch = returns_batch.repeat((2, 1))
         masks_batch = masks_batch.repeat((2, 1))
         old_action_log_probs_batch = old_action_log_probs_batch.repeat((2, 1))
-        adv_targ = adv_targ.repeat((2, 1))
+        advantages_batch = advantages_batch.repeat((2, 1))
 
         return (
             observations_batch,
             actions_batch,
             value_preds_batch,
-            return_batch,
+            returns_batch,
             masks_batch,
             old_action_log_probs_batch,
-            adv_targ,
+            advantages_batch,
         )
 
     return mirror_function

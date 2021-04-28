@@ -147,7 +147,7 @@ def main(_seed, _config, _run):
     mirror_function = None
     if args.use_mirror:
         indices = dummy_env.unwrapped.get_mirror_indices()
-        mirror_function = get_mirror_function(indices)
+        mirror_function = get_mirror_function(indices, device=args.device)
 
     agent = PPO(actor_critic, mirror_function=mirror_function, **args.ppo_params)
 
