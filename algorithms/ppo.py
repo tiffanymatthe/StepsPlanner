@@ -131,8 +131,12 @@ class PPO(object):
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
-        value_loss_epoch.div_(num_updates).item()
-        action_loss_epoch.div_(num_updates).item()
-        dist_entropy_epoch.div_(num_updates).item()
+        value_loss_epoch.div_(num_updates)
+        action_loss_epoch.div_(num_updates)
+        dist_entropy_epoch.div_(num_updates)
 
-        return value_loss_epoch, action_loss_epoch, dist_entropy_epoch
+        return (
+            value_loss_epoch.item(),
+            action_loss_epoch.item(),
+            dist_entropy_epoch.item(),
+        )
