@@ -52,13 +52,16 @@ class PPO(object):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
-        value_loss_epoch = 0
-        action_loss_epoch = 0
-        dist_entropy_epoch = 0
+        device = advantages.device
+        value_loss_epoch = torch.tensor(0.0).to(device)
+        action_loss_epoch = torch.tensor(0.0).to(device)
+        dist_entropy_epoch = torch.tensor(0.0).to(device)
 
         clip_param = self.clip_param
 
-        parameters = [p for p in self.actor_critic.parameters() if p.requires_grad is not None]
+        parameters = [
+            p for p in self.actor_critic.parameters() if p.requires_grad is not None
+        ]
         assert len(parameters) != 0, "No trainable parameters"
 
         for e in range(self.ppo_epoch):
@@ -122,14 +125,14 @@ class PPO(object):
                 clip_grad_norm_(parameters, self.max_grad_norm)
                 self.optimizer.step()
 
-                value_loss_epoch += value_loss.item()
-                action_loss_epoch += action_loss.item()
-                dist_entropy_epoch += dist_entropy.item()
+                value_loss_epoch.add_(value_loss.detach())
+                action_loss_epoch.add_(action_loss.detach())
+                dist_entropy_epoch.add_(dist_entropy.detach())
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
-        value_loss_epoch /= num_updates
-        action_loss_epoch /= num_updates
-        dist_entropy_epoch /= num_updates
+        value_loss_epoch.div_(num_updates).item()
+        action_loss_epoch.div_(num_updates).item()
+        dist_entropy_epoch.div_(num_updates).item()
 
         return value_loss_epoch, action_loss_epoch, dist_entropy_epoch

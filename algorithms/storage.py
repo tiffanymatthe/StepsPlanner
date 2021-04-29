@@ -1,5 +1,4 @@
 import torch
-from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 
 class RolloutStorage(object):
@@ -73,26 +72,30 @@ class RolloutStorage(object):
         num_steps, num_processes = self.rewards.size()[0:2]
         obs_dim = self.observations.size(-1)
         act_dim = self.actions.size(-1)
+
         batch_size = num_processes * num_steps
         mini_batch_size = batch_size // num_mini_batch
         N = mini_batch_size * num_mini_batch
-        shuffled_indices = torch.randperm(N, generator=None).view(num_mini_batch, -1)
-        for indices in shuffled_indices:
-            # indices = shuffled_indices[i * mini_batch_size : (i + 1) * mini_batch_size]
-            observations_batch = self.observations.view(-1, obs_dim)[indices]
-            actions_batch = self.actions.view(-1, act_dim)[indices]
-            value_preds_batch = self.value_preds.view(-1, 1)[indices]
-            return_batch = self.returns.view(-1, 1)[indices]
-            masks_batch = self.masks.view(-1, 1)[indices]
-            old_action_log_probs_batch = self.action_log_probs.view(-1, 1)[indices]
-            adv_targ = advantages.view(-1, 1)[indices]
 
+        device = self.rewards.device
+        shuffled_indices = torch.randperm(N, generator=None, device=device)
+        shuffled_indices_batch = shuffled_indices.view(num_mini_batch, -1)
+
+        observations_shaped = self.observations.view(-1, obs_dim)
+        actions_shaped = self.actions.view(-1, act_dim)
+        value_preds_shaped = self.value_preds.view(-1, 1)
+        returns_shaped = self.returns.view(-1, 1)
+        masks_shaped = self.masks.view(-1, 1)
+        action_log_probs_shaped = self.action_log_probs.view(-1, 1)
+        advantages_shaped = advantages.view(-1, 1)
+
+        for indices in shuffled_indices_batch:
             yield (
-                observations_batch,
-                actions_batch,
-                value_preds_batch,
-                return_batch,
-                masks_batch,
-                old_action_log_probs_batch,
-                adv_targ,
+                observations_shaped[indices],
+                actions_shaped[indices],
+                value_preds_shaped[indices],
+                returns_shaped[indices],
+                masks_shaped[indices],
+                action_log_probs_shaped[indices],
+                advantages_shaped[indices],
             )
