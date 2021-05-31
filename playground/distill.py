@@ -71,7 +71,9 @@ def main():
     num_steps = args.batch_size // args.num_processes
     num_processes = args.num_processes
 
-    buffer_observations = torch.zeros(num_steps + 1, num_processes, *obs_shape, device=device)
+    buffer_observations = torch.zeros(
+        num_steps + 1, num_processes, *obs_shape, device=device
+    )
     buffer_actions = torch.zeros(num_steps, num_processes, act_dim, device=device)
     buffer_values = torch.zeros(num_steps, num_processes, 1, device=device)
 
@@ -102,7 +104,9 @@ def main():
                 buffer_values[step].copy_(value)
 
         num_mini_batch = args.batch_size // args.mini_batch_size
-        shuffled_indices = torch.randperm(num_mini_batch * args.mini_batch_size, generator=None, device=device)
+        shuffled_indices = torch.randperm(
+            num_mini_batch * args.mini_batch_size, generator=None, device=device
+        )
         shuffled_indices_batch = shuffled_indices.view(num_mini_batch, -1)
 
         observations_shaped = buffer_observations.view(-1, obs_dim)
@@ -146,8 +150,6 @@ def main():
                 f"Value Loss: {ep_value_loss.item():8.2f}"
             )
         )
-
-
 
 
 if __name__ == "__main__":
