@@ -275,3 +275,17 @@ class MixedActor(nn.Module):
             # )
 
         return out
+
+    def forward_with_activations(self, x):
+        coefficients = F.softmax(self.gate(x), dim=1).t().unsqueeze(-1)
+        out = x[:, : self.robot_state_dim]
+
+        for (weight, bias, activation) in self.layers:
+            out = activation(
+                out.matmul(weight)  # (N, B, H), B = Batch, H = hidden
+                    .add(bias)  # (N, B, H)
+                    .mul(coefficients)  # (B, H)
+                    .sum(dim=0)
+            )
+
+        return out, coefficients

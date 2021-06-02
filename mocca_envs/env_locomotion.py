@@ -118,7 +118,7 @@ class Walker3DCustomEnv(EnvBase):
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard()
-            self.camera.track(pos=self.robot.body_xyz)
+            # self.camera.track(pos=self.robot.body_xyz)
             self.target.set_position(pos=self.walk_target)
             self.target.set_color(
                 Colors["dodgerblue"]

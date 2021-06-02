@@ -45,6 +45,151 @@ class VSphere:
             self._rgba = t_rgba
 
 
+class VMultiSphere:
+    def __init__(
+        self,
+        bc,
+        radius=None,
+        pos=None,
+        rgba=None,
+        max=False,
+        collide=False,
+        flags=0,
+        replica=1,
+    ):
+        self._p = bc
+
+        # create all spheres at once using batchPositions
+        old_num_bodies = self._p.getNumBodies()
+
+        radius = 0.3 if radius is None else radius
+        pos = (0, 0, 1) if pos is None else pos
+        rgba = (219 / 255, 72 / 255, 72 / 255, 1.0) if rgba is None else tuple(rgba)
+
+        shape = self._p.createVisualShape(
+            self._p.GEOM_SPHERE,
+            radius=radius,
+            rgbaColor=rgba,
+            specularColor=(0.4, 0.4, 0),
+        )
+
+        if not collide:
+            self.id = self._p.createMultiBody(
+                baseMass=0,
+                baseVisualShapeIndex=shape,
+                basePosition=pos,
+                batchPositions=[pos for _ in range(replica)],
+                useMaximalCoordinates=max,
+                flags=flags,
+            )
+        else:
+            cshape = self._p.createCollisionShape(self._p.GEOM_SPHERE, radius=radius)
+            self.id = self._p.createMultiBody(
+                baseMass=0,
+                baseCollisionShapeIndex=cshape,
+                baseVisualShapeIndex=shape,
+                basePosition=pos,
+                batchPositions=[pos for _ in range(replica)],
+                useMaximalCoordinates=max,
+                flags=flags,
+            )
+
+        # Need this otherwise batchPositions does not work
+        self._p.syncBodyInfo()
+        new_num_bodies = self._p.getNumBodies()
+        self.ids = range(old_num_bodies, new_num_bodies)
+
+        self._pos = pos
+        self._quat = (0, 0, 0, 1)
+        self._rgba = rgba
+
+    def set_positions(self, pos, index=None):
+        if index is None:
+            for index, id in enumerate(self.ids):
+                self._p.resetBasePositionAndOrientation(
+                    id, posObj=pos[index], ornObj=(0, 0, 0, 1)
+                )
+        else:
+            id = self.ids[index]
+            self._p.resetBasePositionAndOrientation(id, posObj=pos, ornObj=(0, 0, 0, 1))
+
+    def set_position(self, pos):
+        self._p.resetBasePositionAndOrientation(
+            self.id[0], posObj=pos, ornObj=(0, 0, 0, 1)
+        )
+
+    def set_color(self, rgba):
+        t_rgba = tuple(rgba)
+        if t_rgba != self._rgba:
+            self._p.changeVisualShape(self.id[0], -1, rgbaColor=rgba)
+            self._rgba = t_rgba
+
+
+class VMultiCapsule:
+    def __init__(
+        self,
+        bc,
+        radius=None,
+        height=None,
+        pos=None,
+        rgba=None,
+        max=False,
+        flags=0,
+        replica=1,
+    ):
+        self._p = bc
+
+        # create all spheres at once using batchPositions
+        old_num_bodies = self._p.getNumBodies()
+
+        radius = 0.3 if radius is None else radius
+        height = 1.0 if height is None else height
+        pos = (0, 0, height / 2) if pos is None else pos
+        rgba = (219 / 255, 72 / 255, 72 / 255, 1.0) if rgba is None else tuple(rgba)
+
+        shape = self._p.createVisualShape(
+            self._p.GEOM_CAPSULE,
+            radius=radius,
+            length=height,
+            rgbaColor=rgba,
+            specularColor=(0.4, 0.4, 0),
+        )
+
+        self.id = self._p.createMultiBody(
+            baseMass=0,
+            baseVisualShapeIndex=shape,
+            basePosition=pos,
+            batchPositions=[pos for _ in range(replica)],
+            useMaximalCoordinates=max,
+            flags=flags,
+        )
+
+        # Need this otherwise batchPositions does not work?
+        self._p.syncBodyInfo()
+        new_num_bodies = self._p.getNumBodies()
+        self.ids = range(old_num_bodies, new_num_bodies)
+
+        self._pos = pos
+        self._quat = (0, 0, 0, 1)
+        self._rgba = rgba
+        self.height = height
+
+    def set_positions(self, pos, orn):
+        for index, id in enumerate(self.ids):
+            self._p.resetBasePositionAndOrientation(
+                id, posObj=pos[index], ornObj=orn[index]
+            )
+
+    def set_position(self, pos, orn):
+        self._p.resetBasePositionAndOrientation(self.id[0], posObj=pos, ornObj=orn)
+
+    def set_color(self, rgba):
+        t_rgba = tuple(rgba)
+        if t_rgba != self._rgba:
+            self._p.changeVisualShape(self.id[0], -1, rgbaColor=rgba)
+            self._rgba = t_rgba
+
+
 class BaseStep:
     def __init__(self, bc, filename, scale, pos=None, quat=None, options=None):
         self._p = bc
@@ -504,3 +649,97 @@ class HeightField:
         peaks -= offset
 
         return peaks
+
+
+class MocapCharacter:
+    def __init__(self, bc, rgba=None):
+        self._p = bc
+        self.num_joints = 22
+        bc.configureDebugVisualizer(bc.COV_ENABLE_RENDERING, 0)
+
+        # {
+        #     "Hips": 0,
+        #     "LeftUpLeg": 1,
+        #     "LeftLeg": 2,
+        #     "LeftFoot": 3,
+        #     "LeftToe": 4,
+        #     "RightUpLeg": 5,
+        #     "RightLeg": 6,
+        #     "RightFoot": 7,
+        #     "RightToe": 8,
+        #     "Spine": 9,
+        #     "Spine1": 10,
+        #     "Spine2": 11,
+        #     "Neck": 12,
+        #     "Head": 13,
+        #     "LeftShoulder": 14,
+        #     "LeftArm": 15,
+        #     "LeftForeArm": 16,
+        #     "LeftHand": 17,
+        #     "RightShoulder": 18,
+        #     "RightArm": 19,
+        #     "RightForeArm": 20,
+        #     "RightHand": 21,
+        # }
+        joints = VMultiSphere(bc, radius=0.07, max=True, replica=self.num_joints)
+        self.ids = joints.ids
+        self.linked_joints = np.array(
+            [
+                [7, 8],  # right foot
+                [6, 7],  # right shin
+                [5, 6],  # right leg
+                [3, 4],  # left foot
+                [2, 3],  # left shin
+                [1, 2],  # left leg
+                [14, 15],  # right shoulder
+                [15, 16],  # right upper arm
+                [16, 17],  # right lower arm
+                [18, 19],  # left shoulder
+                [19, 20],  # left upper arm
+                [20, 21],  # left lower arm
+                [11, 9],  # torso1
+                [12, 11],  # torso2
+                [5, 1],  # hip
+            ]
+        )
+
+        self.links = [
+            VMultiCapsule(bc, radius=0.06, height=0.1, rgba=None)
+            for _ in range(self.linked_joints.shape[0])
+        ]
+        self.z_axes = np.zeros((self.linked_joints.shape[0], 3))
+        self.z_axes[:, 2] = 1
+
+        self.heads = VSphere(bc, radius=0.12)
+        bc.configureDebugVisualizer(bc.COV_ENABLE_RENDERING, 1)
+
+    def set_joint_positions(self, xyzs):
+        pb = self._p
+        self._p.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0)
+
+        joint_ids = self.ids
+        for xyz, id in zip(xyzs, joint_ids):
+            self._p.resetBasePositionAndOrientation(id, posObj=xyz, ornObj=(0, 0, 0, 1))
+
+        deltas = xyzs[self.linked_joints[:, 1]] - xyzs[self.linked_joints[:, 0]]
+        heights = np.linalg.norm(deltas, axis=-1)
+        positions = xyzs[self.linked_joints].mean(axis=1)
+
+        a = np.cross(deltas, self.z_axes)
+        b = np.linalg.norm(deltas, axis=-1) + (deltas * self.z_axes).sum(-1)
+        orientations = np.concatenate((a, b[:, None]), axis=-1)
+        orientations[:, [0, 1]] *= -1
+
+        for lid, (delta, height, pos, orn, link) in enumerate(
+            zip(deltas, heights, positions, orientations, self.links)
+        ):
+            # 0.05 feet is about 1.5 cm
+            if abs(link.height - height) > 0.05:
+                self._p.removeBody(link.id[0])
+                link = VMultiCapsule(self._p, radius=0.06, height=height)
+                self.links[lid] = link
+
+            link.set_position(pos, orn)
+
+        self.heads.set_position(0.5 * (xyzs[13] - xyzs[12]) + xyzs[13])
+        self._p.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1)

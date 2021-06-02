@@ -5,6 +5,7 @@ import functools
 import inspect
 import os
 import time
+import types
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -391,7 +392,7 @@ class SinglePlayerStadiumScene(StadiumScene):
 
 
 class Camera:
-    def __init__(self, bc, fps=60, dist=2.5, yaw=0, pitch=-5, use_egl=False):
+    def __init__(self, env, bc, fps=60, dist=2.5, yaw=0, pitch=-5, use_egl=False):
 
         self._p = bc
         self._cam_dist = dist
@@ -400,14 +401,40 @@ class Camera:
         self._coef = np.array([1.0, 1.0, 0.1])
 
         self.use_egl = use_egl
+        self.tracking = False
 
         self._fps = fps
         self._target_period = 1 / fps
         self._last_frame_time = time.perf_counter()
+        self.env_should_wait = False
+
+        camera = self
+
+        def new_global_step(self):
+            time_spent = time.perf_counter() - camera._last_frame_time
+
+            camera.env_should_wait = True
+            if camera._target_period < time_spent:
+                camera._last_frame_time = time.perf_counter()
+                camera.env_should_wait = False
+
+            if not camera.env_should_wait:
+                self.cpp_world.step()
+
+        old_apply_action = env.robot.apply_action
+
+        def new_apply_action(self, action):
+            if not camera.env_should_wait:
+                old_apply_action(action)
+
+        env.scene.global_step = types.MethodType(new_global_step, env.scene)
+        env.robot.apply_action = types.MethodType(new_apply_action, env.robot)
 
     def track(self, pos, smooth_coef=None):
 
-        self.wait()
+        # self.wait()
+        if self.env_should_wait or not self.tracking:
+            return
 
         smooth_coef = self._coef if smooth_coef is None else smooth_coef
         assert (smooth_coef <= 1).all(), "Invalid camera smoothing parameters"
@@ -426,7 +453,6 @@ class Camera:
         self._p.resetDebugVisualizerCamera(
             self._cam_dist, self._cam_yaw, self._cam_pitch, pos
         )
-        self._p.configureDebugVisualizer(self._p.COV_ENABLE_SINGLE_STEP_RENDERING, 0)
 
     def dump_rgb_array(self):
 
@@ -460,8 +486,8 @@ class Camera:
             return
 
         time_spent = time.perf_counter() - self._last_frame_time
-        time.sleep(max(self._target_period - time_spent, 0))
-        self._last_frame_time = time.perf_counter()
 
-        # Need this otherwise mouse control will be laggy when rendered
-        self._p.configureDebugVisualizer(self._p.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+        self.env_should_wait = True
+        if self._target_period < time_spent:
+            self._last_frame_time = time.perf_counter()
+            self.env_should_wait = False

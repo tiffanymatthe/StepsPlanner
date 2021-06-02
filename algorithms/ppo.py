@@ -47,8 +47,17 @@ class PPO(object):
         self.mirror_function = mirror_function
 
         self.optimizer = optim.AdamW(
-            actor_critic.parameters(), lr=lr, weight_decay=5e-4, eps=eps
+            actor_critic.parameters(),
+            lr=lr,
+            weight_decay=5e-4,
+            eps=eps,
         )
+
+        # self.optimizer = optim.Adam(
+        #     actor_critic.parameters(),
+        #     lr=lr,
+        #     eps=eps,
+        # )
 
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]

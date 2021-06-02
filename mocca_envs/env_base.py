@@ -57,7 +57,6 @@ class EnvBase(gym.Env):
         self._p = BulletClient(bc_mode, use_ffmpeg=self.use_ffmpeg, fps=render_fps)
 
         if self.is_rendered or self.use_egl:
-            self.camera = Camera(self._p, render_fps, use_egl=self.use_egl)
             if hasattr(self, "create_target"):
                 self.create_target()
 
@@ -97,6 +96,9 @@ class EnvBase(gym.Env):
         # Create terrain
         if hasattr(self, "create_terrain"):
             self.create_terrain()
+
+        if self.is_rendered or self.use_egl:
+            self.camera = Camera(self, self._p, render_fps, use_egl=self.use_egl)
 
         pc.configureDebugVisualizer(pc.COV_ENABLE_RENDERING, int(self.is_rendered))
 
@@ -253,7 +255,11 @@ class EnvBase(gym.Env):
         if keys.get(ord("d")) == RELEASED:
             self.debug = True if not hasattr(self, "debug") else not self.debug
         elif keys.get(ord("r")) == RELEASED:
+            self.force_reset = True
             self.done = True
+        elif keys.get(ord("f")) == RELEASED:
+            self.camera.tracking = not self.camera.tracking
+            print(self.camera.tracking)
         elif keys.get(self._p.B3G_F1) == RELEASED:
             from imageio import imwrite
 
@@ -265,13 +271,19 @@ class EnvBase(gym.Env):
                 self._p.STATE_LOGGING_VIDEO_MP4, "{}.mp4".format(now)
             )
         elif keys.get(ord(" ")) == RELEASED:
-            self._p.configureDebugVisualizer(
-                self._p.COV_ENABLE_SINGLE_STEP_RENDERING, 0
-            )
             while True:
                 keys = self._p.getKeyboardEvents()
                 if keys.get(ord(" ")) == RELEASED:
                     break
+        elif keys.get(61) == RELEASED:
+            # '=' to speed up rendering
+            self.camera._fps *= 2
+            self.camera._target_period = 1 / self.camera._fps
+        elif keys.get(45) == RELEASED:
+            # '-' to slow down rendering
+            self.camera._fps = int(self.camera._fps / 2)
+            self.camera._fps = max(self.camera._fps, 15)
+            self.camera._target_period = 1 / self.camera._fps
         else:
             if callback is not None:
                 callback(keys)

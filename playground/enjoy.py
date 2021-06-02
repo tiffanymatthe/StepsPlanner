@@ -56,6 +56,7 @@ def main():
         use_egl=use_egl,
         use_ffmpeg=use_ffmpeg,
     )
+    env._max_episode_steps = float("inf")
     env.seed(1093)
 
     model_path = args.net or os.path.join(args.save_dir, f"{args.env}_latest.pt")
@@ -104,22 +105,23 @@ def main():
         obs = env.reset()
         ep_reward = 0
 
+        controller = actor_critic.actor
+
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
-            value, action, _ = actor_critic.act(obs, deterministic=True)
-            cpu_actions = action.squeeze().cpu().numpy()
-
             if type(actor) == MixedActor and args.plot:
-                expert_activations = (
-                    torch.softmax(actor.gate(obs), dim=-1).squeeze().cpu()
-                )
+                action, expert_activations = controller.forward_with_activations(obs)
                 for eid, (a, c) in enumerate(zip(expert_activations, colours)):
                     ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
                 ts_plot.add_point(0, len(expert_activations))
                 ts_plot.add_point(1, len(expert_activations) + 1)
                 ts_plot.redraw()
+            else:
+                action = controller(obs)
 
+            cpu_actions = action.squeeze().cpu().numpy()
             obs, reward, done, _ = env.step(cpu_actions)
+            env.camera.track(env.robot.body_xyz)
             ep_reward += reward
 
             if done:
