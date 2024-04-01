@@ -18,6 +18,7 @@ os.sys.path.insert(0, parent_dir)
 import numpy as np
 import torch
 
+import mocca_envs
 from algorithms.ppo import PPO
 from algorithms.storage import RolloutStorage
 from common.controller import SoftsignActor, MixedActor, Policy, init_r_
@@ -34,7 +35,7 @@ from common.sacred_utils import ex, init
 
 @ex.config
 def configs():
-    env = "mocca_envs:Walker3DStepperEnv-v0"
+    env = "Walker3DStepperEnv-v0"
 
     # Env settings
     use_mirror = True

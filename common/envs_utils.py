@@ -370,7 +370,7 @@ class DummyVecEnv(VecEnv):
             k: np.zeros((self.num_envs,) + tuple(shapes[k]), dtype=dtypes[k])
             for k in self.keys
         }
-        self.buf_dones = np.zeros((self.num_envs,), dtype=np.bool)
+        self.buf_dones = np.zeros((self.num_envs,), dtype=bool)
         self.buf_rews = np.zeros((self.num_envs,), dtype=np.float32)
         self.buf_infos = [{} for _ in range(self.num_envs)]
         self.actions = None
@@ -450,7 +450,7 @@ _NP_TO_CT = {
     np.int32: ctypes.c_int32,
     np.int8: ctypes.c_int8,
     np.uint8: ctypes.c_char,
-    np.bool: ctypes.c_bool,
+    bool: ctypes.c_bool,
 }
 
 
