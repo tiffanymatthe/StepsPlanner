@@ -16,6 +16,7 @@ os.sys.path.append(parent_dir)
 
 import torch
 
+import mocca_envs
 from common.controller import MixedActor
 from common.envs_utils import make_env
 from common.misc_utils import EpisodeRunner
