@@ -29,8 +29,8 @@ class Plot(object):
             self.parent = self
             # TODO: make up a name
             self.fig = plt.figure(figsize=(6.5 * nrows, 6.5 * ncols))
-            if title:
-                self.fig.canvas.set_window_title(title)
+            # if title:
+            #     self.fig.canvas.set_window_title(title)
             self.subplot_cnt = 0
             # self.fig, self.subplots = plt.subplots(nrows, ncols, figsize=(4.5*ncols, 4.5*nrows))
             # self.subplots = np.array(self.subplots).reshape(-1)[::-1].tolist()
@@ -160,6 +160,12 @@ class LinePlot(Plot):
         self.subplot.set_xlim(*self.xlim)
         self.subplot.set_ylim(*self.ylim)
         self._redraw()
+
+    def add_vertical_lines(self, x_coordinates, line_num=0, redraw=True):
+        for x in x_coordinates:
+            self.subplot.axvline(x, color=self.COLORS[line_num % len(self.COLORS)], linestyle="--")
+        if redraw:
+            self._redraw()
 
     def fill_between(self, x, ymin, ymax, alpha=0.1, line_num=0):
         color = self.COLORS[line_num % len(self.COLORS)]

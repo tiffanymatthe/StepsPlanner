@@ -39,6 +39,7 @@ def main():
     parser.add_argument("--name_regex", type=str, default="")
     parser.add_argument("--final", type=str2bool, default=False)
     parser.add_argument("--save", type=str, default=None)
+    parser.add_argument("--dotted_lines", type=str, default=None) # "curriculum" or 'cycle_count'
     args = parser.parse_args()
 
     N = len(args.columns)
@@ -103,6 +104,10 @@ def main():
 
     xlim_max = float("-inf")
     for i, df in enumerate(data):
+        if args.dotted_lines is not None:
+            dotted_lines_column = df[[args.dotted_lines]]
+            dotted_indices = dotted_lines_column[dotted_lines_column.diff() != 0].dropna().index.tolist()
+            dotted_x_coordinates = df[args.row][dotted_indices]
         for j, column in enumerate(args.columns):
             b = df[args.row].iloc[-1]
             xlim_max = b if b > xlim_max else xlim_max
@@ -123,6 +128,8 @@ def main():
                         smoothing_method(df[column] + df[column + "_std"]),
                         line_num=i,
                     )
+                if args.dotted_lines is not None:
+                    plots[j].add_vertical_lines(dotted_x_coordinates, line_num=i)
 
             processed_label = " ".join(map(lambda x: x.title(), column.split("_")))
             plots[j].subplot.set_ylabel(processed_label)
