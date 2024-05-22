@@ -39,6 +39,7 @@ def main():
     parser.add_argument("--name_regex", type=str, default="")
     parser.add_argument("--final", type=str2bool, default=False)
     parser.add_argument("--save", type=str, default=None)
+    parser.add_argument("--x_max", type=float, default=None)
     parser.add_argument("--dotted_lines", type=str, default=None) # "curriculum" or 'cycle_count'
     args = parser.parse_args()
 
@@ -99,6 +100,22 @@ def main():
     # legends = ["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1", "0.0"]
     # data = reversed(data)
 
+    # legends = ["baseline", "policy reg coef = 0.5", "policy reg coef = 0.8", "policy reg coef = 1.0", "policy reg coef = 1.2", "policy reg coef = 1.5"]
+    # data[0], data[1], data[2], data[3], data[4], data[5] = data[4], data[0], data[1], data[5], data[2], data[3]
+
+    # legends = ["baseline", "value reg coef = 0.3", "value reg coef = 0.5", "value reg coef = 0.7", "value reg coef = 1.0"]
+    # data[0], data[1], data[2], data[3], data[4] = data[3], data[0], data[4], data[1], data[2]
+
+    # legends = ["baseline", "no policy reg", "no student RL loss", "no value reg", "no policy reg and no value reg"]
+
+    # legends = ["baseline", "Init: 10e5, Anneal: 5e5"]
+    # legends = ["baseline", "Init: 5e5, Anneal: 20e5"]
+    # legends = ["baseline", "Init: 5e5, Anneal: 10e5"]
+
+    # legends = ["baseline w/ expo 3e-4", "expo 3e-4", "const 3e-4"]
+
+    # legends = ["baseline", "baseline w/ value clip", "No Value Clip Loss", "Value Clip Loss"]
+
     # if args.legend:
     #     plot.fig.legend(legends, loc="best")  # loc=(0.1, 0.95)
 
@@ -135,7 +152,10 @@ def main():
             plots[j].subplot.set_ylabel(processed_label)
 
     for j, _ in enumerate(args.columns):
-        plots[j].subplot.set_xlim(0, xlim_max)
+        if args.x_max is None:
+            plots[j].subplot.set_xlim(0, xlim_max)
+        else:
+            plots[j].subplot.set_xlim(0, min(xlim_max, args.x_max))
         plots[j].subplot.set_xlabel("Samples")
         if args.legend:
             plots[j].subplot.legend(legends)
