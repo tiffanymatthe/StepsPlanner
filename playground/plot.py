@@ -115,6 +115,26 @@ def main():
     # legends = ["baseline w/ expo 3e-4", "expo 3e-4", "const 3e-4"]
 
     # legends = ["baseline", "baseline w/ value clip", "No Value Clip Loss", "Value Clip Loss"]
+        
+    # legends = ["baseline", "Anneal: 5e5", "Anneal: 10e5", "Anneal: 20e5", "Anneal: 30e5", "Anneal: 40e5"]
+    # data[0],  data[1], data[2],  data[3], data[4], data[5] = data[0], data[5], data[1], data[2],  data[3], data[4]
+        
+    # legends = ["baseline w/ expo 3e-4", "baseline w/ const 3e-4", "expo 3e-4", "const 3e-4"]
+        
+    # legends = ["baseline", "policy reg coef = 0.5", "policy reg coef = 1.0", "policy reg coef = 1.5"]
+        
+    # legends = ["baseline", "value reg coef = 0.3", "value reg coef = 0.5", "value reg coef = 1.0"]
+        
+    # legends = ["baseline", "Anneal: 5e5", "Anneal: 30e5", "Anneal: 40e5"]
+    # data[0], data[1], data[2], data[3] = data[0], data[3], data[1], data[2]
+        
+    # legends = ["baseline", "Anneal: 10e5", "Anneal: 20e5", "Anneal: 30e5", "Anneal: 40e5"]
+        
+    # legends = ["baseline w/ const 3e-4", "const 3e-4"]
+        
+    # legends = ["baseline w/ expo 3e-4", "baseline w/ const 3e-4"]
+        
+    # legends = ["baseline w/ expo 3e-4", "expo 3e-4", "expo 3e-4 with resets", "const 3e-4"]
 
     # if args.legend:
     #     plot.fig.legend(legends, loc="best")  # loc=(0.1, 0.95)
@@ -126,6 +146,9 @@ def main():
             dotted_indices = dotted_lines_column[dotted_lines_column.diff() != 0].dropna().index.tolist()
             dotted_x_coordinates = df[args.row][dotted_indices]
         for j, column in enumerate(args.columns):
+            if column not in df.columns:
+                print(f"WARNING: Column {column} not found for {legends[i]}")
+                continue
             b = df[args.row].iloc[-1]
             xlim_max = b if b > xlim_max else xlim_max
 

@@ -182,6 +182,7 @@ def main(_seed, _config, _run):
         if args.lr_decay_type == "linear":
             scheduled_lr = linear_decay(iteration, num_updates, args.lr, final_value=0)
         elif args.lr_decay_type == "exponential":
+            # about 220 iterations until final value
             scheduled_lr = exponential_decay(iteration, 0.99, args.lr, final_value=3e-5)
         else:
             scheduled_lr = args.lr
