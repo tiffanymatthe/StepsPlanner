@@ -1,6 +1,6 @@
 # ignore experiment data
 .ipynb_checkpoints/
-runs/
+# runs/
 logs/
 dump/
 *.pt
