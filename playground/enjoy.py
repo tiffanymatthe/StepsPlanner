@@ -36,7 +36,7 @@ def main():
     parser.add_argument("--net", type=str, required=True)
     parser.add_argument("--curriculum", type=int, default=None)
     parser.add_argument("--len", type=int, default=float("inf"))
-    parser.add_argument("--plank_class", type=str, default="Plank")
+    parser.add_argument("--plank_class", type=str, default="VeryLargePlank")
     parser.add_argument("--plot", type=int, default=1)
     parser.add_argument("--render", type=int, default=1)
     parser.add_argument("--save", type=int, default=0)

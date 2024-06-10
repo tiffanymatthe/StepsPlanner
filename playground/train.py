@@ -40,7 +40,7 @@ def configs():
     # Env settings
     use_mirror = True
     use_curriculum = False
-    plank_class = "LargePlank"
+    plank_class = "VeryLargePlank"
 
     # Network settings
     actor_class = "SoftsignActor"
