@@ -310,7 +310,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_position = [0.3, 0, 1.32]
     robot_init_velocity = None
 
-    plank_class = LargePlank  # Pillar, Plank, LargePlank
+    plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
     rendered_step_count = 3
@@ -431,6 +431,7 @@ class Walker3DStepperEnv(EnvBase):
         # One big step for all
         p = self.plank_class(self._p, self.step_radius, options=options)
         for index in range(self.rendered_step_count):
+            # p = self.plank_class(self._p, self.step_radius, options=options)
             self.steps.append(p)
             step_ids = step_ids | {(p.id, p.base_id)}
             cover_ids = cover_ids | {(p.id, p.cover_id)}
@@ -470,6 +471,9 @@ class Walker3DStepperEnv(EnvBase):
         self.timestep = 0
         self.done = False
         self.target_reached_count = 0
+
+        self.swing_leg_lifted_count = 0
+        self.swing_leg_lifted = False
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
@@ -597,7 +601,16 @@ class Walker3DStepperEnv(EnvBase):
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3
+
+        if self.next_step_index > 1:
+            stepped_poorly = self.wrong_target_reached
+        else:
+            stepped_poorly = False
+
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or stepped_poorly
+
+        if self.done:
+            print(f"Wrong target reached {self.wrong_target_reached} with next index {self.next_step_index}")
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -657,8 +670,20 @@ class Walker3DStepperEnv(EnvBase):
         # TODO: only reach target if in contact and in a certain region (foot dist to target) and foot has left ground to air before
         # worry -> sliding into the target region will not trigger anything... so need to add a penalty if foot hasn't lifted ater 5 frames
         # certain region is same as stepping stones but now we can terminate immediately instead of having the robot fall
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < 0.1
-        self.curr_target_kept = self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.foot_dist_to_target[1-self.swing_leg] < 0.1
+
+        if self._foot_target_contacts[self.swing_leg, 0] == 0:
+            self.swing_leg_lifted = True
+
+        self.target_reached = False
+
+        if self.swing_leg_lifted or self.next_step_index <= 1:
+            self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < 0.2
+            self.wrong_target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] >= 0.2
+
+        # if self.swing_leg_lifted_count == 1 or self.swing_leg_lifted_count > 200:
+        #     print(f"Next step index: {self.next_step_index}: Swing leg {self.swing_leg} with foot contacts {self._foot_target_contacts} and swing leg lifted: {self.swing_leg_lifted} and count {self.swing_leg_lifted_count}")
+
+        self.curr_target_kept = True # self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.foot_dist_to_target[1-self.swing_leg] < 0.1
 
         if self.target_reached:
             self.target_reached_count += 1
@@ -675,6 +700,8 @@ class Walker3DStepperEnv(EnvBase):
                     self.swing_leg = (self.swing_leg + 1) % 2
                     self.next_step_index += 1
                     self.target_reached_count = 0
+                    self.swing_leg_lifted = False
+                    self.swing_leg_lifted_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
