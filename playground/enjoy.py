@@ -65,7 +65,7 @@ def main():
     print("Env: {}".format(args.env))
     print("Model: {}".format(os.path.basename(model_path)))
 
-    actor_critic = torch.load(model_path).to("cpu")
+    actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
     actor = actor_critic.actor
 
     if type(actor) == MixedActor and args.plot:
@@ -122,7 +122,7 @@ def main():
 
             cpu_actions = action.squeeze().cpu().numpy()
             obs, reward, done, _ = env.step(cpu_actions)
-            env.camera.track(env.robot.body_xyz)
+            env.camera.lookat(env.robot.body_xyz)
             ep_reward += reward
 
             if done:
