@@ -472,6 +472,7 @@ class Walker3DStepperEnv(EnvBase):
         self.done = False
         self.target_reached_count = 0
 
+        self.swing_leg_grounded_count = 0
         self.swing_leg_lifted = False
 
         self.set_stop_on_next_step = False
@@ -603,9 +604,6 @@ class Walker3DStepperEnv(EnvBase):
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.wrong_target_reached
 
-        if self.done:
-            print(f"Wrong target reached {self.wrong_target_reached} with next index {self.next_step_index}")
-
     def calc_feet_state(self):
         # Calculate contact separately for step
         target_cover_index = self.next_step_index % self.rendered_step_count
@@ -649,9 +647,11 @@ class Walker3DStepperEnv(EnvBase):
         ):
             self.swing_leg = nanargmax(self._foot_target_contacts[:, 0])
 
-        if self._foot_target_contacts[self.swing_leg, 0] == 0 or self.next_step_index == 1:
+        if self._foot_target_contacts[self.swing_leg, 0] == 0 or self.next_step_index == 1 or self.swing_leg_lifted:
             # assume first step legs have already been lifted before
             self.swing_leg_lifted = True
+        else:
+            self.swing_leg_grounded_count += 1
 
         if self.swing_leg_lifted:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < 0.15
@@ -677,6 +677,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.next_step_index += 1
                     self.target_reached_count = 0
                     self.swing_leg_lifted = False
+                    self.swing_leg_grounded_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
