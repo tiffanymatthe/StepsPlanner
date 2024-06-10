@@ -14,6 +14,7 @@ from mocca_envs.bullet_objects import (
     Pillar,
     Plank,
     LargePlank,
+    VeryLargePlank,
     HeightField,
     MonkeyBar,
 )
@@ -600,7 +601,9 @@ class Walker3DStepperEnv(EnvBase):
         # Calculate contact separately for step
         target_cover_index = self.next_step_index % self.rendered_step_count
         next_step = self.steps[target_cover_index]
-        # target_cover_id = {(next_step.id, next_step.cover_id)}
+
+        curr_cover_index = (self.next_step_index - 1) % self.rendered_step_count
+        curr_step = self.steps[curr_cover_index]
 
         self.foot_dist_to_target = np.sqrt(
             ss(
@@ -612,8 +615,11 @@ class Walker3DStepperEnv(EnvBase):
 
         robot_id = self.robot.id
         client_id = self._p._client
-        target_id_list = [next_step.id]
-        target_cover_id_list = [next_step.cover_id]
+        target_id_list = [[next_step.id],[curr_step.id]]
+        target_cover_id_list = [[next_step.cover_id],[curr_step.cover_id]]
+        if self.swing_leg == 1:
+            target_id_list.reverse()
+            target_cover_id_list.reverse()
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -622,8 +628,8 @@ class Walker3DStepperEnv(EnvBase):
             self.robot.feet_contact[i] = pybullet.getContactStates(
                 bodyA=robot_id,
                 linkIndexA=foot.bodyPartIndex,
-                bodiesB=target_id_list,
-                linkIndicesB=target_cover_id_list,
+                bodiesB=target_id_list[i],
+                linkIndicesB=target_cover_id_list[i],
                 results=contact,
                 physicsClientId=client_id,
             )
@@ -633,9 +639,25 @@ class Walker3DStepperEnv(EnvBase):
             and self.next_step_index - 2 in self.stop_steps
         ):
             self.swing_leg = nanargmax(self._foot_target_contacts[:, 0])
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0
 
-        # At least one foot is on the plank
+        # if foot has left the ground before:
+            # if target is in contact:
+                # if in ok zone: say target has been met
+                # if not in ok zone: add penalty for wrong step (?) and terminate episode
+            # if not in contact:
+                # say target has not been met
+        # if it has not left the ground:
+            # if frame count > 10:
+                # terminate episode (and penalize (maybe -20?))
+            # if frame count < 10:
+                # keep waiting and checking
+
+        # TODO: only reach target if in contact and in a certain region (foot dist to target) and foot has left ground to air before
+        # worry -> sliding into the target region will not trigger anything... so need to add a penalty if foot hasn't lifted ater 5 frames
+        # certain region is same as stepping stones but now we can terminate immediately instead of having the robot fall
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < 0.1
+        self.curr_target_kept = self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.foot_dist_to_target[1-self.swing_leg] < 0.1
+
         if self.target_reached:
             self.target_reached_count += 1
 

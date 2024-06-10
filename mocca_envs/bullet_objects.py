@@ -254,6 +254,14 @@ class LargePlank(BaseStep):
         super().__init__(bc, filename, 2 * width, pos, quat, options)
 
 
+class VeryLargePlank(BaseStep):
+    def __init__(self, bc, width, pos=None, quat=None, options=None):
+        filename = os.path.join(
+            current_dir, "data", "objects", "steps", "plank_large.urdf"
+        )
+        super().__init__(bc, filename, 100 * width, pos, quat, options)
+
+
 class Rectangle:
     def __init__(
         self, bc, hdx, hdy, hdz, mass=0.0, lateral_friction=0.8, pos=None, rgba=None
