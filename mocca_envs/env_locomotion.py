@@ -428,8 +428,9 @@ class Walker3DStepperEnv(EnvBase):
             "flags": self._p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         }
 
+        # One big step for all
+        p = self.plank_class(self._p, self.step_radius, options=options)
         for index in range(self.rendered_step_count):
-            p = self.plank_class(self._p, self.step_radius, options=options)
             self.steps.append(p)
             step_ids = step_ids | {(p.id, p.base_id)}
             cover_ids = cover_ids | {(p.id, p.cover_id)}
@@ -441,10 +442,11 @@ class Walker3DStepperEnv(EnvBase):
             self.all_contact_object_ids |= self.ground_ids
 
     def set_step_state(self, info_index, step_index):
-        pos = self.terrain_info[info_index, 0:3]
-        phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
-        quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
-        self.steps[step_index].set_position(pos=pos, quat=quaternion)
+        return
+        # pos = self.terrain_info[info_index, 0:3]
+        # phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
+        # quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
+        # self.steps[step_index].set_position(pos=pos, quat=quaternion)
 
     def randomize_terrain(self, replace=True):
         if replace:
