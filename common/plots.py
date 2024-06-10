@@ -29,8 +29,8 @@ class Plot(object):
             self.parent = self
             # TODO: make up a name
             self.fig = plt.figure(figsize=(6.5 * nrows, 6.5 * ncols))
-            if title:
-                self.fig.canvas.set_window_title(title)
+            # if title:
+            #     self.fig.canvas.set_window_title(title)
             self.subplot_cnt = 0
             # self.fig, self.subplots = plt.subplots(nrows, ncols, figsize=(4.5*ncols, 4.5*nrows))
             # self.subplots = np.array(self.subplots).reshape(-1)[::-1].tolist()
