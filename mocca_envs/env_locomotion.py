@@ -497,6 +497,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.other_leg_lifted = False
         self.other_leg_contacted_first = False
+        self.other_leg_lifted_first = False
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
@@ -627,9 +628,9 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.wrong_contact_penalty = 1 if self.other_leg_contacted_first else 0
+        self.wrong_contact_penalty = 0
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.wrong_target_reached
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.wrong_target_reached or self.other_leg_lifted_first
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -703,6 +704,9 @@ class Walker3DStepperEnv(EnvBase):
             if self._foot_target_contacts[1-self.swing_leg, 0] > 0:
                 self.other_leg_contacted_first = True
 
+        if not self.swing_leg_lifted and self.other_leg_lifted and self.next_step_index > 1:
+            self.other_leg_lifted_first = True
+
         if self.target_reached:
             self.target_reached_count += 1
 
@@ -722,6 +726,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.swing_leg_grounded_count = 0
                     self.other_leg_lifted = False
                     self.other_leg_contacted_first = False
+                    self.other_leg_lifted_first = False
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
