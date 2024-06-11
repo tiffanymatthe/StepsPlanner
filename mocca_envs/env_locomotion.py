@@ -626,7 +626,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3  # or self.wrong_target_reached or self.other_leg_contacted_first
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.wrong_target_reached or self.other_leg_contacted_first
 
     def calc_feet_state(self):
         # Calculate contact separately for step
