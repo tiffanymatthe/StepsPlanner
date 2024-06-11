@@ -11,6 +11,7 @@ import torch
 from mocca_envs.env_base import EnvBase
 from mocca_envs.bullet_objects import (
     VSphere,
+    VCylinder,
     Pillar,
     Plank,
     LargePlank,
@@ -448,7 +449,7 @@ class Walker3DStepperEnv(EnvBase):
         for index in range(self.rendered_step_count):
             # p = self.plank_class(self._p, self.step_radius, options=options)
             self.steps.append(p)
-            self.rendered_steps.append(VSphere(self._p, radius=self.step_radius, pos=None))
+            self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.001, pos=None))
             step_ids = step_ids | {(p.id, p.base_id)}
             cover_ids = cover_ids | {(p.id, p.cover_id)}
 
