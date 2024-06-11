@@ -314,7 +314,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
-    rendered_step_count = 3
+    rendered_step_count = 20
     init_step_separation = 0.75
 
     lookahead = 2
@@ -355,7 +355,6 @@ class Walker3DStepperEnv(EnvBase):
         self.step_param_dim = 5
         # Important to do this once before reset!
         self.swing_leg = 0
-        print("INITING")
         self.terrain_info = self.generate_step_placements()
 
         # Observation and Action spaces
@@ -417,11 +416,14 @@ class Walker3DStepperEnv(EnvBase):
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
+    
+        sep_dist = 0.1
+        stop_adjust = 0
 
         for i in range(N):
-            sep_dist = 0.1
-            # TODO: is this correct for stopping stones
-            if i % 2 == self.swing_leg:
+            if i-1 in self.stop_steps and i-2 in self.stop_steps:
+                stop_adjust = (stop_adjust + 1) % 2
+            if i % 2 == (self.swing_leg + stop_adjust) % 2:
                 left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
                 x[i] += left_foot_shift[0]
                 y[i] += left_foot_shift[1]
@@ -624,7 +626,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.wrong_target_reached or self.other_leg_contacted_first
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3  # or self.wrong_target_reached or self.other_leg_contacted_first
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -669,6 +671,11 @@ class Walker3DStepperEnv(EnvBase):
         ):
             self.swing_leg = nanargmax(self._foot_target_contacts[:, 0])
 
+        wait_for_other_leg = (
+            self.next_step_index in self.stop_steps
+            and self.next_step_index - 1 in self.stop_steps
+        )
+
         if self._foot_target_contacts[self.swing_leg, 0] == 0 or self.next_step_index == 1 or self.swing_leg_lifted:
             # assume first step legs have already been lifted before
             self.swing_leg_lifted = True
@@ -677,16 +684,19 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.swing_leg_lifted:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
+            if wait_for_other_leg:
+                # ensure other leg has lifted and hit something solid before progressing to next step (allow it to move anywhere else)
+                self.target_reached = self.target_reached and self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0
             # ignore case where initialization brings swing foot somewhere else first
             self.wrong_target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] >= self.step_radius and self.next_step_index > 1
         else:
             self.target_reached = False
             self.wrong_target_reached = False
 
-        # if other foot lifts ck that it stays up while the other foot is swinging (if it contacts earlier, terminate episode)
+        # if other foot lifts check that it stays up while the other foot is swinging (if it contacts earlier, terminate episode)
         self.other_leg_lifted = self.other_leg_lifted or self._foot_target_contacts[1-self.swing_leg, 0] == 0
 
-        if self.other_leg_lifted and self.next_step_index > 1:
+        if self.other_leg_lifted and self.next_step_index > 1 and not wait_for_other_leg:
             if self._foot_target_contacts[1-self.swing_leg, 0] > 0:
                 self.other_leg_contacted_first = True
 
