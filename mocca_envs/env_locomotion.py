@@ -353,6 +353,8 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_range = np.array([-15, 15])
         self.step_param_dim = 5
         # Important to do this once before reset!
+        self.swing_leg = 0
+        print("INITING")
         self.terrain_info = self.generate_step_placements()
 
         # Observation and Action spaces
@@ -415,11 +417,24 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
+        for i in range(N):
+            sep_dist = 0.1
+            # TODO: is this correct for stopping stones
+            if i % 2 == self.swing_leg:
+                left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
+                x[i] += left_foot_shift[0]
+                y[i] += left_foot_shift[1]
+            else:
+                right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
+                x[i] += right_foot_shift[0]
+                y[i] += right_foot_shift[1]
+
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
     def create_terrain(self):
 
         self.steps = []
+        self.rendered_steps = []
         step_ids = set()
         cover_ids = set()
 
@@ -433,6 +448,7 @@ class Walker3DStepperEnv(EnvBase):
         for index in range(self.rendered_step_count):
             # p = self.plank_class(self._p, self.step_radius, options=options)
             self.steps.append(p)
+            self.rendered_steps.append(VSphere(self._p, radius=self.step_radius, pos=None))
             step_ids = step_ids | {(p.id, p.base_id)}
             cover_ids = cover_ids | {(p.id, p.cover_id)}
 
@@ -443,11 +459,12 @@ class Walker3DStepperEnv(EnvBase):
             self.all_contact_object_ids |= self.ground_ids
 
     def set_step_state(self, info_index, step_index):
-        return
-        # pos = self.terrain_info[info_index, 0:3]
-        # phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
-        # quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
+        # sets rendered step state
+        pos = self.terrain_info[info_index, 0:3]
+        phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
+        quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
         # self.steps[step_index].set_position(pos=pos, quat=quaternion)
+        self.rendered_steps[step_index].set_position(pos=pos)
 
     def randomize_terrain(self, replace=True):
         if replace:
@@ -479,6 +496,7 @@ class Walker3DStepperEnv(EnvBase):
         self.stop_on_next_step = False
 
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
+        prev_robot_mirrored = self.robot.mirrored
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
@@ -487,7 +505,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg = 1 if self.robot.mirrored else 0
 
         # Randomize platforms
-        replace = self.next_step_index >= self.num_steps / 2
+        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -654,9 +672,11 @@ class Walker3DStepperEnv(EnvBase):
             self.swing_leg_grounded_count += 1
 
         if self.swing_leg_lifted:
-            self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < 0.15
+            self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
+            # if self.target_reached:
+            #     print(f"Reached target: {self.foot_dist_to_target} < {self.step_radius} with swing foot {self.swing_leg}")
             # ignore case where initialization brings swing foot somewhere else first
-            self.wrong_target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] >= 0.15 and self.next_step_index > 1
+            self.wrong_target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] >= self.step_radius and self.next_step_index > 1
         else:
             self.target_reached = False
             self.wrong_target_reached = False
