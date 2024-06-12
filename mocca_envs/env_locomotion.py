@@ -642,7 +642,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.grounded_penalty = 0
 
-        if self.swing_leg_lifted_count > 0:
+        if self.swing_leg_lifted_count > 0 and not self.swing_leg_lifted:
             self.lift_bonus = 5
         else:
             self.lift_bonus = 0
@@ -699,7 +699,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if not self.swing_leg_lifted:
             # if not lifted yet and over count, True
-            if self.swing_leg_lifted_count >= 600:
+            if self.swing_leg_lifted_count >= 1000:
                 self.swing_leg_lifted = True
 
         if self.swing_leg_lifted:
