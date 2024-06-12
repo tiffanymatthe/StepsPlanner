@@ -637,13 +637,16 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        if self.swing_leg_grounded_count:
+        if self.swing_leg_grounded_count != 0 and not self.swing_leg_lifted:
             self.grounded_penalty = 1
         else:
             self.grounded_penalty = 0
 
-        if self.swing_leg_lifted_count > 0 and not self.swing_leg_lifted:
-            self.lift_bonus = 5
+        if self.swing_leg_lifted_count > 0:
+            if not self.swing_leg_lifted:
+                self.lift_bonus = 5
+            else:
+                self.lift_bonus = -5
         else:
             self.lift_bonus = 0
 
