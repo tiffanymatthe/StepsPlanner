@@ -633,7 +633,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
-        terminal_height = self.terminal_height_curriculum[self.curriculum]
+        terminal_height = 0.6 # self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
@@ -642,18 +642,22 @@ class Walker3DStepperEnv(EnvBase):
         # else:
         #     self.grounded_penalty = 0
 
+        self.lift_bonus = 0
+
         if self.swing_leg_lifted_count > 0:
             if not self.swing_leg_lifted:
-                self.lift_bonus = 2
+                if 1 <= self.swing_leg_lifted_count <= 2:
+                    self.lift_bonus = 2
             else:
-                self.lift_bonus = -2
-        else:
-            self.lift_bonus = 0
+                self.lift_bonus = -0.1
 
         if self.swing_leg_lifted and self._foot_target_contacts[self.swing_leg, 0] > 0:
-            self.lift_bonus += 2
+            self.lift_bonus += 5
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
+
+        if self.done:
+            print(f"done: {self.tall_bonus} < 0 or {abs_height} < -3")
 
     def calc_feet_state(self):
         # Calculate contact separately for step
