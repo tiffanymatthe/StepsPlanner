@@ -555,7 +555,12 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
 
+        # print(f"Total reward: {reward}")
+
         reward -= self.grounded_penalty
+        reward += self.lift_bonus
+
+        # print(f"Additional: -{self.grounded_penalty} and {self.lift_bonus}")
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -633,9 +638,14 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         if self.swing_leg_grounded_count:
-            self.grounded_penalty = 0.01 * self.swing_leg_grounded_count
+            self.grounded_penalty = 1
         else:
             self.grounded_penalty = 0
+
+        if self.swing_leg_lifted_count > 0:
+            self.lift_bonus = 5
+        else:
+            self.lift_bonus = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
