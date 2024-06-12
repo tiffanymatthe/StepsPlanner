@@ -495,6 +495,7 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached_count = 0
 
         self.swing_leg_lifted_count = 0
+        self.swing_leg_grounded_count = 0
         self.swing_leg_lifted = False
 
         self.other_leg_lifted = False
@@ -553,6 +554,8 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
+
+        reward -= self.grounded_penalty
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -629,11 +632,12 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.other_leg_contacted_first
+        if self.swing_leg_grounded_count:
+            self.grounded_penalty = 0.1
+        else:
+            self.grounded_penalty = 0
 
-        if self.done:
-            print(self.next_step_index)
-            print(self.other_leg_contacted_first)
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -678,12 +682,14 @@ class Walker3DStepperEnv(EnvBase):
         if self._foot_target_contacts[self.swing_leg, 0] == 0:
             # if in the air, increase count
             self.swing_leg_lifted_count += 1
+            self.swing_leg_grounded_count = 0
         else:
-            self.swing_leg_lifted_count == 0
+            self.swing_leg_grounded_count += 1
+            self.swing_leg_lifted_count = 0
 
         if not self.swing_leg_lifted:
             # if not lifted yet and over count, True
-            if self.swing_leg_lifted_count >= 300:
+            if self.swing_leg_lifted_count >= 600:
                 self.swing_leg_lifted = True
 
         if self.swing_leg_lifted:
@@ -726,6 +732,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.other_leg_lifted = False
                     self.other_leg_contacted_first = False
                     self.other_leg_lifted_first = False
+                    self.swing_leg_grounded_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
