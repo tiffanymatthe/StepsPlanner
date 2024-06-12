@@ -629,6 +629,10 @@ class Walker3DStepperEnv(EnvBase):
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.other_leg_contacted_first
 
+        if self.done:
+            print(self.next_step_index)
+            print(self.other_leg_contacted_first)
+
     def calc_feet_state(self):
         # Calculate contact separately for step
         target_cover_index = self.next_step_index % self.rendered_step_count
@@ -675,6 +679,9 @@ class Walker3DStepperEnv(EnvBase):
         wait_for_other_leg = (
             self.next_step_index in self.stop_steps
             and self.next_step_index - 1 in self.stop_steps
+        ) or (
+            self.next_step_index - 1 in self.stop_steps
+            and self.next_step_index - 2 in self.stop_steps
         )
 
         if self.next_step_index == 1 or self.swing_leg_lifted:
