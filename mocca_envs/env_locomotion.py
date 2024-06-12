@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.25
+    step_radius = 0.30
     rendered_step_count = 20
     init_step_separation = 0.75
 
@@ -451,7 +451,7 @@ class Walker3DStepperEnv(EnvBase):
         for index in range(self.rendered_step_count):
             # p = self.plank_class(self._p, self.step_radius, options=options)
             self.steps.append(p)
-            self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.001, pos=None))
+            self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
             step_ids = step_ids | {(p.id, p.base_id)}
             cover_ids = cover_ids | {(p.id, p.cover_id)}
 
@@ -627,7 +627,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.wrong_target_reached
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.other_leg_contacted_first
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -706,8 +706,7 @@ class Walker3DStepperEnv(EnvBase):
         self.other_leg_lifted = self.other_leg_lifted or self._foot_target_contacts[1-self.swing_leg, 0] == 0
 
         if self.other_leg_lifted and self.next_step_index > 1 and not wait_for_other_leg:
-            # TODO: doesn't work with stoppins
-            if self._foot_target_contacts[1-self.swing_leg, 0] > 0 and np.sqrt(ss(self.prev_leg_pos - self.robot.feet_xyz[1-self.swing_leg, 0:2])) > self.step_radius / 2:
+            if self._foot_target_contacts[1-self.swing_leg, 0] > 0 and np.sqrt(ss(self.prev_leg_pos[1-self.swing_leg] - self.robot.feet_xyz[1-self.swing_leg, 0:2])) > self.step_radius / 2:
                 self.other_leg_contacted_first = True
 
         if not self.swing_leg_lifted and self.other_leg_lifted and self.next_step_index > 1:
@@ -726,7 +725,7 @@ class Walker3DStepperEnv(EnvBase):
             # Needed for not over counting step bonus
             if self.target_reached_count >= 2:
                 if not self.stop_on_next_step:
-                    self.prev_leg_pos = self.robot.feet_xyz[self.swing_leg, 0:2]
+                    self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
                     self.swing_leg = (self.swing_leg + 1) % 2
                     self.next_step_index += 1
