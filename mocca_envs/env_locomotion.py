@@ -308,11 +308,11 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0, 1.32]
+    robot_init_position = [0,0, 1.32]
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 20
+    num_steps = 25
     step_radius = 0.25
     rendered_step_count = 20
     init_step_separation = 0.75
@@ -419,7 +419,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        sep_dist = 0.08
+        sep_dist = 0.12
         stop_adjust = 0
 
         for i in range(N):
@@ -557,7 +557,6 @@ class Walker3DStepperEnv(EnvBase):
 
         # print(f"Total reward: {reward}")
 
-        # reward -= self.grounded_penalty
         reward += self.lift_bonus
 
         # print(f"Additional: -{self.grounded_penalty} and {self.lift_bonus}")
@@ -637,16 +636,19 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        if self.swing_leg_lifted:
-            if self.swing_leg_lifted_count < 3000:
-                # print(f"swing leg before 3000, {self.scene.dt}")
-                self.lift_bonus = 2 if self._foot_target_contacts[self.swing_leg, 0] == 0 else -2
+
+        if self.other_leg_lifted:
+            self.lift_bonus = -5
+        elif self.swing_leg_lifted:
+            if self.swing_leg_lifted_count <= self.swing_leg_min_count:
+                self.lift_bonus = 1 if self._foot_target_contacts[self.swing_leg, 0] == 0 else -1
             else:
-                # print(f"swing leg after 3000, {self.swing_leg_lifted_count}")
-                self.lift_bonus = -2 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 2
+                self.lift_bonus = -5 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 5
         elif self.swing_leg_grounded_count > 400:
-            # print("grounded for too long")
-            self.lift_bonus = -2
+            self.lift_bonus = -1
+
+        if not self.other_leg_on_prev_target:
+            self.lift_bonus -= 2
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
@@ -654,9 +656,6 @@ class Walker3DStepperEnv(EnvBase):
         # Calculate contact separately for step
         target_cover_index = self.next_step_index % self.rendered_step_count
         next_step = self.steps[target_cover_index]
-
-        curr_cover_index = (self.next_step_index - 1) % self.rendered_step_count
-        curr_step = self.steps[curr_cover_index]
 
         self.foot_dist_to_target = np.sqrt(
             ss(
@@ -666,13 +665,18 @@ class Walker3DStepperEnv(EnvBase):
             )
         )
 
+        prev_foot_dist_to_target = np.sqrt(
+            ss(
+                self.robot.feet_xyz[:, 0:2]
+                - self.terrain_info[self.next_step_index-1, 0:2],
+                axis=1,
+            )
+        )
+
         robot_id = self.robot.id
         client_id = self._p._client
-        target_id_list = [[next_step.id],[curr_step.id]]
-        target_cover_id_list = [[next_step.cover_id],[curr_step.cover_id]]
-        if self.swing_leg == 1:
-            target_id_list.reverse()
-            target_cover_id_list.reverse()
+        target_id_list = [next_step.id]
+        target_cover_id_list = [next_step.cover_id]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -681,21 +685,30 @@ class Walker3DStepperEnv(EnvBase):
             self.robot.feet_contact[i] = pybullet.getContactStates(
                 bodyA=robot_id,
                 linkIndexA=foot.bodyPartIndex,
-                bodiesB=target_id_list[i],
-                linkIndicesB=target_cover_id_list[i],
+                bodiesB=target_id_list,
+                linkIndicesB=target_cover_id_list,
                 results=contact,
                 physicsClientId=client_id,
             )
+        
+        if self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0:
+            self.other_leg_lifted = False
 
-        # after first lift, count time and give points up to a certain number
-        if self._foot_target_contacts[self.swing_leg, 0] == 0:
+        if not self.other_leg_lifted:
+            self.other_leg_on_prev_target = self._foot_target_contacts[1-self.swing_leg, 0] > 0 and prev_foot_dist_to_target[1-self.swing_leg] < self.step_radius
+
+        if self._foot_target_contacts[self.swing_leg, 0] == 0: # swing leg is in the air
             self.swing_leg_lifted = True
         if self.swing_leg_lifted:
             self.swing_leg_lifted_count += 1
         else:
             self.swing_leg_grounded_count += 1
 
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted  and self.swing_leg_lifted_count > 500)
+        self.swing_leg_min_count = 1000
+
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted and self.swing_leg_lifted_count > self.swing_leg_min_count
+
+        # print(f"At index {self.next_step_index}, trying to reach target {self.terrain_info[self.next_step_index, 0:2]} with swing leg {self.swing_leg}, foot contacts: {self._foot_target_contacts}, robot mirrored: {self.robot.mirrored}, swing lifted: {self.swing_leg_lifted}")
 
         if self.target_reached:
             self.target_reached_count += 1
@@ -708,6 +721,7 @@ class Walker3DStepperEnv(EnvBase):
             # Slight delay for target advancement
             # Needed for not over counting step bonus
             if self.target_reached_count >= 2:
+                # print(f"Reached target {self.terrain_info[self.next_step_index, 0:2]} with swing leg {self.swing_leg}")
                 if not self.stop_on_next_step:
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
