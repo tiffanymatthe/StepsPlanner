@@ -646,13 +646,16 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.swing_leg_lifted_count > 0:
             if not self.swing_leg_lifted:
-                if 1 <= self.swing_leg_lifted_count <= 2:
-                    self.lift_bonus = 2
-            else:
-                self.lift_bonus = -0.1
+                if 1 <= self.swing_leg_lifted_count <= 10:
+                    self.lift_bonus = 1
+            # else:
+            #     self.lift_bonus = -0.1
 
-        if self.swing_leg_lifted and self._foot_target_contacts[self.swing_leg, 0] > 0:
-            self.lift_bonus += 5
+        if self.swing_leg_lifted:
+            if self._foot_target_contacts[self.swing_leg, 0] > 0:
+                self.lift_bonus = 5
+            else:
+                self.lift_bonus = -1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
