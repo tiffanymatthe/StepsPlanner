@@ -633,34 +633,19 @@ class Walker3DStepperEnv(EnvBase):
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
-        terminal_height = 0.6 # self.terminal_height_curriculum[self.curriculum]
+        terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        # if self.swing_leg_grounded_count != 0 and not self.swing_leg_lifted:
-        #     self.grounded_penalty = 1
-        # else:
-        #     self.grounded_penalty = 0
-
-        self.lift_bonus = 0
-
-        if self.swing_leg_lifted_count > 0:
-            if not self.swing_leg_lifted:
-                if 1 <= self.swing_leg_lifted_count <= 10:
-                    self.lift_bonus = 1
-            # else:
-            #     self.lift_bonus = -0.1
-
         if self.swing_leg_lifted:
-            if self._foot_target_contacts[self.swing_leg, 0] > 0:
-                self.lift_bonus = 5
+            if self.swing_leg_lifted_count < 600:
+                self.lift_bonus = 1 if self._foot_target_contacts[self.swing_leg, 0] == 0 else -1
             else:
-                self.lift_bonus = -1
+                self.lift_bonus = -1 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 1
+        elif self.swing_leg_grounded_count > 400:
+            self.lift_bonus = -1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
-
-        if self.done:
-            print(f"done: {self.tall_bonus} < 0 or {abs_height} < -3")
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -699,39 +684,15 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
-        if self.next_step_index == 1 or self.swing_leg_lifted:
-            # if first step or already lifted, say true
-            self.swing_leg_lifted = True
+        # after first lift, count time and give points up to a certain number
         if self._foot_target_contacts[self.swing_leg, 0] == 0:
-            # if in the air, increase count
+            self.swing_leg_lifted = True
+        if self.swing_leg_lifted:
             self.swing_leg_lifted_count += 1
-            self.swing_leg_grounded_count = 0
         else:
             self.swing_leg_grounded_count += 1
-            self.swing_leg_lifted_count = 0
 
-        if not self.swing_leg_lifted:
-            # if not lifted yet and over count, True
-            if self.swing_leg_lifted_count >= 200:
-                self.swing_leg_lifted = True
-
-        if self.swing_leg_lifted:
-            self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            self.wrong_target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] >= self.step_radius and self.next_step_index > 1
-        else:
-            self.target_reached = False
-            self.wrong_target_reached = False
-
-        # if other foot lifts check that it stays up while the other foot is swinging (if it contacts earlier, terminate episode)
-        self.other_leg_lifted = self.other_leg_lifted or self._foot_target_contacts[1-self.swing_leg, 0] == 0
-
-        if self.other_leg_lifted and self.next_step_index > 1:
-            if self._foot_target_contacts[1-self.swing_leg, 0] > 0 and np.sqrt(ss(self.prev_leg_pos[1-self.swing_leg] - self.robot.feet_xyz[1-self.swing_leg, 0:2])) > self.step_radius / 2:
-                self.other_leg_contacted_first = True
-
-        if not self.swing_leg_lifted and self.other_leg_lifted and self.next_step_index > 1:
-            # doesn't allow tapping, we want to allow this
-            self.other_leg_lifted_first = True
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted  and self.swing_leg_lifted_count > 200)
 
         if self.target_reached:
             self.target_reached_count += 1
