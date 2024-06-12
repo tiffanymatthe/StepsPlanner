@@ -308,12 +308,12 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0.3, 0, 1.32]
+    robot_init_position = [0, 0, 1.32]
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.30
+    step_radius = 0.25
     rendered_step_count = 20
     init_step_separation = 0.75
 
@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [6, 7, 13, 14]
+    stop_steps = [] # [6, 7, 13, 14]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -329,7 +329,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=True, **kwargs)
-        self.robot.set_base_pose(pose="running_start")
+        self.robot.set_base_pose(pose="stand")
 
         # Fix-ordered Curriculum
         self.curriculum = 0
@@ -405,6 +405,8 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
+        dr *= 0
+
         dx = dr * np.sin(dtheta) * np.cos(dphi)
         dy = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
@@ -417,7 +419,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        sep_dist = 0.1
+        sep_dist = 0.08
         stop_adjust = 0
 
         for i in range(N):
@@ -670,20 +672,6 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
-        # if (
-        #     self.next_step_index - 1 in self.stop_steps
-        #     and self.next_step_index - 2 in self.stop_steps
-        # ):
-        #     self.swing_leg = nanargmax(self._foot_target_contacts[:, 0])
-
-        wait_for_other_leg = (
-            self.next_step_index in self.stop_steps
-            and self.next_step_index - 1 in self.stop_steps
-        ) or (
-            self.next_step_index - 1 in self.stop_steps
-            and self.next_step_index - 2 in self.stop_steps
-        )
-
         if self.next_step_index == 1 or self.swing_leg_lifted:
             # if first step or already lifted, say true
             self.swing_leg_lifted = True
@@ -700,10 +688,6 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.swing_leg_lifted:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            if wait_for_other_leg:
-                # ensure other leg has lifted and hit something solid before progressing to next step (allow it to move anywhere else)
-                self.target_reached = self.target_reached and self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0
-            # ignore case where initialization brings swing foot somewhere else first
             self.wrong_target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] >= self.step_radius and self.next_step_index > 1
         else:
             self.target_reached = False
@@ -712,7 +696,7 @@ class Walker3DStepperEnv(EnvBase):
         # if other foot lifts check that it stays up while the other foot is swinging (if it contacts earlier, terminate episode)
         self.other_leg_lifted = self.other_leg_lifted or self._foot_target_contacts[1-self.swing_leg, 0] == 0
 
-        if self.other_leg_lifted and self.next_step_index > 1 and not wait_for_other_leg:
+        if self.other_leg_lifted and self.next_step_index > 1:
             if self._foot_target_contacts[1-self.swing_leg, 0] > 0 and np.sqrt(ss(self.prev_leg_pos[1-self.swing_leg] - self.robot.feet_xyz[1-self.swing_leg, 0:2])) > self.step_radius / 2:
                 self.other_leg_contacted_first = True
 
@@ -736,11 +720,6 @@ class Walker3DStepperEnv(EnvBase):
                     self.prev_leg = self.swing_leg
                     self.swing_leg = (self.swing_leg + 1) % 2
                     self.next_step_index += 1
-                    if (
-                        self.next_step_index - 1 in self.stop_steps
-                        and self.next_step_index - 2 in self.stop_steps
-                    ):
-                        self.swing_leg = 1 - self.swing_leg
                     self.target_reached_count = 0
                     self.swing_leg_lifted = False
                     self.swing_leg_lifted_count = 0
