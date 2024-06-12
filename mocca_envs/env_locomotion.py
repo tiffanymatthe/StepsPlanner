@@ -638,12 +638,15 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         if self.swing_leg_lifted:
-            if self.swing_leg_lifted_count < 600:
-                self.lift_bonus = 1 if self._foot_target_contacts[self.swing_leg, 0] == 0 else -1
+            if self.swing_leg_lifted_count < 3000:
+                # print(f"swing leg before 3000, {self.scene.dt}")
+                self.lift_bonus = 2 if self._foot_target_contacts[self.swing_leg, 0] == 0 else -2
             else:
-                self.lift_bonus = -1 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 1
+                # print(f"swing leg after 3000, {self.swing_leg_lifted_count}")
+                self.lift_bonus = -2 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 2
         elif self.swing_leg_grounded_count > 400:
-            self.lift_bonus = -1
+            # print("grounded for too long")
+            self.lift_bonus = -2
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
@@ -692,7 +695,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.swing_leg_grounded_count += 1
 
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted  and self.swing_leg_lifted_count > 200)
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted  and self.swing_leg_lifted_count > 500)
 
         if self.target_reached:
             self.target_reached_count += 1
