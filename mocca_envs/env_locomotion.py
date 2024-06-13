@@ -647,8 +647,8 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted:
                 if self.swing_leg_lifted_count < 5:
                     self.lift_bonus += 10
-                elif self.swing_leg_lifted_count < 200 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-                    self.lift_bonus += 1
+                # elif self.swing_leg_lifted_count < 200 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+                #     self.lift_bonus += 1
                 # if self.swing_leg_lifted_count < 200:
                 #     print(f"{self.next_step_index}: swing leg has been lifted {self.swing_leg_lifted_count}")
             elif self.swing_leg_grounded_count > 4000:
@@ -710,16 +710,21 @@ class Walker3DStepperEnv(EnvBase):
 
             if self._foot_target_contacts[self.swing_leg, 0] == 0: # swing leg is in the air
                 self.swing_leg_lifted = True
+                self.cont_leg_up_count += 1
             if self.swing_leg_lifted:
                 self.swing_leg_lifted_count += 1
             else:
                 self.swing_leg_grounded_count += 1
 
-        self.swing_leg_min_count = 300
+        self.swing_leg_min_count = 500
 
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.swing_leg_lifted and self.swing_leg_lifted_count > self.swing_leg_min_count
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.swing_leg_lifted and self.cont_leg_up_count > self.swing_leg_min_count
         if self.target_reached:
             self.in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
+
+        # must do after target check
+        if self._foot_target_contacts[self.swing_leg, 0] > 0:
+            self.cont_leg_up_count = 0
 
         # print(f"Swing leg lifted count {self.swing_leg_lifted_count} > {self.swing_leg_min_count}. Contact: {self._foot_target_contacts[self.swing_leg, 0] > 0} in circle {self.foot_dist_to_target[self.swing_leg] < self.step_radius}")
 
@@ -752,6 +757,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.swing_leg_grounded_count = 0
                     self.other_leg_on_prev_target_count = 0
                     self.both_feet_on_ground_count = 0
+                    self.cont_leg_up_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
