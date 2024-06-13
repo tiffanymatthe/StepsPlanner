@@ -647,10 +647,10 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted:
                 if self.swing_leg_lifted_count < 5:
                     self.lift_bonus += 10
-                elif self.swing_leg_lifted_count < 200:
+                elif self.swing_leg_lifted_count < 200 and self._foot_target_contacts[self.swing_leg, 0] == 0:
                     self.lift_bonus += 1
-                # if self.swing_leg_lifted_count == 1:
-                #     print(f"{self.next_step_index}: swing leg has been lifted")
+                # if self.swing_leg_lifted_count < 200:
+                #     print(f"{self.next_step_index}: swing leg has been lifted {self.swing_leg_lifted_count}")
             elif self.swing_leg_grounded_count > 4000:
                 # if self.swing_leg_grounded_count == 4001:
                 #     print(f"{self.next_step_index}: grounded for too long")
@@ -699,7 +699,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.both_feet_on_ground_count += self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self._foot_target_contacts[self.swing_leg, 0] > 0
         
-        if self.both_feet_on_ground_count > 1 or self.next_step_index in {1,2}:
+        if self.both_feet_on_ground_count > 1:
             if self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0:
                 self.other_leg_lifted = False
 
