@@ -639,7 +639,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if not self.other_leg_on_prev_target or self.swing_leg_grounded_count == 0:
             # want other leg on previous target and swing leg to touch the ground at least once
-            self.lift_bonus = -5
+            self.lift_bonus = 0
         elif self.swing_leg_lifted:
             if self.swing_leg_lifted_count <= self.swing_leg_min_count:
                 self.lift_bonus = 1 if self._foot_target_contacts[self.swing_leg, 0] == 0 else -1
