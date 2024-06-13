@@ -640,21 +640,21 @@ class Walker3DStepperEnv(EnvBase):
 
         self.lift_bonus = 0
 
-        if self.both_feet_on_ground_count == 5:
-            self.lift_bonus += 0.1
+        # if self.both_feet_on_ground_count == 5:
+            # self.lift_bonus += 0.1
             # print(f"Bonus for standing")
         if self.both_feet_on_ground_count > 5:
             if self.swing_leg_lifted:
                 if self.swing_leg_lifted_count < 5:
-                    self.lift_bonus += 2
-                # if self.swing_leg_lifted_count == 1:
-                    # print(f"{self.next_step_index}: swing leg has been lifted")
+                    self.lift_bonus += 10
+                if self.swing_leg_lifted_count == 1:
+                    print(f"{self.next_step_index}: swing leg has been lifted")
             elif self.swing_leg_grounded_count > 4000:
-                # if self.swing_leg_grounded_count == 4001:
-                    # print(f"{self.next_step_index}: grounded for too long")
+                if self.swing_leg_grounded_count == 4001:
+                    print(f"{self.next_step_index}: grounded for too long")
                 self.lift_bonus -= 3
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.target_reached and not self.in_target and self.target_reached_count == 1) and self.swing_leg_grounded_count > 6000
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.target_reached and not self.in_target and self.target_reached_count == 1) or self.swing_leg_grounded_count > 6000
 
     def calc_feet_state(self):
         # Calculate contact separately for step
