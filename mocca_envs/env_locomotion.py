@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 25
-    step_radius = 0.25
+    step_radius = 0.3
     rendered_step_count = 20
     init_step_separation = 0.75
 
@@ -637,7 +637,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        if not self.other_leg_on_prev_target: # or self.swing_leg_grounded_count == 0:
+        if not self.other_leg_on_prev_target or self.swing_leg_grounded_count == 0:
             # issue: swing leg grounded count sometimes never changes
             # want other leg on previous target and swing leg to touch the ground at least once
             # do not penalize because this encourages the policy to terminate the episode as soon as possible
@@ -657,7 +657,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.other_leg_on_prev_target_count == 1:
             self.lift_bonus += 1
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.target_reached and not self.in_target and self.target_reached_count == 1)
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -715,7 +715,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.swing_leg_min_count = 300
 
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted and self.swing_leg_lifted_count > self.swing_leg_min_count
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.swing_leg_lifted and self.swing_leg_lifted_count > self.swing_leg_min_count
+        if self.target_reached:
+            self.in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
 
         # print(f"Swing leg lifted count {self.swing_leg_lifted_count} > {self.swing_leg_min_count}. Contact: {self._foot_target_contacts[self.swing_leg, 0] > 0} in circle {self.foot_dist_to_target[self.swing_leg] < self.step_radius}")
 
@@ -739,6 +741,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.swing_leg = (self.swing_leg + 1) % 2
                     self.next_step_index += 1
                     self.target_reached_count = 0
+                    self.in_target = False
                     self.swing_leg_lifted = False
                     self.swing_leg_lifted_count = 0
                     self.other_leg_lifted = False
