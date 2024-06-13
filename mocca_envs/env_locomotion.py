@@ -638,16 +638,19 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         if not self.other_leg_on_prev_target or self.swing_leg_grounded_count == 0:
+            # issue: swing leg grounded count sometimes never changes
             # want other leg on previous target and swing leg to touch the ground at least once
             # do not penalize because this encourages the policy to terminate the episode as soon as possible
             self.lift_bonus = 0
-            # print("foot not good yet")
+            # print(f"{self.next_step_index}: foot not good yet: {self.other_leg_on_prev_target}, {self.swing_leg_grounded_count}")
         elif self.swing_leg_lifted:
             if self.swing_leg_lifted_count <= self.swing_leg_min_count:
                 self.lift_bonus = 1 if self._foot_target_contacts[self.swing_leg, 0] == 0 else -1
+                # print(self.swing_leg_lifted_count)
             else:
                 self.lift_bonus = -5 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 5
-            # print(f"Swing foot lifted count {self.swing_leg_lifted_count}: ok? {self.swing_leg_lifted_count <= self.swing_leg_min_count}")
+                # print(f"{self.next_step_index} Swing foot lifted count {self.swing_leg_lifted_count}: ok? {self.swing_leg_lifted_count <= self.swing_leg_min_count}")
+
         elif self.swing_leg_grounded_count > 400:
             self.lift_bonus = -1
 
@@ -713,6 +716,8 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_min_count = 300
 
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted and self.swing_leg_lifted_count > self.swing_leg_min_count
+
+        # print(f"Swing leg lifted count {self.swing_leg_lifted_count} > {self.swing_leg_min_count}. Contact: {self._foot_target_contacts[self.swing_leg, 0] > 0} in circle {self.foot_dist_to_target[self.swing_leg] < self.step_radius}")
 
         # print(f"At index {self.next_step_index}, trying to reach target {self.terrain_info[self.next_step_index, 0:2]} with swing leg {self.swing_leg}, foot contacts: {self._foot_target_contacts}, robot mirrored: {self.robot.mirrored}, swing lifted: {self.swing_leg_lifted}")
 
