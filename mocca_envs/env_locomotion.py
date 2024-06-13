@@ -637,7 +637,8 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
 
-        if self.other_leg_lifted:
+        if not self.other_leg_on_prev_target or self.swing_leg_grounded_count == 0:
+            # want other leg on previous target and swing leg to touch the ground at least once
             self.lift_bonus = -5
         elif self.swing_leg_lifted:
             if self.swing_leg_lifted_count <= self.swing_leg_min_count:
@@ -646,9 +647,6 @@ class Walker3DStepperEnv(EnvBase):
                 self.lift_bonus = -5 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 5
         elif self.swing_leg_grounded_count > 400:
             self.lift_bonus = -1
-
-        if not self.other_leg_on_prev_target:
-            self.lift_bonus -= 2
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
