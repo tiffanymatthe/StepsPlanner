@@ -637,7 +637,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        if not self.other_leg_on_prev_target or self.swing_leg_grounded_count == 0:
+        if not self.other_leg_on_prev_target #  or self.swing_leg_grounded_count == 0:
             # issue: swing leg grounded count sometimes never changes
             # want other leg on previous target and swing leg to touch the ground at least once
             # do not penalize because this encourages the policy to terminate the episode as soon as possible
