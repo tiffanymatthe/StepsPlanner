@@ -497,6 +497,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted_count = 0
         self.swing_leg_grounded_count = 0
         self.other_leg_on_prev_target_count = 0
+        self.both_feet_on_ground = 0
         self.swing_leg_lifted = False
 
         self.other_leg_lifted = False
@@ -652,18 +653,19 @@ class Walker3DStepperEnv(EnvBase):
         #     else:
         #         self.lift_bonus = -5 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 5
         #         # print(f"{self.next_step_index} Swing foot lifted count {self.swing_leg_lifted_count}: ok? {self.swing_leg_lifted_count <= self.swing_leg_min_count}")
-        if self.swing_leg_lifted:
-            if self.swing_leg_lifted_count == 1:
-                self.lift_bonus += 1
-            # if self.swing_leg_lifted_count == 1:
-                # print(f"{self.next_step_index}: swing leg has been lifted")
-        elif self.swing_leg_grounded_count > 4000:
-            # if self.swing_leg_grounded_count == 4001:
-                # print(f"{self.next_step_index}: grounded for too long")
-            self.lift_bonus += -2
+        if self.both_feet_on_ground > 5:
+            if self.swing_leg_lifted:
+                if self.swing_leg_lifted_count == 1:
+                    self.lift_bonus += 10
+                # if self.swing_leg_lifted_count == 1:
+                    # print(f"{self.next_step_index}: swing leg has been lifted")
+            elif self.swing_leg_grounded_count > 4000:
+                # if self.swing_leg_grounded_count == 4001:
+                    # print(f"{self.next_step_index}: grounded for too long")
+                self.lift_bonus += -2
 
-        if self.other_leg_on_prev_target_count == 1:
-            self.lift_bonus += 1
+            if self.other_leg_on_prev_target_count == 1:
+                self.lift_bonus += 1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.target_reached and not self.in_target and self.target_reached_count == 1)
 
@@ -705,21 +707,24 @@ class Walker3DStepperEnv(EnvBase):
                 results=contact,
                 physicsClientId=client_id,
             )
+
+        self.both_feet_on_ground += self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self._foot_target_contacts[self.swing_leg, 0] > 0
         
-        if self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0:
-            self.other_leg_lifted = False
+        if self.both_feet_on_ground > 5:
+            if self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0:
+                self.other_leg_lifted = False
 
-        if not self.other_leg_lifted:
-            self.other_leg_on_prev_target = self._foot_target_contacts[1-self.swing_leg, 0] > 0 and prev_foot_dist_to_target[1-self.swing_leg] < self.step_radius
-            if self.other_leg_on_prev_target:
-                self.other_leg_on_prev_target_count += 1
+            if not self.other_leg_lifted:
+                self.other_leg_on_prev_target = self._foot_target_contacts[1-self.swing_leg, 0] > 0 and prev_foot_dist_to_target[1-self.swing_leg] < self.step_radius
+                if self.other_leg_on_prev_target:
+                    self.other_leg_on_prev_target_count += 1
 
-        if self._foot_target_contacts[self.swing_leg, 0] == 0: # swing leg is in the air
-            self.swing_leg_lifted = True
-        if self.swing_leg_lifted:
-            self.swing_leg_lifted_count += 1
-        else:
-            self.swing_leg_grounded_count += 1
+            if self._foot_target_contacts[self.swing_leg, 0] == 0: # swing leg is in the air
+                self.swing_leg_lifted = True
+            if self.swing_leg_lifted:
+                self.swing_leg_lifted_count += 1
+            else:
+                self.swing_leg_grounded_count += 1
 
         self.swing_leg_min_count = 300
 
@@ -756,6 +761,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.other_leg_contacted_first = False
                     self.other_leg_lifted_first = False
                     self.swing_leg_grounded_count = 0
+                    self.both_feet_on_ground = 0
                     self.other_leg_on_prev_target_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
