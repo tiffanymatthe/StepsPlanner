@@ -643,7 +643,7 @@ class Walker3DStepperEnv(EnvBase):
         # if self.both_feet_on_ground_count == 5:
             # self.lift_bonus += 0.1
             # print(f"Bonus for standing")
-        if self.both_feet_on_ground_count > 5:
+        if self.both_feet_on_ground_count > 1 or self.next_step_index in {1,2}:
             if self.swing_leg_lifted:
                 if self.swing_leg_lifted_count < 5:
                     self.lift_bonus += 10
@@ -697,7 +697,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.both_feet_on_ground_count += self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self._foot_target_contacts[self.swing_leg, 0] > 0
         
-        if self.both_feet_on_ground_count > 5:
+        if self.both_feet_on_ground_count > 1 or self.next_step_index in {1,2}:
             if self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0:
                 self.other_leg_lifted = False
 
