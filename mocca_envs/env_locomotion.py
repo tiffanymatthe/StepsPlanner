@@ -308,12 +308,12 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0,0, 1.32]
+    robot_init_position = [0.3,0, 1.32]
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 25
-    step_radius = 0.5
+    step_radius = 0.3
     rendered_step_count = 20
     init_step_separation = 0.75
 
@@ -329,7 +329,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=True, **kwargs)
-        self.robot.set_base_pose(pose="stand")
+        self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
         self.curriculum = 0
@@ -404,8 +404,6 @@ class Walker3DStepperEnv(EnvBase):
         y_tilt[0:3] = 0
 
         dphi = np.cumsum(dphi)
-
-        dr *= 0
 
         dx = dr * np.sin(dtheta) * np.cos(dphi)
         dy = dr * np.sin(dtheta) * np.sin(dphi)
@@ -664,6 +662,9 @@ class Walker3DStepperEnv(EnvBase):
             self.lift_bonus += min(self.cont_leg_up_count / 100, 15)
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.target_reached and not self.in_target and self.target_reached_count == 1) or self.swing_leg_grounded_count > 8000
+
+        # if self.done:
+        #     print(f"DONE because in target {self.in_target} or leg grounded {self.swing_leg_grounded_count > 8000}")
 
     def calc_feet_state(self):
         # Calculate contact separately for step
