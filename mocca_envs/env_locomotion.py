@@ -653,7 +653,8 @@ class Walker3DStepperEnv(EnvBase):
         #         self.lift_bonus = -5 if self._foot_target_contacts[self.swing_leg, 0] == 0 else 5
         #         # print(f"{self.next_step_index} Swing foot lifted count {self.swing_leg_lifted_count}: ok? {self.swing_leg_lifted_count <= self.swing_leg_min_count}")
         if self.swing_leg_lifted:
-            self.lift_bonus += 1
+            if self.swing_leg_lifted_count == 1:
+                self.lift_bonus += 1
             # if self.swing_leg_lifted_count == 1:
                 # print(f"{self.next_step_index}: swing leg has been lifted")
         elif self.swing_leg_grounded_count > 4000:
