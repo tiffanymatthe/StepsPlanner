@@ -498,6 +498,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_grounded_count = 0
         self.other_leg_on_prev_target_count = 0
         self.swing_leg_lifted = False
+        self.waiting_for_other_leg_on_target = 0
 
         self.other_leg_lifted = False
         self.other_leg_contacted_first = False
@@ -655,9 +656,15 @@ class Walker3DStepperEnv(EnvBase):
             self.lift_bonus = -1
 
         if self.other_leg_on_prev_target_count == 1:
-            self.lift_bonus += 1
+            self.lift_bonus += 1            
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.target_reached and not self.in_target and self.target_reached_count == 1)
+        self.done = (
+                self.done
+                or self.tall_bonus < 0 or abs_height < -3
+                or (self.target_reached and not self.in_target and self.target_reached_count == 1)
+                or (not self.other_leg_on_prev_target and self.waiting_for_other_leg_on_target > 500)
+                # or (self.other_leg_on_prev_target and self.swing_leg_grounded_count > 5000 and self.next_step_index != 1)
+            )
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -702,8 +709,10 @@ class Walker3DStepperEnv(EnvBase):
             self.other_leg_lifted = False
 
         if not self.other_leg_lifted:
+            self.waiting_for_other_leg_on_target += 1
             self.other_leg_on_prev_target = self._foot_target_contacts[1-self.swing_leg, 0] > 0 and prev_foot_dist_to_target[1-self.swing_leg] < self.step_radius
             if self.other_leg_on_prev_target:
+                self.waiting_for_other_leg_on_target = 0
                 self.other_leg_on_prev_target_count += 1
 
         if self._foot_target_contacts[self.swing_leg, 0] == 0: # swing leg is in the air
@@ -749,6 +758,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.other_leg_lifted_first = False
                     self.swing_leg_grounded_count = 0
                     self.other_leg_on_prev_target_count = 0
+                    self.waiting_for_other_leg_on_target = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
