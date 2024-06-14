@@ -449,10 +449,10 @@ class Walker3DStepperEnv(EnvBase):
                 y[step_index+2] += right_foot_shift[1]
             step_index += 3
 
-        # shift by -1 so starting position with lookbehind 1 is two feet on the ground
-        x = np.roll(x, 1)
-        y = np.roll(y, 1)
-        z = np.roll(z, 1)
+        # shift by 2 so starting position with lookbehind 1 is two feet on the ground
+        x = np.roll(x, -2)
+        y = np.roll(y, -2)
+        z = np.roll(z, -2)
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
@@ -527,6 +527,7 @@ class Walker3DStepperEnv(EnvBase):
             vel=self.robot_init_velocity,
         )
         self.swing_leg = 1 if self.robot.mirrored else 0
+        self.prev_leg = self.swing_leg
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
@@ -656,7 +657,7 @@ class Walker3DStepperEnv(EnvBase):
         self.contact_bonus = 0
         if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
             self.contact_bonus -= 1
-        if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1500:
+        if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1000:
             # if self.current_target_count == 1501:
             #     print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1501 * self.scene.dt:.4f} seconds.")
             self.contact_bonus -= 1
@@ -708,7 +709,9 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached = False
         if not self.both_feet_hit_ground:
             # only check this condition for step 1
-            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 500)
+            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 5)
+            # if self.both_feet_hit_ground:
+            #     print(f"{self.next_step_index}: Both feet have hit the ground at {self.current_target_count}")
         if not self.both_feet_hit_ground:
             # do not check other conditions
             pass
@@ -719,6 +722,7 @@ class Walker3DStepperEnv(EnvBase):
             #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[self.swing_leg, 2]}")
         else:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
+            # print(f"{self.next_step_index}: ground target reached with {self.swing_leg}? {self._foot_target_contacts[self.swing_leg, 0] > 0} and {self.foot_dist_to_target[self.swing_leg]}. {self.robot.feet_xyz[self.swing_leg, 0:3]} vs {self.terrain_info[self.next_step_index, 0:3]}")
             # if self.target_reached:
             #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[:, 2]}, should be on ground, {self._foot_target_contacts[self.swing_leg, 0] > 0}")
 
@@ -732,15 +736,15 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 if self.imaginary_step else 1500
+            delay = 2 if self.imaginary_step else 1000
             if self.target_reached_count >= delay:
-                print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
+                # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
-                    self.prev_leg = self.swing_leg
-                    if not self.imaginary_step:
+                    if not (self.imaginary_step or self.prev_leg != self.swing_leg):
                         self.swing_leg = (self.swing_leg + 1) % 2
+                    self.prev_leg = self.swing_leg
                     self.next_step_index += 1
                     if (
                         self.next_step_index - 1 in self.stop_steps
