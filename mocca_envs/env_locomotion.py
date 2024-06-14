@@ -650,11 +650,14 @@ class Walker3DStepperEnv(EnvBase):
 
         self.contact_bonus = 0
         if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
-            self.contact_bonus -= 0.5
+            # print("OTHER FOOT IS IN THE AIR!")
+            self.contact_bonus -= 1
+        else:
+            self.contact_bonus += 1
         if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1000:
             # if self.current_target_count == 1001:
             #     print(f"{self.next_step_index}: stuck on floor")
-            self.contact_bonus -= 1
+            self.contact_bonus -= 2
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
@@ -701,7 +704,7 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached = False
         if not self.both_feet_hit_ground:
             # only check this condition for step 1
-            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0)
+            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 10)
 
         if not self.both_feet_hit_ground:
             # do not check other conditions
