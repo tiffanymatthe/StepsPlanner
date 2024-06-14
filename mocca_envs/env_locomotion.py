@@ -24,6 +24,7 @@ from mocca_envs.robots import Child3D, Laikago, Mike, Monkey3D, Walker2D, Walker
 Colors = {
     "dodgerblue": (0.11764705882352941, 0.5647058823529412, 1.0, 1.0),
     "crimson": (0.8627450980392157, 0.0784313725490196, 0.23529411764705882, 1.0),
+
 }
 
 DEG2RAD = np.pi / 180
@@ -313,7 +314,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.30
+    step_radius = 0.3
     rendered_step_count = 2
     init_step_separation = 0.75
 
@@ -419,7 +420,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        sep_dist = 0.1
+        sep_dist = 0.15
         stop_adjust = 0
         step_index = 0
 
@@ -501,6 +502,7 @@ class Walker3DStepperEnv(EnvBase):
         self.timestep = 0
         self.done = False
         self.target_reached_count = 0
+        self.both_feet_hit_ground = False
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
@@ -567,6 +569,8 @@ class Walker3DStepperEnv(EnvBase):
                 if self.distance_to_target < 0.15
                 else Colors["crimson"]
             )
+            self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(Colors["crimson"])
+            self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(Colors["dodgerblue"])
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
@@ -676,6 +680,13 @@ class Walker3DStepperEnv(EnvBase):
             )
 
         self.target_reached = False
+        if not self.both_feet_hit_ground:
+            # only check this condition for step 1
+            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0)
+
+        if not self.both_feet_hit_ground:
+            # do not check other conditions
+            pass
         if self.terrain_info[self.next_step_index,2] > 0.01:
             # dreamed step in air, no contact calculations required
             self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0
@@ -709,6 +720,7 @@ class Walker3DStepperEnv(EnvBase):
                     ):
                         self.swing_leg = 1 - self.swing_leg
                     self.target_reached_count = 0
+                    self.both_feet_hit_ground = False
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
