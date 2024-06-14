@@ -314,7 +314,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.30
-    rendered_step_count = 1
+    rendered_step_count = 2
     init_step_separation = 0.75
 
     lookahead = 2
@@ -432,14 +432,14 @@ class Walker3DStepperEnv(EnvBase):
                 y[step_index] += left_foot_shift[1]
                 x[step_index+1] += left_foot_shift[0]
                 y[step_index+1] += left_foot_shift[1]
-                z[step_index] += 0.15
+                z[step_index] += 0.3
             else:
                 right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
                 x[step_index] += right_foot_shift[0]
                 y[step_index] += right_foot_shift[1]
                 x[step_index+1] += right_foot_shift[0]
                 y[step_index+1] += right_foot_shift[1]
-                z[step_index] += 0.15
+                z[step_index] += 0.3
             step_index += 2
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
