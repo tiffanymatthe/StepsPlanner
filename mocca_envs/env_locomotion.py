@@ -423,6 +423,8 @@ class Walker3DStepperEnv(EnvBase):
         sep_dist = 0.15
         stop_adjust = 0
         step_index = 0
+        height = 0.3
+        x_diff = 0.12
 
         for i in range(N // 3):
             if i-1 in self.stop_steps and i-2 in self.stop_steps:
@@ -431,18 +433,18 @@ class Walker3DStepperEnv(EnvBase):
                 left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
                 x[step_index] += left_foot_shift[0]
                 y[step_index] += left_foot_shift[1]
-                x[step_index+1] += left_foot_shift[0]
+                x[step_index+1] += left_foot_shift[0] + x_diff
                 y[step_index+1] += left_foot_shift[1]
-                z[step_index+1] += 0.3
+                z[step_index+1] += height
                 x[step_index+2] += left_foot_shift[0]
                 y[step_index+2] += left_foot_shift[1]
             else:
                 right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
                 x[step_index] += right_foot_shift[0]
                 y[step_index] += right_foot_shift[1]
-                x[step_index+1] += right_foot_shift[0]
+                x[step_index+1] += right_foot_shift[0] + x_diff
                 y[step_index+1] += right_foot_shift[1]
-                z[step_index+1] += 0.3
+                z[step_index+1] += height
                 x[step_index+2] += right_foot_shift[0]
                 y[step_index+2] += right_foot_shift[1]
             step_index += 3
