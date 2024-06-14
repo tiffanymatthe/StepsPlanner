@@ -507,6 +507,7 @@ class Walker3DStepperEnv(EnvBase):
         self.done = False
         self.target_reached_count = 0
         self.both_feet_hit_ground = False
+        self.current_target_count = 0
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
@@ -645,9 +646,11 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        # self.contact_bonus = 0
-        # if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
-        #     self.contact_bonus = -0.5
+        self.contact_bonus = 0
+        if self._foot_target_contacts[1-self.swing_leg, 0] > 0:
+            self.contact_bonus += 0.5
+        if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1000:
+            self.contact_bonus -= 1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
@@ -688,6 +691,9 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
+        self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
+        self.current_target_count += 1
+
         self.target_reached = False
         if not self.both_feet_hit_ground:
             # only check this condition for step 1
@@ -696,7 +702,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.both_feet_hit_ground:
             # do not check other conditions
             pass
-        if self.terrain_info[self.next_step_index,2] > 0.01:
+        if self.imaginary_step:
             # dreamed step in air, no contact calculations required
             self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0
             # if self.target_reached:
@@ -718,9 +724,10 @@ class Walker3DStepperEnv(EnvBase):
             # Needed for not over counting step bonus
             if self.target_reached_count >= 2:
                 if not self.stop_on_next_step:
+                    self.current_target_count = 0
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
-                    if not self.terrain_info[self.next_step_index,2] > 0.01:
+                    if not self.imaginary_step:
                         self.swing_leg = (self.swing_leg + 1) % 2
                     self.next_step_index += 1
                     if (
