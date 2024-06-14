@@ -312,6 +312,9 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_position = [0, 0, 1.32]
     robot_init_velocity = None
 
+    pre_lift_count = 1000
+    ground_stay_count = 500
+
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 30
     step_radius = 0.3
@@ -657,12 +660,16 @@ class Walker3DStepperEnv(EnvBase):
         self.contact_bonus = 0
         if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
             self.contact_bonus -= 1
-        if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1000:
-            # if self.current_target_count == 1501:
-            #     print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1501 * self.scene.dt:.4f} seconds.")
-            self.contact_bonus -= 1
+        if self.imaginary_step and self.current_target_count >= self.pre_lift_count:
+            if self._foot_target_contacts[self.swing_leg, 0] > 0:
+                # if self.current_target_count == self.pre_lift_count:
+                    # print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
+                self.contact_bonus -= 5
+            else:
+                if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
+                    self.contact_bonus += 5
         if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
-            self.contact_bonus += 1
+            self.contact_bonus += 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
@@ -709,7 +716,7 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached = False
         if not self.both_feet_hit_ground:
             # only check this condition for step 1
-            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 5)
+            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 1)
             # if self.both_feet_hit_ground:
             #     print(f"{self.next_step_index}: Both feet have hit the ground at {self.current_target_count}")
         if not self.both_feet_hit_ground:
@@ -736,7 +743,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 if self.imaginary_step else 1000
+            delay = 2 if self.imaginary_step else self.ground_stay_count
             if self.target_reached_count >= delay:
                 # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
