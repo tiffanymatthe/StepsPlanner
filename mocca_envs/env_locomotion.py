@@ -449,6 +449,11 @@ class Walker3DStepperEnv(EnvBase):
                 y[step_index+2] += right_foot_shift[1]
             step_index += 3
 
+        # shift by -1 so starting position with lookbehind 1 is two feet on the ground
+        x = np.roll(x, 1)
+        y = np.roll(y, 1)
+        z = np.roll(z, 1)
+
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
     def create_terrain(self):
@@ -563,7 +568,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        # reward += self.contact_bonus
+        reward += self.contact_bonus
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -652,6 +657,8 @@ class Walker3DStepperEnv(EnvBase):
         if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
             self.contact_bonus -= 1
         if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1500:
+            # if self.current_target_count == 1501:
+            #     print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1501 * self.scene.dt:.4f} seconds.")
             self.contact_bonus -= 1
         if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
             self.contact_bonus += 1
@@ -701,7 +708,7 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached = False
         if not self.both_feet_hit_ground:
             # only check this condition for step 1
-            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 1500)
+            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 500)
         if not self.both_feet_hit_ground:
             # do not check other conditions
             pass
