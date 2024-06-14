@@ -608,10 +608,11 @@ class Walker3DStepperEnv(EnvBase):
         linear_progress = self.linear_potential - old_linear_potential
         self.progress = linear_progress
 
-        # if self.progress != 0:
+        # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: {self.progress}")
         #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
-        #     print(f"Vertical error: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
+        #     print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
+        #     print(f"Next step position: {self.terrain_info[self.next_step_index]}")
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -674,11 +675,16 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
-        if self.terrain_info[self.next_step_index,2] > 0:
+        self.target_reached = False
+        if self.terrain_info[self.next_step_index,2] > 0.01:
             # dreamed step in air, no contact calculations required
             self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0
+            # if self.target_reached:
+            #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[self.swing_leg, 2]}")
         else:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
+            # if self.target_reached:
+            #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[:, 2]}, should be on ground, {self._foot_target_contacts[self.swing_leg, 0] > 0}")
 
         if self.target_reached:
             self.target_reached_count += 1
@@ -694,7 +700,8 @@ class Walker3DStepperEnv(EnvBase):
                 if not self.stop_on_next_step:
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
-                    self.swing_leg = (self.swing_leg + 1) % 2
+                    if not self.terrain_info[self.next_step_index,2] > 0.01:
+                        self.swing_leg = (self.swing_leg + 1) % 2
                     self.next_step_index += 1
                     if (
                         self.next_step_index - 1 in self.stop_steps
