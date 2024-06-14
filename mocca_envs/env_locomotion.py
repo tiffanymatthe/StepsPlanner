@@ -647,9 +647,11 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.contact_bonus = 0
-        if self._foot_target_contacts[1-self.swing_leg, 0] > 0:
-            self.contact_bonus += 0.5
+        if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
+            self.contact_bonus -= 0.5
         if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1000:
+            # if self.current_target_count == 1001:
+            #     print(f"{self.next_step_index}: stuck on floor")
             self.contact_bonus -= 1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
