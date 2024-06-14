@@ -660,14 +660,14 @@ class Walker3DStepperEnv(EnvBase):
         self.contact_bonus = 0
         if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
             self.contact_bonus -= 1
-        if self.imaginary_step and self.current_target_count >= self.pre_lift_count:
-            if self._foot_target_contacts[self.swing_leg, 0] > 0:
-                if self.current_target_count == self.pre_lift_count:
-                    print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
-                self.contact_bonus -= 5
-            else:
+        if self.imaginary_step: # and self.current_target_count >= self.pre_lift_count:
+            # if self._foot_target_contacts[self.swing_leg, 0] > 0:
+            #     if self.current_target_count == self.pre_lift_count:
+            #         print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
+            #     self.contact_bonus -= 5
+            if self._foot_target_contacts[self.swing_leg, 0] == 0:
                 # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
-                self.contact_bonus += 5
+                self.contact_bonus += 10
         if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
             self.contact_bonus += 0
 
