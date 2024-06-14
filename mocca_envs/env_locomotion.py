@@ -646,8 +646,8 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.contact_bonus = 0
-        if self._foot_target_contacts[1-self.swing_leg, 0] > 0:
-            self.contact_bonus = 0.5
+        if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
+            self.contact_bonus = -0.5
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
