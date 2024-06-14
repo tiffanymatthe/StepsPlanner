@@ -308,20 +308,20 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0.3, 0, 1.32]
+    robot_init_position = [0, 0, 1.32]
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.30
-    rendered_step_count = 20
+    rendered_step_count = 1
     init_step_separation = 0.75
 
     lookahead = 2
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [6, 7, 13, 14]
+    stop_steps = [] # [6, 7, 13, 14]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -329,7 +329,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=True, **kwargs)
-        self.robot.set_base_pose(pose="running_start")
+        self.robot.set_base_pose(pose="stand")
 
         # Fix-ordered Curriculum
         self.curriculum = 0
@@ -405,6 +405,8 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
+        dr *= 0
+
         dx = dr * np.sin(dtheta) * np.cos(dphi)
         dy = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
@@ -419,18 +421,26 @@ class Walker3DStepperEnv(EnvBase):
     
         sep_dist = 0.1
         stop_adjust = 0
+        step_index = 0
 
-        for i in range(N):
+        for i in range(N // 2):
             if i-1 in self.stop_steps and i-2 in self.stop_steps:
                 stop_adjust = (stop_adjust + 1) % 2
             if i % 2 == (self.swing_leg + stop_adjust) % 2:
                 left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
-                x[i] += left_foot_shift[0]
-                y[i] += left_foot_shift[1]
+                x[step_index] += left_foot_shift[0]
+                y[step_index] += left_foot_shift[1]
+                x[step_index+1] += left_foot_shift[0]
+                y[step_index+1] += left_foot_shift[1]
+                z[step_index] += 0.15
             else:
                 right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
-                x[i] += right_foot_shift[0]
-                y[i] += right_foot_shift[1]
+                x[step_index] += right_foot_shift[0]
+                y[step_index] += right_foot_shift[1]
+                x[step_index+1] += right_foot_shift[0]
+                y[step_index+1] += right_foot_shift[1]
+                z[step_index] += 0.15
+            step_index += 2
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
