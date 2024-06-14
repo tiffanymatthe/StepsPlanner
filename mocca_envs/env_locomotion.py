@@ -502,13 +502,6 @@ class Walker3DStepperEnv(EnvBase):
         self.done = False
         self.target_reached_count = 0
 
-        self.swing_leg_lifted_count = 0
-        self.swing_leg_lifted = False
-
-        self.other_leg_lifted = False
-        self.other_leg_contacted_first = False
-        self.other_leg_lifted_first = False
-
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
@@ -602,7 +595,7 @@ class Walker3DStepperEnv(EnvBase):
         # self.angle_to_target = walk_target_theta - self.robot.body_rpy[2]
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
-        self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+        self.distance_to_target = sqrt(ss(walk_target_delta[0:3]))
         self.linear_potential = -self.distance_to_target / self.scene.dt
 
     def calc_base_reward(self, action):
@@ -614,6 +607,11 @@ class Walker3DStepperEnv(EnvBase):
 
         linear_progress = self.linear_potential - old_linear_potential
         self.progress = linear_progress
+
+        # if self.progress != 0:
+        #     print(f"{self.next_step_index}: {self.progress}")
+        #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
+        #     print(f"Vertical error: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -637,11 +635,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.other_leg_contacted_first
-
-        if self.done:
-            print(self.next_step_index)
-            print(self.other_leg_contacted_first)
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -653,8 +647,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.foot_dist_to_target = np.sqrt(
             ss(
-                self.robot.feet_xyz[:, 0:2]
-                - self.terrain_info[self.next_step_index, 0:2],
+                self.robot.feet_xyz[:, 0:3]
+                - self.terrain_info[self.next_step_index, 0:3],
                 axis=1,
             )
         )
@@ -680,55 +674,11 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
-        # if (
-        #     self.next_step_index - 1 in self.stop_steps
-        #     and self.next_step_index - 2 in self.stop_steps
-        # ):
-        #     self.swing_leg = nanargmax(self._foot_target_contacts[:, 0])
-
-        wait_for_other_leg = (
-            self.next_step_index in self.stop_steps
-            and self.next_step_index - 1 in self.stop_steps
-        ) or (
-            self.next_step_index - 1 in self.stop_steps
-            and self.next_step_index - 2 in self.stop_steps
-        )
-
-        if self.next_step_index == 1 or self.swing_leg_lifted:
-            # if first step or already lifted, say true
-            self.swing_leg_lifted = True
-        if self._foot_target_contacts[self.swing_leg, 0] == 0:
-            # if in the air, increase count
-            self.swing_leg_lifted_count += 1
+        if self.terrain_info[self.next_step_index,2] > 0:
+            # dreamed step in air, no contact calculations required
+            self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0
         else:
-            self.swing_leg_lifted_count == 0
-
-        if not self.swing_leg_lifted:
-            # if not lifted yet and over count, True
-            if self.swing_leg_lifted_count >= 300:
-                self.swing_leg_lifted = True
-
-        if self.swing_leg_lifted:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            if wait_for_other_leg:
-                # ensure other leg has lifted and hit something solid before progressing to next step (allow it to move anywhere else)
-                self.target_reached = self.target_reached and self.other_leg_lifted and self._foot_target_contacts[1-self.swing_leg, 0] > 0
-            # ignore case where initialization brings swing foot somewhere else first
-            self.wrong_target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] >= self.step_radius and self.next_step_index > 1
-        else:
-            self.target_reached = False
-            self.wrong_target_reached = False
-
-        # if other foot lifts check that it stays up while the other foot is swinging (if it contacts earlier, terminate episode)
-        self.other_leg_lifted = self.other_leg_lifted or self._foot_target_contacts[1-self.swing_leg, 0] == 0
-
-        if self.other_leg_lifted and self.next_step_index > 1 and not wait_for_other_leg:
-            if self._foot_target_contacts[1-self.swing_leg, 0] > 0 and np.sqrt(ss(self.prev_leg_pos[1-self.swing_leg] - self.robot.feet_xyz[1-self.swing_leg, 0:2])) > self.step_radius / 2:
-                self.other_leg_contacted_first = True
-
-        if not self.swing_leg_lifted and self.other_leg_lifted and self.next_step_index > 1:
-            # doesn't allow tapping, we want to allow this
-            self.other_leg_lifted_first = True
 
         if self.target_reached:
             self.target_reached_count += 1
@@ -752,11 +702,6 @@ class Walker3DStepperEnv(EnvBase):
                     ):
                         self.swing_leg = 1 - self.swing_leg
                     self.target_reached_count = 0
-                    self.swing_leg_lifted = False
-                    self.swing_leg_lifted_count = 0
-                    self.other_leg_lifted = False
-                    self.other_leg_contacted_first = False
-                    self.other_leg_lifted_first = False
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
