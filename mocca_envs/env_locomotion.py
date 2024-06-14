@@ -423,8 +423,8 @@ class Walker3DStepperEnv(EnvBase):
         sep_dist = 0.15
         stop_adjust = 0
         step_index = 0
-        height = 0.3
-        x_diff = 0.12
+        height = 0.23
+        x_diff = 0.13
 
         for i in range(N // 3):
             if i-1 in self.stop_steps and i-2 in self.stop_steps:
@@ -650,14 +650,11 @@ class Walker3DStepperEnv(EnvBase):
 
         self.contact_bonus = 0
         if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
-            # print("OTHER FOOT IS IN THE AIR!")
             self.contact_bonus -= 1
-        else:
+        if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1500:
+            self.contact_bonus -= 1
+        if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
             self.contact_bonus += 1
-        if self.imaginary_step and self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count > 1000:
-            # if self.current_target_count == 1001:
-            #     print(f"{self.next_step_index}: stuck on floor")
-            self.contact_bonus -= 2
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
@@ -704,14 +701,13 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached = False
         if not self.both_feet_hit_ground:
             # only check this condition for step 1
-            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 10)
-
+            self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 1500)
         if not self.both_feet_hit_ground:
             # do not check other conditions
             pass
-        if self.imaginary_step:
+        elif self.imaginary_step:
             # dreamed step in air, no contact calculations required
-            self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0
+            self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0 and self._foot_target_contacts[self.swing_leg, 0] == 0
             # if self.target_reached:
             #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[self.swing_leg, 2]}")
         else:
@@ -729,7 +725,9 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            if self.target_reached_count >= 2:
+            delay = 2 if self.imaginary_step else 1500
+            if self.target_reached_count >= delay:
+                print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
