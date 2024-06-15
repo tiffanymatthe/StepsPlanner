@@ -529,6 +529,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
+        self.swing_leg = self.swing_legs[self.next_step_index]
         # print(f"swing legs {self.swing_legs}, with first at {self.swing_leg}")
         self.calc_feet_state()
 
@@ -740,6 +741,9 @@ class Walker3DStepperEnv(EnvBase):
         #     # if self.target_reached:
         #     #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[self.swing_leg, 2]}")
         # else:
+        # print(self.swing_legs)
+        # print(self.terrain_info)
+        # print(f"{self.next_step_index} with {self.swing_leg} and contact {self._foot_target_contacts} and {self.foot_dist_to_target[self.swing_leg]}")
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius # and self.swing_leg_lifted
             # print(f"{self.next_step_index}: ground target reached with {self.swing_leg}? {self._foot_target_contacts[self.swing_leg, 0] > 0} and {self.foot_dist_to_target[self.swing_leg]}. {self.robot.feet_xyz[self.swing_leg, 0:3]} vs {self.terrain_info[self.next_step_index, 0:3]}")
             # if self.target_reached:
