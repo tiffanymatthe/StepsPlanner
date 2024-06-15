@@ -658,22 +658,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.swing_leg_lifted and self.swing_leg_lifted_count == 301:
             self.contact_bonus += 1
 
-        # self.contact_bonus = 0
-        # # if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
-        # #     self.contact_bonus -= 5
-        # if self.imaginary_step: # and self.current_target_count >= self.pre_lift_count:
-        #     if self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count * 5 >= self.pre_lift_count:
-        #         # if self.current_target_count == self.pre_lift_count + 1:
-        #             # print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
-        #         self.contact_bonus -= 0.5
-        #     if self._foot_target_contacts[self.swing_leg, 0] == 0:
-        #         # print(f"{self.current_target_count} LIFTED")
-        #         # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
-        #         self.contact_bonus += 10
-        # if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
-        #     self.contact_bonus += 0.05
+        # if self.swing_leg_has_fallen:
+        #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 # or (self.imaginary_step and self.current_target_count >= self.pre_lift_count * 10 and self._foot_target_contacts[self.swing_leg, 0] > 0)
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -685,8 +673,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.foot_dist_to_target = np.sqrt(
             ss(
-                self.robot.feet_xyz[:, 0:3]
-                - self.terrain_info[self.next_step_index, 0:3],
+                self.robot.feet_xyz[:, 0:2]
+                - self.terrain_info[self.next_step_index, 0:2],
                 axis=1,
             )
         )
@@ -729,29 +717,22 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 300:
                 self.swing_leg_lifted = True
 
-        # self.target_reached = False
-        # if not self.both_feet_hit_ground:
-        #     # only check this condition for step 1
-        #     self.both_feet_hit_ground = self.next_step_index > 1 or (self._foot_target_contacts[self.swing_leg, 0] > 0 and self._foot_target_contacts[1-self.swing_leg, 0] > 0 and self.current_target_count > 1)
-        #     # if self.both_feet_hit_ground:
-        #     #     print(f"{self.next_step_index}: Both feet have hit the ground at {self.current_target_count}")
-        # if not self.both_feet_hit_ground:
-        #     # do not check other conditions
-        #     pass
-        # elif self.imaginary_step:
-        #     # dreamed step in air, no contact calculations required
-        #     # print()
-        #     self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0 and self._foot_target_contacts[self.swing_leg, 0] == 0
-        #     # if self.target_reached:
-        #     #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[self.swing_leg, 2]}")
-        # else:
-        # print(self.swing_legs)
-        # print(self.terrain_info)
-        # print(f"{self.next_step_index} with {self.swing_leg} and contact {self._foot_target_contacts} and {self.foot_dist_to_target[self.swing_leg]}")
+        if self.next_step_index > 1:
+            foot_dist_to_prev_target = np.sqrt(
+                ss(
+                    self.robot.feet_xyz[:, 0:2]
+                    - self.prev_leg_pos,
+                    axis=1,
+                )
+            )
+            swing_leg_not_on_steps = foot_dist_to_prev_target[self.swing_leg] > self.step_radius and self.foot_dist_to_target[self.swing_leg] > self.step_radius
+
+        swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
+
+        # if swing leg is not on previous step and not on current step and not in air, should terminate
+        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
+        
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
-            # print(f"{self.next_step_index}: ground target reached with {self.swing_leg}? {self._foot_target_contacts[self.swing_leg, 0] > 0} and {self.foot_dist_to_target[self.swing_leg]}. {self.robot.feet_xyz[self.swing_leg, 0:3]} vs {self.terrain_info[self.next_step_index, 0:3]}")
-            # if self.target_reached:
-            #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[:, 2]}, should be on ground, {self._foot_target_contacts[self.swing_leg, 0] > 0}")
 
         if self.target_reached:
             self.target_reached_count += 1
