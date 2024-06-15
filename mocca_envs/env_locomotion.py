@@ -576,10 +576,13 @@ class Walker3DStepperEnv(EnvBase):
         self.robot_state = self.robot.calc_state()
         self.calc_env_state(action)
 
-        reward = self.progress - self.energy_penalty
+        reward = self.progress * 10 - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
+
+        # if self.progress != 0:
+        #     print(f"{self.next_step_index}: {self.progress * 10}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.contact_bonus}")
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -622,7 +625,7 @@ class Walker3DStepperEnv(EnvBase):
         # )
         # self.angle_to_target = walk_target_theta - self.robot.body_rpy[2]
 
-        walk_target_delta = self.walk_target - self.robot.body_xyz
+        walk_target_delta = self.terrain_info[self.next_step_index, 0:3] - self.robot.feet_xyz[self.swing_leg, 0:3]
         self.distance_to_target = sqrt(ss(walk_target_delta[0:3]))
         self.linear_potential = -self.distance_to_target / self.scene.dt
 
@@ -665,13 +668,13 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.contact_bonus = 0
-        if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
-            self.contact_bonus -= 5
+        # if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
+        #     self.contact_bonus -= 5
         if self.imaginary_step: # and self.current_target_count >= self.pre_lift_count:
-            if self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count * 5 >= self.pre_lift_count:
-                # if self.current_target_count == self.pre_lift_count + 1:
-                    # print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
-                self.contact_bonus -= 10
+            # if self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count * 5 >= self.pre_lift_count:
+            #     # if self.current_target_count == self.pre_lift_count + 1:
+            #         # print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
+            #     self.contact_bonus -= 0.5
             if self._foot_target_contacts[self.swing_leg, 0] == 0:
                 # print(f"{self.current_target_count} LIFTED")
                 # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
