@@ -664,7 +664,7 @@ class Walker3DStepperEnv(EnvBase):
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
-        self.tall_bonus = 0 if self.robot_state[0] > terminal_height else -1.0
+        self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.contact_bonus = 0
