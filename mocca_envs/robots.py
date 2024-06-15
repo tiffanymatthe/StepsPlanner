@@ -373,6 +373,18 @@ class Walker3D(WalkerBase):
             # self.base_joint_angles[[14]] = -np.pi / 6  # Right shoulder back
             # self.base_joint_angles[[18]] = np.pi / 6  # Left shoulder forward
             self.base_joint_angles[[16, 20]] = 0  # Elbow
+        elif pose == "side_step_start":
+            self.base_joint_angles[3] = -np.pi / 6 # hip x right
+            self.base_joint_angles[5] = -np.pi / 16
+            self.base_joint_angles[6] = -np.pi / 8  # Right leg bent
+            self.base_joint_angles[4] = -np.pi / 14
+            self.base_joint_angles[8] = -np.pi / 16  # hip x left
+            self.base_joint_angles[10] = -np.pi / 16  # Left leg forward
+            self.base_joint_angles[11] = -np.pi / 8 # Left leg bent
+            self.base_joint_angles[[13, 17]] = np.pi / 3  # Shoulder x
+            self.base_joint_angles[[14]] = 0  # Right shoulder back
+            self.base_joint_angles[[18]] = 0  # Left shoulder forward
+            self.base_joint_angles[[16, 20]] = 0  # Elbow
         elif pose == "sit":
             self.base_joint_angles[[5, 10]] = -np.pi / 2  # hip
             self.base_joint_angles[[6, 11]] = -np.pi / 2  # knee
