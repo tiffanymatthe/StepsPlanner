@@ -668,8 +668,8 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.contact_bonus = 0
-        if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
-            self.contact_bonus -= 5
+        # if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
+        #     self.contact_bonus -= 5
         if self.imaginary_step: # and self.current_target_count >= self.pre_lift_count:
             if self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count * 5 >= self.pre_lift_count:
                 # if self.current_target_count == self.pre_lift_count + 1:
@@ -679,8 +679,8 @@ class Walker3DStepperEnv(EnvBase):
                 # print(f"{self.current_target_count} LIFTED")
                 # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
                 self.contact_bonus += 10
-        # if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
-        #     self.contact_bonus += 0.05
+        if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
+            self.contact_bonus += 0.05
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.imaginary_step and self.current_target_count >= self.pre_lift_count * 10 and self._foot_target_contacts[self.swing_leg, 0] > 0)
 
