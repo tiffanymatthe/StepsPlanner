@@ -508,6 +508,8 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached_count = 0
         self.both_feet_hit_ground = False
         self.current_target_count = 0
+        self.swing_leg_lifted_count = 0
+        self.swing_leg_lifted = False
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
@@ -708,6 +710,20 @@ class Walker3DStepperEnv(EnvBase):
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
 
+        if self.next_step_index == 1 or self.swing_leg_lifted:
+            # if first step or already lifted, say true
+            self.swing_leg_lifted = True
+        if self._foot_target_contacts[self.swing_leg, 0] == 0:
+            # if in the air, increase count
+            self.swing_leg_lifted_count += 1
+        else:
+            self.swing_leg_lifted_count = 0
+
+        if not self.swing_leg_lifted:
+            # if not lifted yet and over count, True
+            if self.swing_leg_lifted_count >= 300:
+                self.swing_leg_lifted = True
+
         # self.target_reached = False
         # if not self.both_feet_hit_ground:
         #     # only check this condition for step 1
@@ -724,7 +740,7 @@ class Walker3DStepperEnv(EnvBase):
         #     # if self.target_reached:
         #     #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[self.swing_leg, 2]}")
         # else:
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
             # print(f"{self.next_step_index}: ground target reached with {self.swing_leg}? {self._foot_target_contacts[self.swing_leg, 0] > 0} and {self.foot_dist_to_target[self.swing_leg]}. {self.robot.feet_xyz[self.swing_leg, 0:3]} vs {self.terrain_info[self.next_step_index, 0:3]}")
             # if self.target_reached:
             #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[:, 2]}, should be on ground, {self._foot_target_contacts[self.swing_leg, 0] > 0}")
@@ -756,6 +772,8 @@ class Walker3DStepperEnv(EnvBase):
                     ):
                         self.swing_leg = 1 - self.swing_leg
                     self.target_reached_count = 0
+                    self.swing_leg_lifted = False
+                    self.swing_leg_lifted_count = 0
                     self.both_feet_hit_ground = False
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
