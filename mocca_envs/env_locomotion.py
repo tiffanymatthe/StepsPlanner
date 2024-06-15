@@ -312,8 +312,8 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_position = [0, 0, 1.32]
     robot_init_velocity = None
 
-    pre_lift_count = 0 # 500
-    ground_stay_count = 200
+    pre_lift_count = 1000
+    ground_stay_count = 500
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 30
@@ -426,7 +426,7 @@ class Walker3DStepperEnv(EnvBase):
         sep_dist = 0.15
         stop_adjust = 0
         step_index = 0
-        height = 0.17
+        height = 0.21
         x_diff = 0.13
 
         self.swing_legs = np.zeros(N, dtype=np.int8)
@@ -671,15 +671,15 @@ class Walker3DStepperEnv(EnvBase):
             if self._foot_target_contacts[self.swing_leg, 0] > 0 and self.current_target_count >= self.pre_lift_count:
                 # if self.current_target_count == self.pre_lift_count + 1:
                     # print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
-                self.contact_bonus -= 5
+                self.contact_bonus -= 20
             if self._foot_target_contacts[self.swing_leg, 0] == 0:
                 # print(f"{self.current_target_count} LIFTED")
                 # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
-                self.contact_bonus += 5
+                self.contact_bonus += 20
         # if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
         #     self.contact_bonus += 0.05
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or (self.imaginary_step and self.current_target_count >= self.pre_lift_count * 2 and self._foot_target_contacts[self.swing_leg, 0] > 0)
 
     def calc_feet_state(self):
         # Calculate contact separately for step
