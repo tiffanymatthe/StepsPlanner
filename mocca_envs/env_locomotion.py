@@ -566,7 +566,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress * 10 - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        # reward += self.contact_bonus
+        reward += self.contact_bonus
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress * 10}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.contact_bonus}")
@@ -653,6 +653,10 @@ class Walker3DStepperEnv(EnvBase):
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
+
+        self.contact_bonus = 0
+        if self.swing_leg_lifted and self.swing_leg_lifted_count == 301:
+            self.contact_bonus += 1
 
         # self.contact_bonus = 0
         # # if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
@@ -744,7 +748,7 @@ class Walker3DStepperEnv(EnvBase):
         # print(self.swing_legs)
         # print(self.terrain_info)
         # print(f"{self.next_step_index} with {self.swing_leg} and contact {self._foot_target_contacts} and {self.foot_dist_to_target[self.swing_leg]}")
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius # and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
             # print(f"{self.next_step_index}: ground target reached with {self.swing_leg}? {self._foot_target_contacts[self.swing_leg, 0] > 0} and {self.foot_dist_to_target[self.swing_leg]}. {self.robot.feet_xyz[self.swing_leg, 0:3]} vs {self.terrain_info[self.next_step_index, 0:3]}")
             # if self.target_reached:
             #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[:, 2]}, should be on ground, {self._foot_target_contacts[self.swing_leg, 0] > 0}")
