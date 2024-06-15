@@ -104,7 +104,7 @@ def main():
         env.set_env_params({"curriculum": int(curriculum)})
 
         obs = env.reset()
-        env.camera._cam_yaw = 0 # 70
+        env.camera._cam_yaw = 90
         ep_reward = 0
 
         controller = actor_critic.actor

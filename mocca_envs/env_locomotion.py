@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     pre_lift_count = 1000
-    ground_stay_count = 10
+    ground_stay_count = 1000
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 30
@@ -426,7 +426,7 @@ class Walker3DStepperEnv(EnvBase):
         sep_dist = 0.15
         stop_adjust = 0
         step_index = 0
-        height = 0.2
+        height = 0.17
         x_diff = 0.13
 
         self.swing_legs = np.zeros(N, dtype=np.int8)
@@ -677,7 +677,7 @@ class Walker3DStepperEnv(EnvBase):
                 # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
                 self.contact_bonus += 5
         if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
-            self.contact_bonus += 0
+            self.contact_bonus += 0.05
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
@@ -732,6 +732,7 @@ class Walker3DStepperEnv(EnvBase):
             pass
         elif self.imaginary_step:
             # dreamed step in air, no contact calculations required
+            # print()
             self.target_reached = self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2] >= 0 and self._foot_target_contacts[self.swing_leg, 0] == 0
             # if self.target_reached:
             #     print(f"{self.next_step_index}: {self.swing_leg} foot is at height {self.robot.feet_xyz[self.swing_leg, 2]}")
