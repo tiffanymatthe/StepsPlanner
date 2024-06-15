@@ -40,6 +40,8 @@ def init(seed, config, _run):
     print_settings(args)
 
     if args.experiment_dir != ".":
+        if not os.path.exists(args.experiment_dir):
+            os.makedirs(args.experiment_dir)
         with open(os.path.join(args.experiment_dir, "configs.json"), "w") as cfile:
             json.dump(config, cfile, indent=2, sort_keys=True)
         with open(os.path.join(args.experiment_dir, "run.json"), "w") as cfile:
