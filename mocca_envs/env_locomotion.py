@@ -421,7 +421,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        sep_dist = 0.18
+        self.sep_dist = 0.18
         step_index = 0
         height = 0.21
         x_diff = 0.13
@@ -437,12 +437,12 @@ class Walker3DStepperEnv(EnvBase):
                 step_index += 1
                 continue
             self.swing_legs[step_index] = 1
-            left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
+            left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * self.sep_dist
             x[step_index] = x_temp[i] + left_foot_shift[0]
             y[step_index] = y_temp[i] + left_foot_shift[1]
            
             if step_index + 1 < N:
-                right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
+                right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * self.sep_dist
                 x[step_index+1] = x_temp[i] + right_foot_shift[0]
                 y[step_index+1] = y_temp[i] + right_foot_shift[1]
             step_index += 2
@@ -605,22 +605,19 @@ class Walker3DStepperEnv(EnvBase):
         self.target = VSphere(self._p, radius=0.15, pos=None)
 
     def calc_potential(self):
+        
+        centered_walk_target = np.copy(self.walk_target)
+        if self.swing_leg == 0: # right foot, so target is a bit more positive y
+            centered_walk_target[1] += self.sep_dist
+        else: # lift foot, so target is a bit more negative y
+            centered_walk_target[1] -= self.sep_dist
 
-        # walk_target_theta = atan2(
-        #     self.walk_target[1] - self.robot.body_xyz[1],
-        #     self.walk_target[0] - self.robot.body_xyz[0],
-        # )
-        # self.angle_to_target = walk_target_theta - self.robot.body_rpy[2]
-
-        walk_target_delta = self.walk_target - self.robot.body_xyz
+        walk_target_delta = centered_walk_target - self.robot.body_xyz
+        # print(f"{self.next_step_index}: walk target is {centered_walk_target} with swing leg {self.swing_leg} and terrain info {self.terrain_info[self.next_step_index, 0:2]} and current body at {self.robot.body_xyz}")
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
+        # foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
+        foot_distance_to_target = 0 #sqrt(ss(foot_target_delta[0:2]))
         self.linear_potential = -(self.distance_to_target + foot_distance_to_target) / self.scene.dt
-
-        # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        # self.linear_potential = -self.distance_to_target / self.scene.dt
 
     def calc_base_reward(self, action):
 
