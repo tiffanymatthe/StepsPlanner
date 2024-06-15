@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     pre_lift_count = 1000
-    ground_stay_count = 500
+    ground_stay_count = 10
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 30
@@ -429,6 +429,8 @@ class Walker3DStepperEnv(EnvBase):
         height = 0.23
         x_diff = 0.13
 
+        self.swing_legs = np.zeros(N, dtype=np.int8)
+
         for i in range(N // 3):
             if i-1 in self.stop_steps and i-2 in self.stop_steps:
                 stop_adjust = (stop_adjust + 1) % 2
@@ -441,6 +443,9 @@ class Walker3DStepperEnv(EnvBase):
                 z[step_index+1] += height
                 x[step_index+2] += left_foot_shift[0]
                 y[step_index+2] += left_foot_shift[1]
+                self.swing_legs[step_index] = 1
+                self.swing_legs[step_index+1] = 1
+                self.swing_legs[step_index+2] = 1
             else:
                 right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
                 x[step_index] += right_foot_shift[0]
@@ -456,6 +461,7 @@ class Walker3DStepperEnv(EnvBase):
         x = np.roll(x, -2)
         y = np.roll(y, -2)
         z = np.roll(z, -2)
+        self.swing_legs = np.roll(self.swing_legs, -2)
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
@@ -537,6 +543,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
+        # print(f"swing legs {self.swing_legs}, with first at {self.swing_leg}")
         self.calc_feet_state()
 
         # Reset camera
@@ -630,7 +637,7 @@ class Walker3DStepperEnv(EnvBase):
         self.progress = linear_progress
 
         # if self.next_step_index != self._prev_next_step_index:
-        #     print(f"{self.next_step_index}: {self.progress}")
+        #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
         #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
         #     print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
         #     print(f"Next step position: {self.terrain_info[self.next_step_index]}")
@@ -666,6 +673,7 @@ class Walker3DStepperEnv(EnvBase):
             #         print(f"{self.next_step_index}: Swing foot is stuck on ground, should be in air after {1001 * self.scene.dt:.4f} seconds.")
             #     self.contact_bonus -= 5
             if self._foot_target_contacts[self.swing_leg, 0] == 0:
+                # print(f"{self.current_target_count} LIFTED")
                 # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
                 self.contact_bonus += 10
         if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
@@ -749,10 +757,11 @@ class Walker3DStepperEnv(EnvBase):
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
-                    if not (self.imaginary_step or self.prev_leg != self.swing_leg):
-                        self.swing_leg = (self.swing_leg + 1) % 2
+                    # if not (self.imaginary_step or self.prev_leg != self.swing_leg):
+                    #     self.swing_leg = (self.swing_leg + 1) % 2
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
+                    self.swing_leg = self.swing_legs[self.next_step_index]
                     if (
                         self.next_step_index - 1 in self.stop_steps
                         and self.next_step_index - 2 in self.stop_steps
