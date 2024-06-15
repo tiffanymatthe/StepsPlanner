@@ -110,26 +110,26 @@ def main():
         controller = actor_critic.actor
 
         while not runner.done:
-            obs = torch.from_numpy(obs).float().unsqueeze(0)
-            if type(actor) == MixedActor and args.plot:
-                action, expert_activations = controller.forward_with_activations(obs)
-                for eid, (a, c) in enumerate(zip(expert_activations, colours)):
-                    ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
-                ts_plot.add_point(0, len(expert_activations))
-                ts_plot.add_point(1, len(expert_activations) + 1)
-                ts_plot.redraw()
-            else:
-                action = controller(obs)
+            # obs = torch.from_numpy(obs).float().unsqueeze(0)
+            # if type(actor) == MixedActor and args.plot:
+            #     action, expert_activations = controller.forward_with_activations(obs)
+            #     for eid, (a, c) in enumerate(zip(expert_activations, colours)):
+            #         ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
+            #     ts_plot.add_point(0, len(expert_activations))
+            #     ts_plot.add_point(1, len(expert_activations) + 1)
+            #     ts_plot.redraw()
+            # else:
+            #     action = controller(obs)
 
-            cpu_actions = action.squeeze().cpu().numpy()
-            obs, reward, done, _ = env.step(cpu_actions)
+            # cpu_actions = action.squeeze().cpu().numpy()
+            # obs, reward, done, _ = env.step(cpu_actions)
             env.camera.lookat(env.robot.body_xyz)
-            ep_reward += reward
+            # ep_reward += reward
 
-            if done:
-                print("--- Episode reward:", ep_reward)
-                obs = env.reset(reset_runner=False)
-                ep_reward = 0
+            # if done:
+            #     print("--- Episode reward:", ep_reward)
+            #     obs = env.reset(reset_runner=False)
+            #     ep_reward = 0
 
 
 if __name__ == "__main__":

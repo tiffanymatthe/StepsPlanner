@@ -235,7 +235,7 @@ class WalkerBase:
     def reset(self, random_pose=True, pos=None, quat=None, vel=None, ang_vel=None):
         base_joint_angles = np.copy(self.base_joint_angles)
         base_orientation = np.copy(self.base_orientation)
-        if self.np_random.rand() < 0.5:
+        if self.np_random.rand() < 0:
             self.mirrored = True
             base_joint_angles[self._rl] = base_joint_angles[self._lr]
             base_joint_angles[self._negation_joint_indices] *= -1
@@ -374,11 +374,11 @@ class Walker3D(WalkerBase):
             # self.base_joint_angles[[18]] = np.pi / 6  # Left shoulder forward
             self.base_joint_angles[[16, 20]] = 0  # Elbow
         elif pose == "side_step_start":
-            self.base_joint_angles[3] = -np.pi / 6 # hip x right
+            self.base_joint_angles[3] = -np.pi / 3 # hip x right
             self.base_joint_angles[5] = -np.pi / 16
             self.base_joint_angles[6] = -np.pi / 8  # Right leg bent
             self.base_joint_angles[4] = -np.pi / 14
-            self.base_joint_angles[8] = -np.pi / 16  # hip x left
+            self.base_joint_angles[8] = -np.pi / 13  # hip x left
             self.base_joint_angles[10] = -np.pi / 16  # Left leg forward
             self.base_joint_angles[11] = -np.pi / 8 # Left leg bent
             self.base_joint_angles[[13, 17]] = np.pi / 3  # Shoulder x
