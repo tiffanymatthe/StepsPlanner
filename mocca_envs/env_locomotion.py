@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     pre_lift_count = 0 # 500
-    ground_stay_count = 1000
+    ground_stay_count = 200
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 30
