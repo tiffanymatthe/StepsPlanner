@@ -426,7 +426,7 @@ class Walker3DStepperEnv(EnvBase):
         sep_dist = 0.15
         stop_adjust = 0
         step_index = 0
-        height = 0.23
+        height = 0.2
         x_diff = 0.13
 
         self.swing_legs = np.zeros(N, dtype=np.int8)
@@ -666,7 +666,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.contact_bonus = 0
         if self._foot_target_contacts[1-self.swing_leg, 0] == 0:
-            self.contact_bonus -= 1
+            self.contact_bonus -= 0.5
         if self.imaginary_step: # and self.current_target_count >= self.pre_lift_count:
             # if self._foot_target_contacts[self.swing_leg, 0] > 0:
             #     if self.current_target_count == self.pre_lift_count:
@@ -675,7 +675,7 @@ class Walker3DStepperEnv(EnvBase):
             if self._foot_target_contacts[self.swing_leg, 0] == 0:
                 # print(f"{self.current_target_count} LIFTED")
                 # if self.pre_lift_count <= self.current_target_count < self.pre_lift_count + 5:
-                self.contact_bonus += 10
+                self.contact_bonus += 5
         if not self.imaginary_step and self.target_reached and self._foot_target_contacts[self.swing_leg, 0] > 0:
             self.contact_bonus += 0
 
