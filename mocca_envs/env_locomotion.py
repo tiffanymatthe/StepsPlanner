@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
 
     lookahead = 2
     lookbehind = 1
-    walk_target_index = -1
+    walk_target_index = 1
     step_bonus_smoothness = 1
     stop_steps = [] # [6, 7, 13, 14]
 
@@ -569,7 +569,7 @@ class Walker3DStepperEnv(EnvBase):
         # reward += self.contact_bonus
 
         # if self.progress != 0:
-        #     print(f"{self.next_step_index}: {self.progress * 10}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.contact_bonus}")
+        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -612,9 +612,13 @@ class Walker3DStepperEnv(EnvBase):
         # )
         # self.angle_to_target = walk_target_theta - self.robot.body_rpy[2]
 
-        walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
+        walk_target_delta = self.walk_target - self.robot.body_xyz
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         self.linear_potential = -self.distance_to_target / self.scene.dt
+
+        # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
+        # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+        # self.linear_potential = -self.distance_to_target / self.scene.dt
 
     def calc_base_reward(self, action):
 
@@ -663,7 +667,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen
         # if self.done:
-        #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height}")
+        #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen}")
 
     def calc_feet_state(self):
         # Calculate contact separately for step
