@@ -334,7 +334,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=True, **kwargs)
-        self.robot.set_base_pose(pose="side_step_start")
+        self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
         self.curriculum = 0
@@ -523,6 +523,7 @@ class Walker3DStepperEnv(EnvBase):
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
+            quat=self._p.getQuaternionFromEuler((0,0,90 * DEG2RAD))
         )
         self.swing_leg = 1 if self.robot.mirrored else 0
         self.prev_leg = self.swing_leg
