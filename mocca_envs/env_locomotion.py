@@ -318,8 +318,8 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.2
-    rendered_step_count = 2
+    step_radius = 0.15
+    rendered_step_count = 5
     init_step_separation = 0.6
 
     lookahead = 2
@@ -385,7 +385,7 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        dist_range = dist_range * 0 + 0.65
+        dist_range = dist_range * 0 + 0.5
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -630,7 +630,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 5
+        self.progress = linear_progress
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
