@@ -422,7 +422,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        self.sep_dist = 0.18
+        self.sep_dist = 0.15
         step_index = 0
         height = 0.21
         x_diff = 0.13
