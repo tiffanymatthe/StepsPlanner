@@ -512,6 +512,7 @@ class Walker3DStepperEnv(EnvBase):
         self.current_target_count = 0
         self.swing_leg_lifted_count = 0
         self.swing_leg_lifted = False
+        self.body_stationary_count = 0
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
@@ -667,7 +668,15 @@ class Walker3DStepperEnv(EnvBase):
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen
+        if abs(self.progress) < 0.015:
+            self.body_stationary_count += 1
+        else:
+            self.body_stationary_count = 0
+        count = 2000
+        if self.body_stationary_count > count:
+            self.contact_bonus -= 100
+
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen}")
 
@@ -772,6 +781,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.swing_leg_lifted = False
                     self.swing_leg_lifted_count = 0
                     self.both_feet_hit_ground = False
+                    self.body_stationary_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
