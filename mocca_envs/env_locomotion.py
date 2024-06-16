@@ -569,6 +569,10 @@ class Walker3DStepperEnv(EnvBase):
         # reward += self.contact_bonus
 
         # if self.progress != 0:
+        #     print(f"Rewards: progress {self.progress} - energy {self.energy_penalty} + step bonus {self.step_bonus} + target bonus {self.target_bonus}")
+        #     print(f"+ tall bonus {self.tall_bonus} - posture {self.posture_penalty} - joints {self.joints_penalty}")
+
+        # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
 
         # targets is calculated by calc_env_state()
@@ -615,9 +619,9 @@ class Walker3DStepperEnv(EnvBase):
         walk_target_delta = centered_walk_target - self.robot.body_xyz
         # print(f"{self.next_step_index}: walk target is {centered_walk_target} with swing leg {self.swing_leg} and terrain info {self.terrain_info[self.next_step_index, 0:2]} and current body at {self.robot.body_xyz}")
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        # foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        foot_distance_to_target = 0 #sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target) / self.scene.dt
+        foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
+        foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
+        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.2) / self.scene.dt
 
     def calc_base_reward(self, action):
 
