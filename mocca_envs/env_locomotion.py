@@ -747,7 +747,7 @@ class Walker3DStepperEnv(EnvBase):
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps and self.swing_leg_lifted
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius # and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
 
         if self.target_reached:
             self.target_reached_count += 1
