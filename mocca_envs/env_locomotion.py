@@ -673,7 +673,7 @@ class Walker3DStepperEnv(EnvBase):
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 # or self.swing_leg_has_fallen
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen}")
 
