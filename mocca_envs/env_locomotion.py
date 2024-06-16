@@ -728,19 +728,20 @@ class Walker3DStepperEnv(EnvBase):
                 self.swing_leg_lifted = True
 
         if self.next_step_index > 1:
-            foot_dist_to_prev_target = np.sqrt(
-                ss(
-                    self.robot.feet_xyz[:, 0:2]
-                    - self.prev_leg_pos,
-                    axis=1,
-                )
-            )
-            swing_leg_not_on_steps = foot_dist_to_prev_target[self.swing_leg] > self.step_radius and self.foot_dist_to_target[self.swing_leg] > self.step_radius
+            # foot_dist_to_prev_target = np.sqrt(
+            #     ss(
+            #         self.robot.feet_xyz[:, 0:2]
+            #         - self.prev_leg_pos,
+            #         axis=1,
+            #     )
+            # )
+            # foot_dist_to_prev_target[self.swing_leg] > self.step_radius
+            swing_leg_not_on_steps = self.foot_dist_to_target[self.swing_leg] >= self.step_radius
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
-        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
+        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps and self.swing_leg_lifted
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius # and self.swing_leg_lifted
 
