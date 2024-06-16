@@ -618,10 +618,10 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         self.linear_potential = -self.distance_to_target / self.scene.dt
 
-        if self.swing_leg == 1:
+        if self.swing_leg == 1 and self.next_step_index != 1:
             walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
             foot_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-            self.linear_potential += -foot_distance_to_target / self.scene.dt
+            self.linear_potential += -foot_distance_to_target / self.scene.dt / 10
         # self.linear_potential = -self.distance_to_target / self.scene.dt
 
     def calc_base_reward(self, action):
