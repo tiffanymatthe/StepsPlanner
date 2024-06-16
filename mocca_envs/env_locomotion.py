@@ -568,7 +568,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        reward += self.contact_bonus
+        # reward += self.contact_bonus
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -618,8 +618,10 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         self.linear_potential = -self.distance_to_target / self.scene.dt
 
-        # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+        if self.swing_leg == 1:
+            walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
+            foot_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+            self.linear_potential += -foot_distance_to_target / self.scene.dt
         # self.linear_potential = -self.distance_to_target / self.scene.dt
 
     def calc_base_reward(self, action):
@@ -634,8 +636,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
-        #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
-        #     print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
+            # print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
+            # print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
         #     print(f"Next step position: {self.terrain_info[self.next_step_index]}")
 
         self.posture_penalty = 0
@@ -660,9 +662,9 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.contact_bonus = 0
-        if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 10 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-            self.contact_bonus += 0.1
+        # self.contact_bonus = 0
+        # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 10 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+        #     self.contact_bonus += 0.1
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
