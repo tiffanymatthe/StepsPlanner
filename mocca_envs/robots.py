@@ -94,6 +94,17 @@ class WalkerBase:
             )
             self.feet_xyz = np.array([f[0] for f in foot_info], dtype=np.float32)
 
+        if self.lower_root_id is not None:
+            link_state = pybullet.getLinkState(
+                self.id,
+                self.lower_root_id,
+                computeLinkVelocity=1,
+                physicsClientId=self._p._client,
+            )
+            self.lower_body_rpy = pybullet.getEulerFromQuaternion(link_state[1])
+        else:
+            self.lower_body_rpy = None
+
         roll, pitch, yaw = self.body_rpy
 
         yaw_cos = math.cos(-yaw)
@@ -154,6 +165,11 @@ class WalkerBase:
             ]
         else:
             self.root_and_foot_ids = None
+
+        if self.lower_root_link_name is not None:
+            self.lower_root_id = self.parts[self.lower_root_link_name].bodyPartIndex
+        else:
+            self.lower_root_id = None
 
         self.base_joint_angles = np.zeros(self.action_dim)
         self.base_joint_speeds = np.zeros(self.action_dim)
@@ -294,6 +310,7 @@ class WalkerBase:
 class Walker3D(WalkerBase):
 
     root_link_name = "torso"
+    lower_root_link_name = "waist"
     foot_names = ["right_foot", "left_foot"]
 
     power_coef = {
