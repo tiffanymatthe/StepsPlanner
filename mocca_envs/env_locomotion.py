@@ -385,7 +385,7 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        dist_range = dist_range * 0 + 0.6
+        dist_range = dist_range * 0 + 0.65
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -423,7 +423,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        sep_dist = 0.15
+        sep_dist = 0.18
         step_index = 0
         height = 0.21
         x_diff = 0.13
@@ -568,7 +568,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        # reward += self.contact_bonus
+        reward += self.contact_bonus
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -660,9 +660,9 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        # self.contact_bonus = 0
-        # if self.swing_leg_lifted and self.swing_leg_lifted_count == 301:
-        #     self.contact_bonus += 0.1
+        self.contact_bonus = 0
+        if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 10 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+            self.contact_bonus += 0.1
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
@@ -725,7 +725,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if not self.swing_leg_lifted:
             # if not lifted yet and over count, True
-            if self.swing_leg_lifted_count >= 300:
+            if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
         if self.next_step_index > 1:
