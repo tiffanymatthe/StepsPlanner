@@ -660,9 +660,9 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        # self.contact_bonus = 0
-        # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 500 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-        #     self.contact_bonus += 0.5
+        self.contact_bonus = 0
+        if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 100 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+            self.contact_bonus += 0.1
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
