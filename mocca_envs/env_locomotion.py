@@ -568,7 +568,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        reward += self.contact_bonus
+        # reward += self.contact_bonus
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -630,7 +630,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress
+        self.progress = linear_progress * 5
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -660,9 +660,9 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.contact_bonus = 0
-        if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 500 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-            self.contact_bonus += 0.5
+        # self.contact_bonus = 0
+        # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 500 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+        #     self.contact_bonus += 0.5
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
