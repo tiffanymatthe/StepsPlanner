@@ -317,7 +317,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.25
+    step_radius = 0.2
     rendered_step_count = 2
     init_step_separation = 0.6
 
@@ -384,6 +384,7 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        dist_range = dist_range * 0 + 0.6
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -421,7 +422,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        sep_dist = 0.18
+        sep_dist = 0.15
         step_index = 0
         height = 0.21
         x_diff = 0.13
@@ -660,7 +661,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # self.contact_bonus = 0
         # if self.swing_leg_lifted and self.swing_leg_lifted_count == 301:
-        #     self.contact_bonus += 1
+        #     self.contact_bonus += 0.1
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
@@ -684,6 +685,9 @@ class Walker3DStepperEnv(EnvBase):
                 axis=1,
             )
         )
+
+        x_dist_to_target = np.abs(self.robot.feet_xyz[:, 0] - self.terrain_info[self.next_step_index, 0])
+        y_dist_to_target = np.abs(self.robot.feet_xyz[:, 1] - self.terrain_info[self.next_step_index, 1])
 
         robot_id = self.robot.id
         client_id = self._p._client
@@ -724,21 +728,18 @@ class Walker3DStepperEnv(EnvBase):
                 self.swing_leg_lifted = True
 
         if self.next_step_index > 1:
-            foot_dist_to_prev_target = np.sqrt(
-                ss(
-                    self.robot.feet_xyz[:, 0:2]
-                    - self.prev_leg_pos,
-                    axis=1,
-                )
-            )
-            swing_leg_not_on_steps = foot_dist_to_prev_target[self.swing_leg] > self.step_radius and self.foot_dist_to_target[self.swing_leg] > self.step_radius
+            x_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 0] - self.prev_leg_pos[:,0])
+            y_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 1] - self.prev_leg_pos[:,1])
+            foot_in_target = x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius
+            foot_in_prev_target = x_dist_to_prev_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_prev_target[self.swing_leg] < self.step_radius
+            swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius # and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius
 
         if self.target_reached:
             self.target_reached_count += 1
