@@ -318,7 +318,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
-    rendered_step_count = 2
+    rendered_step_count = 4
     init_step_separation = 0.6
 
     lookahead = 2
@@ -384,7 +384,7 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        dist_range = dist_range * 0 + 0.4
+        dist_range = dist_range * 0 + 0.55
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -447,6 +447,10 @@ class Walker3DStepperEnv(EnvBase):
                 x[step_index+1] = x_temp[i] + right_foot_shift[0]
                 y[step_index+1] = y_temp[i] + right_foot_shift[1]
             step_index += 2
+
+        # print(x)
+        # print(y)
+        # print(self.swing_legs)
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
@@ -634,7 +638,7 @@ class Walker3DStepperEnv(EnvBase):
         linear_progress = self.linear_potential - old_linear_potential
         self.progress = linear_progress
 
-        # if self.next_step_index != self._prev_next_step_index:
+        # if self.next_step_index != self._prev_next_step_index or self.next_step_index == 1:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
         #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
         #     print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
@@ -757,7 +761,7 @@ class Walker3DStepperEnv(EnvBase):
             # Needed for not over counting step bonus
             delay = 2 # if self.imaginary_step else self.ground_stay_count
             if self.target_reached_count >= delay:
-                # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
+                # print(f"{self.next_step_index}: Reached target after {self.current_target_count} with {self.swing_leg}, target: {self.terrain_info[self.next_step_index, 0:2]} and actual {self.foot_dist_to_target}!")
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
