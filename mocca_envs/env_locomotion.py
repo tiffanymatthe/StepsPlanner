@@ -616,17 +616,17 @@ class Walker3DStepperEnv(EnvBase):
     def calc_potential(self):
         
         centered_walk_target = np.copy(self.walk_target)
-        if self.swing_leg == 0: # right foot, so target is a bit more positive y
-            centered_walk_target[1] += self.sep_dist
-        else: # lift foot, so target is a bit more negative y
-            centered_walk_target[1] -= self.sep_dist
+        # if self.swing_leg == 0: # right foot, so target is a bit more positive y
+        #     centered_walk_target[1] += self.sep_dist
+        # else: # lift foot, so target is a bit more negative y
+        #     centered_walk_target[1] -= self.sep_dist
 
         walk_target_delta = centered_walk_target - self.robot.body_xyz
         # print(f"{self.next_step_index}: walk target is {centered_walk_target} with swing leg {self.swing_leg} and terrain info {self.terrain_info[self.next_step_index, 0:2]} and current body at {self.robot.body_xyz}")
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0) / self.scene.dt
+        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.1) / self.scene.dt
 
     def calc_base_reward(self, action):
 
@@ -693,6 +693,9 @@ class Walker3DStepperEnv(EnvBase):
             )
         )
 
+        self.x_dist_to_target = np.abs(self.robot.feet_xyz[:, 0] - self.terrain_info[self.next_step_index, 0])
+        self.y_dist_to_target = np.abs(self.robot.feet_xyz[:, 1] - self.terrain_info[self.next_step_index, 1])
+
         robot_id = self.robot.id
         client_id = self._p._client
         target_id_list = [[next_step.id],[curr_step.id]]
@@ -740,14 +743,14 @@ class Walker3DStepperEnv(EnvBase):
             #     )
             # )
             # foot_dist_to_prev_target[self.swing_leg] > self.step_radius
-            swing_leg_not_on_steps = self.foot_dist_to_target[self.swing_leg] >= self.step_radius
+            swing_leg_not_on_steps = self.x_dist_to_target[self.swing_leg] >= self.step_radius * 2 or self.y_dist_to_target[self.swing_leg] >= self.step_radius
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps and self.swing_leg_lifted
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and (self.x_dist_to_target[self.swing_leg] < self.step_radius * 2 and self.y_dist_to_target[self.swing_leg] < self.step_radius) and self.swing_leg_lifted
 
         if self.target_reached:
             self.target_reached_count += 1
