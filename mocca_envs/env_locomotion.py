@@ -863,7 +863,9 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        self.walk_target = targets[self.walk_target_index, 0:3]
+        if self.swing_leg == 1:
+            # update walk target only if left foot
+            self.walk_target = targets[self.walk_target_index, 0:3]
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
