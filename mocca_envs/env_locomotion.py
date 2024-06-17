@@ -341,8 +341,8 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = 12  # steps_reached
 
-        self.ground_1 = 500
-        self.air_time = 4000
+        self.ground_1 = 1000
+        self.air_time = 5000
         self.ground_2 = 1000
 
         # Robot settings
@@ -666,8 +666,10 @@ class Walker3DStepperEnv(EnvBase):
 
         self.contact_bonus = 0
 
+        pp = False
+
         if 0 <= self.current_target_count <= self.ground_1:
-            if self.current_target_count == 1:
+            if self.current_target_count == 1 and pp:
                 print(f"{self.next_step_index}: ground 1")
             if self._foot_target_contacts[self.swing_leg, 0] > 0:
                 self.contact_bonus += 2
@@ -678,7 +680,7 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 self.contact_bonus -= 1
         elif 1 + self.ground_1 <= self.current_target_count <= self.ground_1 + self.air_time:
-            if self.current_target_count == 501:
+            if self.current_target_count == 1 + self.ground_1 and pp:
                 print(f"{self.next_step_index}: air")
             if self._foot_target_contacts[self.swing_leg, 0] == 0:
                 self.contact_bonus += 2
@@ -689,7 +691,7 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 self.contact_bonus -= 1
         elif 1 + self.ground_1 + self.air_time <= self.current_target_count <= self.ground_1 + self.air_time + self.ground_2:
-            if self.current_target_count == 3001:
+            if self.current_target_count == 1 + self.ground_1 + self.air_time and pp:
                 print(f"{self.next_step_index}: ground 2")
             if self._foot_target_contacts[self.swing_leg, 0] > 0:
                 self.contact_bonus += 2
@@ -709,8 +711,8 @@ class Walker3DStepperEnv(EnvBase):
             self.contact_bonus -= 100
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.body_stationary_count > count
-        # if self.done:
-        #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen}")
+        if self.done and pp:
+            print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen}, {self.body_stationary_count}, {self.current_target_count}")
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -781,7 +783,7 @@ class Walker3DStepperEnv(EnvBase):
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted and self.current_target_count < 4000
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted and self.current_target_count < self.ground_1 + self.ground_2 + self.air_time
 
         if self.target_reached:
             self.target_reached_count += 1
