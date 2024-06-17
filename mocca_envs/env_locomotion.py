@@ -342,7 +342,7 @@ class Walker3DStepperEnv(EnvBase):
         self.advance_threshold = 12  # steps_reached
 
         self.ground_1 = 1000
-        self.air_time = 5000
+        self.air_time = 3000
         self.ground_2 = 1000
 
         # Robot settings
