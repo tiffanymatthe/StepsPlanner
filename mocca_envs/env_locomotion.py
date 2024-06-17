@@ -567,7 +567,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_env_state(action)
 
         reward = self.progress - self.energy_penalty
-        reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
+        reward += self.step_bonus + self.target_bonus - self.speed_penalty * 1
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
 
@@ -649,7 +649,7 @@ class Walker3DStepperEnv(EnvBase):
             self.posture_penalty += abs(self.robot.body_rpy[0])
 
         speed = sqrt(ss(self.robot.body_vel))
-        self.speed_penalty = max(speed - 1.6, 0)
+        self.speed_penalty = max(speed - 1.4, 0)
 
         electricity_cost = self.electricity_cost * nansum(
             abs(action * self.robot.joint_speeds)
