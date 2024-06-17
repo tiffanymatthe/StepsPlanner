@@ -341,6 +341,10 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = 12  # steps_reached
 
+        self.ground_1 = 500
+        self.air_time = 4000
+        self.ground_2 = 1000
+
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
@@ -440,7 +444,6 @@ class Walker3DStepperEnv(EnvBase):
                 left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
                 x[i] = x_temp[i] + left_foot_shift[0]
                 y[i] = y_temp[i] + left_foot_shift[1]
-                z[i] = 0.15
             else:
                 right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
                 x[i] = x_temp[i] + right_foot_shift[0]
@@ -614,7 +617,7 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        offset = 0.15 if 301 <= self.current_target_count <= 1650 else 0
+        offset = 0.15 if 1 + self.ground_1 <= self.current_target_count <= self.ground_1 + 0.5 * self.air_time else 0
         foot_target_delta = self.terrain_info[self.next_step_index, 2] + offset - self.robot.feet_xyz[self.swing_leg, 2]
         foot_distance_to_target = np.abs(foot_target_delta)
         self.linear_potential = -(self.distance_to_target * 0 + foot_distance_to_target) / self.scene.dt
@@ -663,7 +666,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.contact_bonus = 0
 
-        if 0 <= self.current_target_count <= 500:
+        if 0 <= self.current_target_count <= self.ground_1:
+            if self.current_target_count == 1:
+                print(f"{self.next_step_index}: ground 1")
             if self._foot_target_contacts[self.swing_leg, 0] > 0:
                 self.contact_bonus += 2
             else:
@@ -672,7 +677,9 @@ class Walker3DStepperEnv(EnvBase):
                 self.contact_bonus += 1
             else:
                 self.contact_bonus -= 1
-        elif 501 <= self.current_target_count <= 3000:
+        elif 1 + self.ground_1 <= self.current_target_count <= self.ground_1 + self.air_time:
+            if self.current_target_count == 501:
+                print(f"{self.next_step_index}: air")
             if self._foot_target_contacts[self.swing_leg, 0] == 0:
                 self.contact_bonus += 2
             else:
@@ -681,7 +688,9 @@ class Walker3DStepperEnv(EnvBase):
                 self.contact_bonus += 1
             else:
                 self.contact_bonus -= 1
-        elif 3001 <= self.current_target_count <= 4000:
+        elif 1 + self.ground_1 + self.air_time <= self.current_target_count <= self.ground_1 + self.air_time + self.ground_2:
+            if self.current_target_count == 3001:
+                print(f"{self.next_step_index}: ground 2")
             if self._foot_target_contacts[self.swing_leg, 0] > 0:
                 self.contact_bonus += 2
             else:
@@ -772,7 +781,7 @@ class Walker3DStepperEnv(EnvBase):
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted and self.current_target_count < 4000
 
         if self.target_reached:
             self.target_reached_count += 1
