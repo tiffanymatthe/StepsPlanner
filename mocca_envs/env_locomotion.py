@@ -761,32 +761,7 @@ class Walker3DStepperEnv(EnvBase):
                 linkIndexB=target_cover_id_list[0],
                 physicsClientId=client_id,
             )
-            # self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
-            #                         lineToXYZ            = [0.5, 0, 0],
-            #                         lineColorRGB         = [1, 0, 0]  ,
-            #                         lineWidth            = 0.5        ,
-            #                         lifeTime             = 20         ,
-            #                         parentObjectUniqueId = robot_id     ,
-            #                         parentLinkIndex      = self.robot.feet[self.swing_leg].bodyPartIndex     )
-            # self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
-            #             lineToXYZ            = [0, 0.5, 0],
-            #             lineColorRGB         = [0, 1, 0]  ,
-            #             lineWidth            = 0.5        ,
-            #             lifeTime             = 20         ,
-            #             parentObjectUniqueId = robot_id     ,
-            #             parentLinkIndex      = self.robot.feet[self.swing_leg].bodyPartIndex     )
-            # self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
-            #             lineToXYZ            = [0, 0, 0.5],
-            #             lineColorRGB         = [0, 0, 1]  ,
-            #             lineWidth            = 0.5        ,
-            #             lifeTime             = 20         ,
-            #             parentObjectUniqueId = robot_id     ,
-            #             parentLinkIndex      = self.robot.feet[self.swing_leg].bodyPartIndex     )
-            # print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
             if len(contact_points) > 0:
-                # blockPosInGripper, blockOrnInGripper = p.multiplyTransforms(invGripperPos, invGripperOrn, blockPos, blockOrn)
-                # https://snyk.io/advisor/python/pybullet/functions/pybullet.getBasePositionAndOrientation
-                # A = global, C = contact, B = foot position in global frame
                 A_to_C = contact_points[0][5]
                 A_to_B_pos, A_to_B_quat = self.robot.feet_xyz[self.swing_leg], self._p.getQuaternionFromEuler(self.robot.feet_rpy[self.swing_leg])
                 B_to_A_pos, B_to_A_quat = self._p.invertTransform(A_to_B_pos, A_to_B_quat)
@@ -797,13 +772,14 @@ class Walker3DStepperEnv(EnvBase):
                     orientationB=self._p.getQuaternionFromEuler((0,0,0)),
                     physicsClientId=client_id,
                 )
-                # print(f"Foot contact points in global: {contact_points[0][5]} and robot feet {self.robot.feet_xyz[self.swing_leg]}")
-                # print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}") # for origin of foot link to contact position.")
-                if -0.1 < B_to_C_pos[0] < 0.1 and self.swing_leg == 0:
+                if np.abs(B_to_C_pos[0]) > 0.12: # and self.swing_leg == 0:
+                # if np.abs(B_to_C_quat[1]) > 0.2 and self.swing_leg == 1:
                     self.target_reached = False
-                else:
-                    print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
-                    print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}") # for origin of foot link to contact position.")
+                    # print(B_to_C_pos[0])
+                    # print(B_to_C_quat[1])
+                # else:
+                    # print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
+                    # print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}")
 
         if self.target_reached:
             self.target_reached_count += 1
