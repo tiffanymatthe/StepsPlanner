@@ -366,7 +366,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
         high = np.inf * np.ones(
-            self.robot_obs_dim + K * self.step_param_dim, dtype=np.float32
+            self.robot_obs_dim + K * self.step_param_dim + 1, dtype=np.float32
         )
         self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
         self.action_space = self.robot.action_space
@@ -440,6 +440,7 @@ class Walker3DStepperEnv(EnvBase):
                 left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
                 x[i] = x_temp[i] + left_foot_shift[0]
                 y[i] = y_temp[i] + left_foot_shift[1]
+                z[i] = 0.15
             else:
                 right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
                 x[i] = x_temp[i] + right_foot_shift[0]
@@ -542,7 +543,7 @@ class Walker3DStepperEnv(EnvBase):
         # Order is important because walk_target is set up above
         self.calc_potential()
 
-        state = concatenate((self.robot_state, self.targets.flatten()))
+        state = concatenate((self.robot_state, self.targets.flatten(), [self.current_target_count]))
 
         if not self.state_id >= 0:
             self.state_id = self._p.saveState()
@@ -571,7 +572,7 @@ class Walker3DStepperEnv(EnvBase):
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
 
         # targets is calculated by calc_env_state()
-        state = concatenate((self.robot_state, self.targets.flatten()))
+        state = concatenate((self.robot_state, self.targets.flatten(), [self.current_target_count]))
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard(callback=self.handle_keyboard)
@@ -613,8 +614,9 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
+        offset = 0.15 if 301 <= self.current_target_count <= 1650 else 0
+        foot_target_delta = self.terrain_info[self.next_step_index, 2] + offset - self.robot.feet_xyz[self.swing_leg, 2]
+        foot_distance_to_target = np.abs(foot_target_delta)
         self.linear_potential = -(self.distance_to_target * 0 + foot_distance_to_target) / self.scene.dt
 
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
