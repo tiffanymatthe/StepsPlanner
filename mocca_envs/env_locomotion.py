@@ -706,11 +706,8 @@ class Walker3DStepperEnv(EnvBase):
 
         robot_id = self.robot.id
         client_id = self._p._client
-        target_id_list = [[next_step.id],[curr_step.id]]
-        target_cover_id_list = [[next_step.cover_id],[curr_step.cover_id]]
-        if self.swing_leg == 1:
-            target_id_list.reverse()
-            target_cover_id_list.reverse()
+        target_id_list = [next_step.id]
+        target_cover_id_list = [next_step.cover_id]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -719,8 +716,8 @@ class Walker3DStepperEnv(EnvBase):
             self.robot.feet_contact[i] = pybullet.getContactStates(
                 bodyA=robot_id,
                 linkIndexA=foot.bodyPartIndex,
-                bodiesB=target_id_list[i],
-                linkIndicesB=target_cover_id_list[i],
+                bodiesB=target_id_list,
+                linkIndicesB=target_cover_id_list,
                 results=contact,
                 physicsClientId=client_id,
             )
@@ -755,6 +752,58 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+
+        if self.target_reached:
+            contact_points = pybullet.getContactPoints(
+                bodyA=robot_id,
+                linkIndexA=self.robot.feet[self.swing_leg].bodyPartIndex,
+                bodyB=target_id_list[0],
+                linkIndexB=target_cover_id_list[0],
+                physicsClientId=client_id,
+            )
+            # self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
+            #                         lineToXYZ            = [0.5, 0, 0],
+            #                         lineColorRGB         = [1, 0, 0]  ,
+            #                         lineWidth            = 0.5        ,
+            #                         lifeTime             = 20         ,
+            #                         parentObjectUniqueId = robot_id     ,
+            #                         parentLinkIndex      = self.robot.feet[self.swing_leg].bodyPartIndex     )
+            # self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
+            #             lineToXYZ            = [0, 0.5, 0],
+            #             lineColorRGB         = [0, 1, 0]  ,
+            #             lineWidth            = 0.5        ,
+            #             lifeTime             = 20         ,
+            #             parentObjectUniqueId = robot_id     ,
+            #             parentLinkIndex      = self.robot.feet[self.swing_leg].bodyPartIndex     )
+            # self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
+            #             lineToXYZ            = [0, 0, 0.5],
+            #             lineColorRGB         = [0, 0, 1]  ,
+            #             lineWidth            = 0.5        ,
+            #             lifeTime             = 20         ,
+            #             parentObjectUniqueId = robot_id     ,
+            #             parentLinkIndex      = self.robot.feet[self.swing_leg].bodyPartIndex     )
+            # print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
+            if len(contact_points) > 0:
+                # blockPosInGripper, blockOrnInGripper = p.multiplyTransforms(invGripperPos, invGripperOrn, blockPos, blockOrn)
+                # https://snyk.io/advisor/python/pybullet/functions/pybullet.getBasePositionAndOrientation
+                # A = global, C = contact, B = foot position in global frame
+                A_to_C = contact_points[0][5]
+                A_to_B_pos, A_to_B_quat = self.robot.feet_xyz[self.swing_leg], self._p.getQuaternionFromEuler(self.robot.feet_rpy[self.swing_leg])
+                B_to_A_pos, B_to_A_quat = self._p.invertTransform(A_to_B_pos, A_to_B_quat)
+                B_to_C_pos, B_to_C_quat = self._p.multiplyTransforms( # B -> A and A -> C
+                    positionA=B_to_A_pos,
+                    orientationA=B_to_A_quat,
+                    positionB=A_to_C,
+                    orientationB=self._p.getQuaternionFromEuler((0,0,0)),
+                    physicsClientId=client_id,
+                )
+                # print(f"Foot contact points in global: {contact_points[0][5]} and robot feet {self.robot.feet_xyz[self.swing_leg]}")
+                # print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}") # for origin of foot link to contact position.")
+                if -0.1 < B_to_C_pos[0] < 0.1 and self.swing_leg == 0:
+                    self.target_reached = False
+                else:
+                    print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
+                    print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}") # for origin of foot link to contact position.")
 
         if self.target_reached:
             self.target_reached_count += 1

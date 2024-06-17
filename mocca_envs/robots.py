@@ -82,6 +82,9 @@ class WalkerBase:
             self.feet_xyz = np.array(
                 [state[0] for state in link_states[1:]], dtype=np.float32
             )
+            self.feet_rpy = np.array(
+                [pybullet.getEulerFromQuaternion(state[1]) for state in link_states[1:]], dtype=np.float32
+            )
         else:
             pose = self.robot_body.get_pose()
             self.body_xyz = pose[:3]
