@@ -310,7 +310,7 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0.45, 1.32]
+    robot_init_position = [0, 0.3, 1.32]
     robot_init_velocity = None
 
     pre_lift_count = 1000
@@ -318,13 +318,13 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.13
+    step_radius = 0.2
     rendered_step_count = 5
-    init_step_separation = 0.45
+    init_step_separation = 0.65
 
     lookahead = 2
     lookbehind = 1
-    walk_target_index = 1
+    walk_target_index = -1
     step_bonus_smoothness = 1
     stop_steps = [] # [6, 7, 13, 14]
 
@@ -334,7 +334,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=True, **kwargs)
-        self.robot.set_base_pose(pose="side_step_start")
+        self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
         self.curriculum = 0
@@ -385,7 +385,7 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        dist_range = dist_range * 0 + 0.33
+        # dist_range = dist_range * 0 + 0.33
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -402,7 +402,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        dr[1] = self.init_step_separation
+        dr[1:3] = self.init_step_separation
         dphi[1:3] = 0.0
         dtheta[1:3] = np.pi / 2
 
@@ -428,26 +428,26 @@ class Walker3DStepperEnv(EnvBase):
         height = 0.21
         x_diff = 0.13
 
-        self.swing_legs = np.zeros(N, dtype=np.int8)
+        # self.swing_legs = np.zeros(N, dtype=np.int8)
 
-        x_temp = np.copy(x)
-        y_temp = np.copy(y)
+        # x_temp = np.copy(x)
+        # y_temp = np.copy(y)
 
-        for i in range(N // 2):
-            if i == 0:
-                # skip, take as granted that right foot satisfies this
-                step_index += 1
-                continue
-            self.swing_legs[step_index] = 1
-            left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
-            x[step_index] = x_temp[i] + left_foot_shift[0]
-            y[step_index] = y_temp[i] + left_foot_shift[1]
+        # for i in range(N // 2):
+        #     if i == 0:
+        #         # skip, take as granted that right foot satisfies this
+        #         step_index += 1
+        #         continue
+        #     self.swing_legs[step_index] = 1
+        #     left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
+        #     x[step_index] = x_temp[i] + left_foot_shift[0]
+        #     y[step_index] = y_temp[i] + left_foot_shift[1]
            
-            if step_index + 1 < N:
-                right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
-                x[step_index+1] = x_temp[i] + right_foot_shift[0]
-                y[step_index+1] = y_temp[i] + right_foot_shift[1]
-            step_index += 2
+        #     if step_index + 1 < N:
+        #         right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
+        #         x[step_index+1] = x_temp[i] + right_foot_shift[0]
+        #         y[step_index+1] = y_temp[i] + right_foot_shift[1]
+        #     step_index += 2
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
@@ -523,6 +523,7 @@ class Walker3DStepperEnv(EnvBase):
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
+            quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
         )
         self.swing_leg = 1 if self.robot.mirrored else 0
         self.prev_leg = self.swing_leg
@@ -532,7 +533,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
-        self.swing_leg = self.swing_legs[self.next_step_index]
+        # self.swing_leg = self.swing_legs[self.next_step_index]
         # print(f"swing legs {self.swing_legs}, with first at {self.swing_leg}")
         self.calc_feet_state()
 
@@ -766,17 +767,16 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 # if self.imaginary_step else self.ground_stay_count
+            delay = 2
             if self.target_reached_count >= delay:
                 # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
-                    # if not (self.imaginary_step or self.prev_leg != self.swing_leg):
-                    #     self.swing_leg = (self.swing_leg + 1) % 2
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
-                    self.swing_leg = self.swing_legs[self.next_step_index]
+                    self.swing_leg = (self.swing_leg + 1) % 2
+                    # self.swing_leg = self.swing_legs[self.next_step_index]
                     if (
                         self.next_step_index - 1 in self.stop_steps
                         and self.next_step_index - 2 in self.stop_steps
@@ -863,9 +863,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if self.swing_leg == 1:
-            # update walk target only if left foot
-            self.walk_target = targets[self.walk_target_index, 0:3]
+        self.walk_target = targets[self.walk_target_index, 0:3]
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
