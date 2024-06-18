@@ -450,6 +450,7 @@ class Walker3DStepperEnv(EnvBase):
             step_index += 2
 
         if self.robot.mirrored:
+            self.swing_legs = 1 - self.swing_legs
             y *= -1
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
@@ -589,8 +590,11 @@ class Walker3DStepperEnv(EnvBase):
                 if self.distance_to_target < 0.15
                 else Colors["crimson"]
             )
-            self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(Colors["crimson"])
-            self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(Colors["dodgerblue"])
+            for i, step in enumerate(self.rendered_steps):
+                if i == self.next_step_index % self.rendered_step_count:
+                    step.set_color(Colors["dodgerblue"])
+                else:
+                    step.set_color(Colors["crimson"])
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
@@ -745,44 +749,53 @@ class Walker3DStepperEnv(EnvBase):
         if self.next_step_index > 1:
             x_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 0] - self.prev_leg_pos[:,0])
             y_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 1] - self.prev_leg_pos[:,1])
-            foot_in_target = x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius
             foot_in_prev_target = x_dist_to_prev_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_prev_target[self.swing_leg] < self.step_radius
-            swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
+        if self.next_step_index == 1:
+            foot_in_prev_target = False
+        foot_in_target = x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius
+        swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
-        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
-        
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.next_step_index > 2)
+        self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps
+        # if self.swing_leg_has_fallen:
+        #      print(f"--{self.swing_leg}")
+        #      print(foot_in_target)
+        #      print(self.terrain_info[self.next_step_index, 0:2])
+        #      print(self.robot.feet_xyz)
 
-        if self.target_reached:
-            contact_points = pybullet.getContactPoints(
-                bodyA=robot_id,
-                linkIndexA=self.robot.feet[self.swing_leg].bodyPartIndex,
-                bodyB=target_id_list[0],
-                linkIndexB=target_cover_id_list[0],
-                physicsClientId=client_id,
-            )
-            if len(contact_points) > 0:
-                A_to_C = contact_points[0][5]
-                A_to_B_pos, A_to_B_quat = self.robot.feet_xyz[self.swing_leg], self._p.getQuaternionFromEuler(self.robot.feet_rpy[self.swing_leg])
-                B_to_A_pos, B_to_A_quat = self._p.invertTransform(A_to_B_pos, A_to_B_quat)
-                B_to_C_pos, B_to_C_quat = self._p.multiplyTransforms( # B -> A and A -> C
-                    positionA=B_to_A_pos,
-                    orientationA=B_to_A_quat,
-                    positionB=A_to_C,
-                    orientationB=self._p.getQuaternionFromEuler((0,0,0)),
-                    physicsClientId=client_id,
-                )
-                if np.abs(B_to_C_pos[0]) > 0.12: # and self.swing_leg == 0:
-                # if np.abs(B_to_C_quat[1]) > 0.2 and self.swing_leg == 1:
-                    self.target_reached = False
-                    # print(B_to_C_pos[0])
-                    # print(B_to_C_quat[1])
-                # else:
-                    # print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
-                    # print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}")
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and foot_in_target and (self.swing_leg_lifted or self.next_step_index < 2)
+        # if self._foot_target_contacts[self.swing_leg, 0] > 0 and not self.swing_leg_has_fallen:
+        #     print(self.swing_leg_lifted or self.next_step_index < 2)
+
+        # if self.target_reached:
+        #     contact_points = pybullet.getContactPoints(
+        #         bodyA=robot_id,
+        #         linkIndexA=self.robot.feet[self.swing_leg].bodyPartIndex,
+        #         bodyB=target_id_list[0],
+        #         linkIndexB=target_cover_id_list[0],
+        #         physicsClientId=client_id,
+        #     )
+        #     if len(contact_points) > 0:
+        #         A_to_C = contact_points[0][5]
+        #         A_to_B_pos, A_to_B_quat = self.robot.feet_xyz[self.swing_leg], self._p.getQuaternionFromEuler(self.robot.feet_rpy[self.swing_leg])
+        #         B_to_A_pos, B_to_A_quat = self._p.invertTransform(A_to_B_pos, A_to_B_quat)
+        #         B_to_C_pos, B_to_C_quat = self._p.multiplyTransforms( # B -> A and A -> C
+        #             positionA=B_to_A_pos,
+        #             orientationA=B_to_A_quat,
+        #             positionB=A_to_C,
+        #             orientationB=self._p.getQuaternionFromEuler((0,0,0)),
+        #             physicsClientId=client_id,
+        #         )
+        #         if np.abs(B_to_C_pos[0]) > 0.12: # and self.swing_leg == 0:
+        #         # if np.abs(B_to_C_quat[1]) > 0.2 and self.swing_leg == 1:
+        #             self.target_reached = False
+        #             # print(B_to_C_pos[0])
+        #             # print(B_to_C_quat[1])
+        #         # else:
+        #             # print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
+        #             # print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}")
 
         if self.target_reached:
             self.target_reached_count += 1
@@ -891,7 +904,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if self.swing_leg == 1:
+        if (self.swing_leg == 1 and not self.robot.mirrored) or (self.swing_leg == 0 and self.robot.mirrored):
             # update walk target only if left foot
             self.walk_target = targets[self.walk_target_index, 0:3]
 
