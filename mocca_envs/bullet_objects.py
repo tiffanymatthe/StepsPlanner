@@ -45,6 +45,41 @@ class VSphere:
             self._rgba = t_rgba
 
 
+class VArrow:
+    def __init__(self, bc, heading=None, pos=None, rgba=None):
+        # heading in radians
+        self._p = bc
+
+        heading = 0 if heading is None else heading
+        pos = (0, 0, 1) if pos is None else pos
+        rgba = (219 / 255, 72 / 255, 72 / 255, 1.0) if rgba is None else rgba
+
+        model_path = os.path.join(
+            current_dir, "data", "objects", "misc", "arrow.urdf"
+        )
+
+        orientation = self._p.getQuaternionFromEuler((0,0,heading))
+
+        self.id = self._p.loadURDF(
+            model_path,
+            basePosition=pos,
+            baseOrientation=orientation,
+            useFixedBase=False,
+            globalScaling=0.3
+        )
+
+        self._pos = pos
+        self._quat = orientation
+        self._rgba = rgba
+
+    def set_position(self, pos=None, heading=None):
+
+        pos = self._pos if pos is None else pos
+        quat = self._quat if heading is None else self._p.getQuaternionFromEuler((0,0,heading))
+
+        self._p.resetBasePositionAndOrientation(self.id, posObj=pos, ornObj=quat)
+
+
 class VMultiSphere:
     def __init__(
         self,
