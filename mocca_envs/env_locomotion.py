@@ -310,7 +310,7 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0.3, 1.32]
+    robot_init_position = [0, -0.3, 1.32]
     robot_init_velocity = None
 
     pre_lift_count = 1000
@@ -411,7 +411,7 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
-        dy = dr * np.sin(dtheta) * np.cos(dphi)
+        dy = -dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
 
@@ -525,7 +525,7 @@ class Walker3DStepperEnv(EnvBase):
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
         )
-        self.swing_leg = 1 if self.robot.mirrored else 0
+        self.swing_leg = 0 if self.robot.mirrored else 1 # for backwards
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
