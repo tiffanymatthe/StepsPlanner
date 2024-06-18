@@ -776,12 +776,12 @@ class Walker3DStepperEnv(EnvBase):
                     orientationB=self._p.getQuaternionFromEuler((0,0,0)),
                     physicsClientId=client_id,
                 )
-                contact_pos = np.abs(B_to_C_pos[0])
+                contact_pos = np.abs(B_to_C_quat[1])
                 if self.prev_contact_pos is not None:
                     # if pos, good since closer to middle (0)
                     self.contact_potential = self.prev_contact_pos - contact_pos
                 self.prev_contact_pos = contact_pos
-                if contact_pos > 0.12: # and self.swing_leg == 0:
+                if contact_pos > 0.2: # and self.swing_leg == 0:
                 # if np.abs(B_to_C_quat[1]) > 0.2 and self.swing_leg == 1:
                     self.target_reached = False
                     # print(B_to_C_pos[0])
