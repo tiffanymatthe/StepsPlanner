@@ -424,7 +424,8 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        heading_targets = np.copy(dphi) + self.np_random.choice([-np.pi / 4, 0 , np.pi / 4]) + 90 * DEG2RAD
+        heading_targets = np.copy(dphi)
+        heading_targets[2:] += self.np_random.choice([-np.pi / 4, 0 , np.pi / 4]) + 90 * DEG2RAD
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -550,7 +551,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
-        reward -= self.heading_penalty * 10
+        reward -= self.heading_penalty * 4
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
