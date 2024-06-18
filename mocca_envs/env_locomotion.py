@@ -670,6 +670,8 @@ class Walker3DStepperEnv(EnvBase):
         if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
             self.contact_bonus -= 1
 
+        if self.contact_potential is not None and not self.target_reached:
+            self.contact_bonus += self.contact_potential / self.scene.dt
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
@@ -753,7 +755,9 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
 
-        if self.target_reached:
+        self.contact_potential = None
+
+        if self.target_reached and self.target_reached_count == 1 and self.next_step_index > 1:
             contact_points = pybullet.getContactPoints(
                 bodyA=robot_id,
                 linkIndexA=self.robot.feet[self.swing_leg].bodyPartIndex,
@@ -772,7 +776,12 @@ class Walker3DStepperEnv(EnvBase):
                     orientationB=self._p.getQuaternionFromEuler((0,0,0)),
                     physicsClientId=client_id,
                 )
-                if np.abs(B_to_C_pos[0]) > 0.12: # and self.swing_leg == 0:
+                contact_pos = np.abs(B_to_C_pos[0])
+                if self.prev_contact_pos is not None:
+                    # if pos, good since closer to middle (0)
+                    self.contact_potential = self.prev_contact_pos - contact_pos
+                self.prev_contact_pos = contact_pos
+                if contact_pos > 0.12: # and self.swing_leg == 0:
                 # if np.abs(B_to_C_quat[1]) > 0.2 and self.swing_leg == 1:
                     self.target_reached = False
                     # print(B_to_C_pos[0])
@@ -812,6 +821,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.swing_leg_lifted_count = 0
                     self.both_feet_hit_ground = False
                     self.body_stationary_count = 0
+                    self.prev_contact_pos = None
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
