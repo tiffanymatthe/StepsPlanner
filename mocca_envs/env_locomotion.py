@@ -449,6 +449,9 @@ class Walker3DStepperEnv(EnvBase):
                 y[step_index+1] = y_temp[i] + right_foot_shift[1]
             step_index += 2
 
+        if self.robot.mirrored:
+            y *= -1
+
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
     def create_terrain(self):
