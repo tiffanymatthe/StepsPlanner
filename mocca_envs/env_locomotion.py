@@ -424,8 +424,8 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        heading_targets = np.copy(dphi)
-        heading_targets[2:] += self.np_random.choice([-np.pi / 4, 0 , np.pi / 4]) + 90 * DEG2RAD
+        heading_targets = np.copy(dphi) + 90 * DEG2RAD
+        heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -623,7 +623,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress
+        self.progress = linear_progress * 1.2
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
