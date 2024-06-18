@@ -423,7 +423,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        heading_targets = np.copy(dphi) + self.np_random.choice([-np.pi / 4, 0 , np.pi / 4]) - 90 * DEG2RAD
+        heading_targets = np.copy(dphi) + self.np_random.choice([-np.pi / 4, 0 , np.pi / 4]) + 90 * DEG2RAD
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -667,6 +667,20 @@ class Walker3DStepperEnv(EnvBase):
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
+    def smallest_angle_between(self, angle1, angle2):
+        # Normalize the angles to the range [0, 360)
+        angle1 = angle1 % 360
+        angle2 = angle2 % 360
+        
+        # Calculate the absolute difference between the two angles
+        diff = abs(angle1 - angle2)
+        
+        # The smallest angle is the minimum of the difference and 360 - difference
+        smallest_angle = min(diff, 360 - diff)
+        
+        return smallest_angle
+
+
     def calc_feet_state(self):
         # Calculate contact separately for step
         target_cover_index = self.next_step_index % self.rendered_step_count
@@ -707,12 +721,9 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
-        self.heading_rad_to_target = (self.robot.body_rpy[2] - self.terrain_info[self.next_step_index, 6]) % (2 * np.pi)
+        self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
 
-        if self.heading_rad_to_target < -np.pi:
-            self.heading_rad_to_target += 2*np.pi
-        elif self.heading_rad_to_target > np.pi:
-            self.heading_rad_to_target -= 2*np.pi
+        # print(f"{self.robot.body_rpy[2] * RAD2DEG} vs {self.terrain_info[self.next_step_index, 6] * RAD2DEG}, diff {self.heading_rad_to_target * RAD2DEG}")
 
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
