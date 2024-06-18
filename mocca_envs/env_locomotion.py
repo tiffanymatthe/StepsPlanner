@@ -310,7 +310,10 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, -0.3, 1.32]
+    robot_init_position = [
+            [0, -0.3, 1.32], #backward
+            [0, 0.3, 1.32]
+        ]
     robot_init_velocity = None
 
     pre_lift_count = 1000
@@ -360,6 +363,7 @@ class Walker3DStepperEnv(EnvBase):
         self.step_param_dim = 5
         # Important to do this once before reset!
         self.swing_leg = 0
+        self.walk_forward = True
         self.terrain_info = self.generate_step_placements()
 
         # Observation and Action spaces
@@ -411,9 +415,12 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
-        dy = -dr * np.sin(dtheta) * np.cos(dphi)
+        dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
+
+        if not self.walk_forward:
+            dy *= -1
 
         # Fix overlapping steps
         dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
@@ -519,9 +526,11 @@ class Walker3DStepperEnv(EnvBase):
 
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
+        prev_forward = self.walk_forward
+        self.walk_forward = self.np_random.choice([True, False])
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
-            pos=self.robot_init_position,
+            pos=self.robot_init_position[self.walk_forward],
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
         )
@@ -529,7 +538,7 @@ class Walker3DStepperEnv(EnvBase):
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
-        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
+        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -634,7 +643,9 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1.5
+        self.progress = linear_progress
+        if not self.walk_forward:
+            self.progress *= 1.5
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
