@@ -319,7 +319,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.13
-    rendered_step_count = 5
+    rendered_step_count = 10
     init_step_separation = 0.45
 
     lookahead = 2
@@ -413,11 +413,13 @@ class Walker3DStepperEnv(EnvBase):
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
+        # dx[2] += 0.2
+        dx[2:] += 0.1
         dz = dr * np.cos(dtheta)
 
-        # Fix overlapping steps
-        dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
-        dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
+        # # Fix overlapping steps
+        # dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
+        # dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
 
         x = np.cumsum(dx)
         y = np.cumsum(dy)
