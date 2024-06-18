@@ -319,7 +319,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.13
-    rendered_step_count = 5
+    rendered_step_count = 3
     init_step_separation = 0.45
 
     lookahead = 2
@@ -667,8 +667,8 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.contact_bonus = 0
-        if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 200 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-            self.contact_bonus += 0.5
+        # if self.next_step_index > 1 and self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 200 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+        #     self.contact_bonus += 0.5
 
         if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
             self.contact_bonus -= 1
@@ -754,7 +754,7 @@ class Walker3DStepperEnv(EnvBase):
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.next_step_index > 2)
 
         if self.target_reached:
             contact_points = pybullet.getContactPoints(
