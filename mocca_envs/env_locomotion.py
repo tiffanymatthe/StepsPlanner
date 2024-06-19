@@ -423,7 +423,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
     
-        sep_dist = 0.16
+        self.sep_dist = 0.16
         step_index = 0
         height = 0.21
         x_diff = 0.13
@@ -439,12 +439,12 @@ class Walker3DStepperEnv(EnvBase):
                 step_index += 1
                 continue
             self.swing_legs[step_index] = 1
-            left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
+            left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * self.sep_dist
             x[step_index] = x_temp[i] + left_foot_shift[0]
             y[step_index] = y_temp[i] + left_foot_shift[1]
            
             if step_index + 1 < N:
-                right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
+                right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * self.sep_dist
                 x[step_index+1] = x_temp[i] + right_foot_shift[0]
                 y[step_index+1] = y_temp[i] + right_foot_shift[1]
             step_index += 2
@@ -623,10 +623,11 @@ class Walker3DStepperEnv(EnvBase):
         # self.angle_to_target = walk_target_theta - self.robot.body_rpy[2]
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
+        # hardcoded
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.05) / self.scene.dt
+        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
 
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
@@ -907,6 +908,10 @@ class Walker3DStepperEnv(EnvBase):
         if (self.swing_leg == 1 and not self.robot.mirrored) or (self.swing_leg == 0 and self.robot.mirrored):
             # update walk target only if left foot
             self.walk_target = targets[self.walk_target_index, 0:3]
+            if self.swing_leg == 1:
+                self.walk_target[1] -= self.sep_dist / 2
+            else:
+                self.walk_target[1] += self.sep_dist / 2
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
