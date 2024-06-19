@@ -887,7 +887,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if (self.swing_leg == 1 and not self.robot.mirrored) or (self.swing_leg == 0 and self.robot.mirrored):
             # update walk target only if left foot
-            self.walk_target = targets[self.walk_target_index, 0:3]
+            self.walk_target = np.copy(targets[self.walk_target_index, 0:3])
             if self.swing_leg == 1:
                 self.walk_target[1] -= self.sep_dist / 2
             else:
