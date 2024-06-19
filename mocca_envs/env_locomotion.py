@@ -427,12 +427,13 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
         if self.curriculum == 0:
+            print("HERE")
             heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
         elif self.curriculum == 1:
             heading_targets[2:] += self.np_random.choice([-np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4], p=[0.35, 0.1, 0.1, 0.1, 0.35])
         elif self.curriculum == 2:
             heading_targets[2:] += self.np_random.choice([-np.pi / 3, -np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4, np.pi / 3])
-        elif self.curriculum == 3:
+        else:
             w = np.array([3, 1, 1, 1, 1, 1, 1, 1, 3], dtype=float)
             w /= w.sum()
             heading_targets[2:] += self.np_random.choice([-np.pi / 2, -np.pi / 3, -np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4, np.pi / 3, np.pi / 2], p=w)
@@ -505,7 +506,7 @@ class Walker3DStepperEnv(EnvBase):
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
-        self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
+        self.robot.applied_gain = self.applied_gain_curriculum[0] #self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
@@ -659,7 +660,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
-        terminal_height = self.terminal_height_curriculum[self.curriculum]
+        terminal_height = self.terminal_height_curriculum[0] #self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
