@@ -319,7 +319,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.13
-    rendered_step_count = 3
+    rendered_step_count = 4
     init_step_separation = 0.45
 
     lookahead = 2
@@ -678,6 +678,9 @@ class Walker3DStepperEnv(EnvBase):
         if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
             self.contact_bonus -= 1
 
+        if np.abs(self.robot.feet_rpy[self.swing_leg, 1]) > 0.2:
+            self.contact_bonus = self.contact_bonus - np.abs(self.robot.feet_rpy[self.swing_leg, 1]) + 0.2
+
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
@@ -771,32 +774,9 @@ class Walker3DStepperEnv(EnvBase):
         #     print(self.swing_leg_lifted or self.next_step_index < 2)
 
         if self.target_reached:
-            contact_points = pybullet.getContactPoints(
-                bodyA=robot_id,
-                linkIndexA=self.robot.feet[self.swing_leg].bodyPartIndex,
-                bodyB=target_id_list[0],
-                linkIndexB=target_cover_id_list[0],
-                physicsClientId=client_id,
-            )
-            if len(contact_points) > 0:
-                A_to_C = contact_points[0][5]
-                A_to_B_pos, A_to_B_quat = self.robot.feet_xyz[self.swing_leg], self._p.getQuaternionFromEuler(self.robot.feet_rpy[self.swing_leg])
-                B_to_A_pos, B_to_A_quat = self._p.invertTransform(A_to_B_pos, A_to_B_quat)
-                B_to_C_pos, B_to_C_quat = self._p.multiplyTransforms( # B -> A and A -> C
-                    positionA=B_to_A_pos,
-                    orientationA=B_to_A_quat,
-                    positionB=A_to_C,
-                    orientationB=self._p.getQuaternionFromEuler((0,0,0)),
-                    physicsClientId=client_id,
-                )
-                # if np.abs(B_to_C_pos[0]) > 0.12: # and self.swing_leg == 0:
-                if np.abs(B_to_C_quat[1]) > 0.2 and self.next_step_index > 1:
-                    self.target_reached = False
-                    # print(B_to_C_pos[0])
-                    # print(B_to_C_quat[1])
-                # else:
-                    # print(f"Index: {self.next_step_index} with swing leg {self.swing_leg}")
-                    # print(f"Position {B_to_C_pos} and euler {self._p.getEulerFromQuaternion(B_to_C_quat)}")
+            # print(self.robot.feet_rpy[self.swing_leg, 1])
+            if np.abs(self.robot.feet_rpy[self.swing_leg, 1]) > 0.2 and self.next_step_index > 1:
+                self.target_reached = False
 
         if self.target_reached:
             self.target_reached_count += 1
