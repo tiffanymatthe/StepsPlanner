@@ -670,6 +670,9 @@ class Walker3DStepperEnv(EnvBase):
         if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
             self.contact_bonus -= 1
 
+        if self.target_reached_no_foot_pitch and np.abs(self.robot.feet_rpy[self.swing_leg, 1]) >= 0.2:
+            self.contact_bonus -= (np.abs(self.robot.feet_rpy[self.swing_leg, 1]) - 0.2)
+
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
@@ -753,8 +756,10 @@ class Walker3DStepperEnv(EnvBase):
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
+
+        self.target_reached_no_foot_pitch = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+        self.target_reached = self.target_reached_no_foot_pitch and self.swing_leg_lifted and np.abs(self.robot.feet_rpy[self.swing_leg, 1]) < 0.2
 
         if self.target_reached:
             self.target_reached_count += 1
