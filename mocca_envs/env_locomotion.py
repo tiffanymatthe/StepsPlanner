@@ -432,8 +432,6 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
-        if not self.walk_forward:
-            heading_targets *= -1
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
