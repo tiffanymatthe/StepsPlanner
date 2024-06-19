@@ -425,7 +425,7 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
-        heading_targets[2:] += self.np_random.choice([-np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4])
+        heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
