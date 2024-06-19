@@ -381,13 +381,12 @@ class Walker3DStepperEnv(EnvBase):
 
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
-        ratio = self.curriculum / self.max_curriculum
-        ratio = 0 # OVERRIDE
+        temp_curriculum = 0
+        ratio = temp_curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        # dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        dist_range = np.array([self.dist_range[0], dist_upper[0]])
+        dist_range = np.array([self.dist_range[0], dist_upper[temp_curriculum]])
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -427,7 +426,6 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
         if self.curriculum == 0:
-            print("HERE")
             heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
         elif self.curriculum == 1:
             heading_targets[2:] += self.np_random.choice([-np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4], p=[0.35, 0.1, 0.1, 0.1, 0.35])
