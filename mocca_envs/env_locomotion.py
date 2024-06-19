@@ -382,11 +382,12 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
         ratio = self.curriculum / self.max_curriculum
+        ratio = 0 # OVERRIDE
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        # dist_range = dist_range * 0 + 0.33
+        # dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        dist_range = np.array([self.dist_range[0], dist_upper[0]])
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -425,7 +426,16 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
-        heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
+        if self.curriculum == 0:
+            heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
+        elif self.curriculum == 1:
+            heading_targets[2:] += self.np_random.choice([-np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4], p=[0.35, 0.1, 0.1, 0.1, 0.35])
+        elif self.curriculum == 2:
+            heading_targets[2:] += self.np_random.choice([-np.pi / 3, -np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4, np.pi / 3])
+        elif self.curriculum == 3:
+            w = np.array([3, 1, 1, 1, 1, 1, 1, 1, 3], dtype=float)
+            w /= w.sum()
+            heading_targets[2:] += self.np_random.choice([-np.pi / 2, -np.pi / 3, -np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4, np.pi / 3, np.pi / 2], p=w)
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
