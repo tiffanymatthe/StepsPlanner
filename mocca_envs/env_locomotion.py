@@ -381,12 +381,11 @@ class Walker3DStepperEnv(EnvBase):
 
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
-        override_curriculum = 0
-        ratio = override_curriculum / self.max_curriculum
+        ratio = self.curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[override_curriculum]])
+        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
         # dist_range = dist_range * 0 + 0.33
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -426,12 +425,7 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
-        if self.curriculum == 0:
-            heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
-        elif self.curriculum == 1:
-            heading_targets[2:] += self.np_random.choice([-np.pi/3,-np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4,np.pi/3])
-        else:
-            heading_targets[2:] += self.np_random.choice([-np.pi/2,-np.pi/3,-np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4,np.pi/3, np.pi/2])
+        heading_targets[2:] += self.np_random.choice([-np.pi / 4, -np.pi / 8, 0 , np.pi / 8, np.pi / 4])
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -501,7 +495,7 @@ class Walker3DStepperEnv(EnvBase):
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
-        self.robot.applied_gain = self.applied_gain_curriculum[0] # self.curriculum]
+        self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
@@ -655,7 +649,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
-        terminal_height = self.terminal_height_curriculum[0] # self.curriculum]
+        terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
