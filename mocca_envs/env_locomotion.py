@@ -360,7 +360,7 @@ class Walker3DStepperEnv(EnvBase):
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-20, 20])
         self.tilt_range = np.array([-15, 15])
-        self.step_param_dim = 5
+        self.step_param_dim = 6
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
@@ -429,34 +429,12 @@ class Walker3DStepperEnv(EnvBase):
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
-    
-        sep_dist = 0.16
-        step_index = 0
-        height = 0.21
-        x_diff = 0.13
 
-        # self.swing_legs = np.zeros(N, dtype=np.int8)
+        heading_targets = np.copy(dphi) + 90 * DEG2RAD
+        if not self.walk_forward:
+            heading_targets *= -1
 
-        # x_temp = np.copy(x)
-        # y_temp = np.copy(y)
-
-        # for i in range(N // 2):
-        #     if i == 0:
-        #         # skip, take as granted that right foot satisfies this
-        #         step_index += 1
-        #         continue
-        #     self.swing_legs[step_index] = 1
-        #     left_foot_shift = np.array([np.cos(dphi[i] + np.pi / 2), np.sin(dphi[i] + np.pi / 2)]) * sep_dist
-        #     x[step_index] = x_temp[i] + left_foot_shift[0]
-        #     y[step_index] = y_temp[i] + left_foot_shift[1]
-           
-        #     if step_index + 1 < N:
-        #         right_foot_shift = np.array([np.cos(dphi[i] - np.pi / 2), np.sin(dphi[i] - np.pi / 2)]) * sep_dist
-        #         x[step_index+1] = x_temp[i] + right_foot_shift[0]
-        #         y[step_index+1] = y_temp[i] + right_foot_shift[1]
-        #     step_index += 2
-
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
     def create_terrain(self):
 
@@ -580,6 +558,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
+        reward += self.heading_penalty * 4
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -693,9 +672,24 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.contact_bonus -= 100
 
+        self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
+
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
+
+    def smallest_angle_between(self, angle1, angle2):
+        # Normalize the angles to the range [0, 2pi)
+        angle1 = angle1 % (2 * np.pi)
+        angle2 = angle2 % (2 * np.pi)
+        
+        # Calculate the absolute difference between the two angles
+        diff = abs(angle1 - angle2)
+        
+        # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
+        smallest_angle = min(diff, (2 * np.pi) - diff)
+        
+        return smallest_angle
 
     def calc_feet_state(self):
         # Calculate contact separately for step
@@ -739,6 +733,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
+
+        self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
 
         if self.next_step_index == 1 or self.swing_leg_lifted:
             # if first step or already lifted, say true
@@ -884,6 +880,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_to_targets = target_thetas - self.robot.body_rpy[2]
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
+        heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         deltas = concatenate(
             (
@@ -892,6 +889,7 @@ class Walker3DStepperEnv(EnvBase):
                 (delta_pos[:, 2])[:, None],  # z
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
+                (heading_angle_to_targets)[:, None],
             ),
             axis=1,
         )
@@ -944,6 +942,7 @@ class Walker3DStepperEnv(EnvBase):
                 (
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
+                    i * self.step_param_dim + 5, # heading
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
