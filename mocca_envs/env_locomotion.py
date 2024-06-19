@@ -413,11 +413,12 @@ class Walker3DStepperEnv(EnvBase):
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dx[2:] += self.np_random.choice([0.1, 0.2])
         dz = dr * np.cos(dtheta)
 
         # Fix overlapping steps
-        dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
-        dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
+        # dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
+        # dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
 
         x = np.cumsum(dx)
         y = np.cumsum(dy)
