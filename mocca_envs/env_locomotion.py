@@ -517,7 +517,7 @@ class Walker3DStepperEnv(EnvBase):
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
-        self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
+        self.robot.applied_gain = self.applied_gain_curriculum[self.max_curriculum]
         prev_robot_mirrored = self.robot.mirrored
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
