@@ -386,10 +386,11 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
         ratio = self.curriculum / self.max_curriculum
+        ratio = 0
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        dist_range = np.array([self.dist_range[0], dist_upper[0]])
         # dist_range = dist_range * 0 + 0.33
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -416,6 +417,13 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
+        heading_targets = np.copy(dphi) + 90 * DEG2RAD
+
+        dphi[2:] += self.np_random.choice([-np.pi / 8, np.pi / 8])
+
+        if self.curriculum >= 1:
+            heading_targets += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
+
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
@@ -423,15 +431,13 @@ class Walker3DStepperEnv(EnvBase):
         if not self.walk_forward:
             dy *= -1
 
-        # Fix overlapping steps
-        dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
-        dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
+        # # Fix overlapping steps
+        # dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
+        # dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
 
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
-
-        heading_targets = np.copy(dphi) + 90 * DEG2RAD
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
