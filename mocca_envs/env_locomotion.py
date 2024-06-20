@@ -419,10 +419,7 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
 
-        dphi[2:] += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
-
-        if self.curriculum >= 1:
-            heading_targets += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
+        heading_targets += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
@@ -510,7 +507,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         prev_forward = self.walk_forward
-        self.walk_forward = self.np_random.choice([True, False], p=[0.35, 0.65])
+        self.walk_forward = True # self.np_random.choice([True, False], p=[0.35, 0.65])
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position[self.walk_forward],
