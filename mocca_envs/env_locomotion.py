@@ -607,6 +607,10 @@ class Walker3DStepperEnv(EnvBase):
         # Sphere is a visual shape, does not interact physically
         self.target = VSphere(self._p, radius=0.15, pos=None)
 
+    def is_body_between_feet_or_behind(self):
+        # body just needs to be behind leading foot left, use < since moving towards negative y
+        return self.robot.feet_xyz[1, 1] > self.robot.body_xyz[1]
+
     def calc_potential(self):
 
         # walk_target_theta = atan2(
@@ -617,9 +621,16 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.05) / self.scene.dt
+        # foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
+        # foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
+        # self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.05) / self.scene.dt
+
+        if not self.is_body_between_feet_or_behind():
+            self.linear_potential = self.linear_potential
+        else:
+            walk_target_delta = self.walk_target - self.robot.body_xyz
+            self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+            self.linear_potential = -(self.distance_to_target) / self.scene.dt
 
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
