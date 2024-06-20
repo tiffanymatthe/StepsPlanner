@@ -425,7 +425,7 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
-        heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
+        # heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -679,14 +679,14 @@ class Walker3DStepperEnv(EnvBase):
 
     def smallest_angle_between(self, angle1, angle2):
         # Normalize the angles to the range [0, 360)
-        angle1 = angle1 % 360
-        angle2 = angle2 % 360
+        angle1 = angle1 % (2 * np.pi)
+        angle2 = angle2 % (2 * np.pi)
         
         # Calculate the absolute difference between the two angles
         diff = abs(angle1 - angle2)
         
-        # The smallest angle is the minimum of the difference and 360 - difference
-        smallest_angle = min(diff, 360 - diff)
+        # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
+        smallest_angle = min(diff, (2 * np.pi) - diff)
         
         return smallest_angle
 
