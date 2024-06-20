@@ -678,15 +678,15 @@ class Walker3DStepperEnv(EnvBase):
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
     def smallest_angle_between(self, angle1, angle2):
-        # Normalize the angles to the range [0, 360)
-        angle1 = angle1 % 360
-        angle2 = angle2 % 360
+        # Normalize the angles to the range [0, (2 * np.pi))
+        angle1 = angle1 % (2 * np.pi)
+        angle2 = angle2 % (2 * np.pi)
         
         # Calculate the absolute difference between the two angles
         diff = abs(angle1 - angle2)
         
-        # The smallest angle is the minimum of the difference and 360 - difference
-        smallest_angle = min(diff, 360 - diff)
+        # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
+        smallest_angle = min(diff, (2 * np.pi) - diff)
         
         return smallest_angle
 
@@ -944,7 +944,7 @@ class Walker3DStepperEnv(EnvBase):
                 (
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
-                    i * self.step_param_dim + 5,
+                    # i * self.step_param_dim + 5,
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
