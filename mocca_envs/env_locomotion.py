@@ -419,7 +419,7 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
 
-        dphi[2:] += self.np_random.choice([-np.pi / 8, np.pi / 8])
+        dphi[2:] += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
 
         if self.curriculum >= 1:
             heading_targets += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
