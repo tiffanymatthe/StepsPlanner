@@ -311,7 +311,7 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0.3, 1.32]
+    robot_init_position = [0.3, 0, 1.32]
     robot_init_velocity = None
 
     pre_lift_count = 1000
