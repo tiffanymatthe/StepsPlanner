@@ -510,7 +510,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         prev_forward = self.walk_forward
-        self.walk_forward = self.np_random.choice([True, False], p=[0.35, 0.65])
+        self.walk_forward = self.np_random.choice([True, False], p=[0.40, 0.60])
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position[self.walk_forward],
@@ -563,7 +563,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
-        reward -= self.heading_penalty * 4
+        reward -= self.heading_penalty * 7
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
