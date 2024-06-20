@@ -680,24 +680,27 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.contact_bonus -= 100
 
-        self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
+        self.heading_penalty = - np.exp(-0.5 * np.abs(self.heading_rad_to_target) **2) + 1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
-    def smallest_angle_between(self, angle1, angle2):
-        # Normalize the angles to the range [0, (2 * np.pi))
+    def smallest_angle_from_to(self, angle1, angle2):
+        # Normalize the angles to the range [0, 2 * np.pi)
         angle1 = angle1 % (2 * np.pi)
         angle2 = angle2 % (2 * np.pi)
         
-        # Calculate the absolute difference between the two angles
-        diff = abs(angle1 - angle2)
+        # Calculate the difference between the two angles
+        diff = angle2 - angle1
         
-        # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
-        smallest_angle = min(diff, (2 * np.pi) - diff)
+        # Adjust the difference to the range [-np.pi, np.pi)
+        if diff < -np.pi:
+            diff += 2 * np.pi
+        elif diff >= np.pi:
+            diff -= 2 * np.pi
         
-        return smallest_angle
+        return diff
 
 
     def calc_feet_state(self):
@@ -740,7 +743,7 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
-        self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
+        self.heading_rad_to_target = self.smallest_angle_from_to(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
 
         # print(f"{self.robot.body_rpy[2] * RAD2DEG} vs {self.terrain_info[self.next_step_index, 6] * RAD2DEG}, diff {self.heading_rad_to_target * RAD2DEG}")
 
