@@ -504,7 +504,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         prev_forward = self.walk_forward
-        self.walk_forward = self.np_random.choice([True, False], p=[0.35, 0.65])
+        self.walk_forward = self.np_random.choice([True, False], p=[0.20, 0.80])
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position[self.walk_forward],
@@ -631,7 +631,7 @@ class Walker3DStepperEnv(EnvBase):
         linear_progress = self.linear_potential - old_linear_potential
         self.progress = linear_progress
         if not self.walk_forward:
-            self.progress *= 1.2
+            self.progress *= 1.1
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
