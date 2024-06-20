@@ -380,11 +380,11 @@ class Walker3DStepperEnv(EnvBase):
 
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
-        ratio = self.curriculum / self.max_curriculum
+        ratio = 0 # self.curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        dist_range = np.array([self.dist_range[0], dist_upper[0]])
         dist_range = dist_range * 0 + 0.33
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -670,6 +670,10 @@ class Walker3DStepperEnv(EnvBase):
         if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
             self.contact_bonus -= 1
 
+        if self.curriculum > 0:
+            if np.abs(self.robot.feet_rpy[self.swing_leg, 1]) > 0.2:
+                self.contact_bonus -= np.abs(self.robot.feet_rpy[self.swing_leg, 1])
+
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
@@ -755,6 +759,10 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+
+
+        if self.curriculum > 0 and np.abs(self.robot.feet_rpy[self.swing_leg, 1]) > 0.2:
+            self.target_reached = False
 
         if self.target_reached:
             self.target_reached_count += 1
