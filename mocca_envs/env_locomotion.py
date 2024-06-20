@@ -412,8 +412,8 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
-        dy = dr * np.sin(dtheta) * np.cos(dphi)
-        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dx = dr * np.sin(dtheta) * np.cos(dphi)
+        dy = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
 
         # Fix overlapping steps
@@ -424,7 +424,10 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        heading_targets = np.copy(dphi) + 90 * DEG2RAD
+        heading_targets = np.copy(dphi)
+
+        dphi += np.pi / 2
+
         if self.curriculum == 0:
             heading_targets[2:] += self.np_random.choice([-np.pi / 8, 0 , np.pi / 8])
         elif self.curriculum == 1:
@@ -471,7 +474,7 @@ class Walker3DStepperEnv(EnvBase):
         phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
         # self.steps[step_index].set_position(pos=pos, quat=quaternion)
-        self.rendered_steps[step_index].set_position(pos=pos)
+        self.rendered_steps[step_index].set_position(pos=pos, quat=quaternion)
 
     def randomize_terrain(self, replace=True):
         if replace:
@@ -510,7 +513,7 @@ class Walker3DStepperEnv(EnvBase):
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
-            quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
+            quat=self._p.getQuaternionFromEuler((0,0,0)),
         )
         self.swing_leg = 1 if self.robot.mirrored else 0
         self.prev_leg = self.swing_leg
