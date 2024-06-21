@@ -632,9 +632,9 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress
-        if not self.walk_forward:
-            self.progress *= 1.2
+        self.progress = linear_progress * 1.2
+        # if not self.walk_forward:
+        #     self.progress *= 1.2
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -952,7 +952,7 @@ class Walker3DStepperEnv(EnvBase):
                 (
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
-                    # i * self.step_param_dim + 5, # heading
+                    i * self.step_param_dim + 5, # heading
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
