@@ -671,7 +671,7 @@ class Walker3DStepperEnv(EnvBase):
             self.contact_bonus -= 1
 
         if self.target_reached and np.abs(self.robot.feet_rpy[self.swing_leg, 1]) > 0.2:
-            self.contact_bonus -= np.abs(self.robot.feet_rpy[self.swing_leg, 1])
+            self.contact_bonus -= np.abs(self.robot.feet_rpy[self.swing_leg, 1]) * 3
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
