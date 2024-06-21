@@ -483,6 +483,10 @@ class Walker3DStepperEnv(EnvBase):
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
 
+        if self.robot.mirrored:
+            self.swing_legs = 1 - self.swing_legs
+            x *= -1
+
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
     def create_terrain(self):
@@ -560,9 +564,9 @@ class Walker3DStepperEnv(EnvBase):
             pos=self.robot_init_position[self.walk_forward],
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=False
+            mirror=True
         )
-        self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
+        # self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
