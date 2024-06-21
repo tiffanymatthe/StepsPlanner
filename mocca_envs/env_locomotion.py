@@ -604,7 +604,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot_state = self.robot.calc_state()
         self.calc_env_state(action)
 
-        reward = self.progress * 1.4 - self.energy_penalty
+        reward = self.progress * 1.1 - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
