@@ -419,7 +419,7 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
 
-        # heading_targets += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
+        heading_targets += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
