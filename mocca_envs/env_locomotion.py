@@ -324,7 +324,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.15
     rendered_step_count = 20
-    init_step_separation = 0.45
+    init_step_separation = 0.55
 
     lookahead = 2
     lookbehind = 1
