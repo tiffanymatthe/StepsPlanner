@@ -248,10 +248,10 @@ class WalkerBase:
         self._zeros = [0 for _ in self.ordered_joint_ids]
         self._gains = [0.1 for _ in self.ordered_joint_ids]
 
-    def reset(self, random_pose=True, pos=None, quat=None, vel=None, ang_vel=None):
+    def reset(self, random_pose=True, pos=None, quat=None, vel=None, ang_vel=None, mirror=True):
         base_joint_angles = np.copy(self.base_joint_angles)
         base_orientation = np.copy(self.base_orientation)
-        if self.np_random.rand() < 0.5:
+        if mirror and self.np_random.rand() < 0.5:
             self.mirrored = True
             base_joint_angles[self._rl] = base_joint_angles[self._lr]
             base_joint_angles[self._negation_joint_indices] *= -1

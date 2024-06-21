@@ -116,6 +116,8 @@ def main():
 
         controller = actor_critic.actor
 
+        done = False
+
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
             if type(actor) == MixedActor and args.plot:
