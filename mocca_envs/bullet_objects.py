@@ -207,7 +207,7 @@ class VBox:
 
         shape = self._p.createVisualShape(
             self._p.GEOM_BOX,
-            halfExtents=[radius*2,radius, length],
+            halfExtents=[radius,radius, length],
             rgbaColor=rgba,
             specularColor=[0.4, 0.4, 0],
         )
@@ -219,11 +219,12 @@ class VBox:
         self._quat = (0, 0, 0, 1)
         self._rgba = rgba
 
-    def set_position(self, pos=None):
+    def set_position(self, pos=None, quat=None):
 
         pos = self._pos if pos is None else pos
+        quat = self._quat if quat is None else quat
 
-        self._p.resetBasePositionAndOrientation(self.id, posObj=pos, ornObj=self._quat)
+        self._p.resetBasePositionAndOrientation(self.id, posObj=pos, ornObj=quat)
 
     def set_color(self, rgba):
         t_rgba = tuple(rgba)

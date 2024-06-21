@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_random_start = True
     robot_init_position = [
             [0, -0.3, 1.32], #backward
-            [0, 0.3, 1.32]
+            [0, 0.45, 1.32]
         ]
     robot_init_velocity = None
 
@@ -322,9 +322,9 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.2
-    rendered_step_count = 5
-    init_step_separation = 0.65
+    step_radius = 0.15
+    rendered_step_count = 20
+    init_step_separation = 0.45
 
     lookahead = 2
     lookbehind = 1
@@ -391,7 +391,7 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[0]])
-        # dist_range = dist_range * 0 + 0.33
+        dist_range = dist_range * 0 + 0.33
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -408,7 +408,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        dr[1:3] = self.init_step_separation
+        dr[1] = self.init_step_separation
         dphi[1:3] = 0.0
         dtheta[1:3] = np.pi / 2
 
@@ -417,9 +417,7 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
-        heading_targets = np.copy(dphi) + 90 * DEG2RAD
-
-        heading_targets += self.np_random.choice([-np.pi / 8, 0, np.pi / 8])
+        heading_targets = np.copy(dphi) * 0 + 90 * DEG2RAD
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
@@ -435,6 +433,51 @@ class Walker3DStepperEnv(EnvBase):
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
+
+        x_temp = np.copy(x)
+        y_temp = np.copy(y)
+
+        self.swing_legs = np.zeros(N, dtype=np.int8)
+
+        sep_dist = 0.16
+
+        # Assuming N is defined somewhere in the class or passed as an argument CHATGPT
+        N_half = N // 2
+        angles = dphi[:N_half]
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(angles + np.pi / 2), np.sin(angles + np.pi / 2)]) * sep_dist
+        right_shifts = np.array([np.cos(angles - np.pi / 2), np.sin(angles - np.pi / 2)]) * sep_dist
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        # Update x and y arrays
+        self.swing_legs[:N:2] = 1  # Set swing_legs to 1 at every second index starting from 0
+
+        x[::2] = x_temp[:N_half] + left_shifts[0]
+        y[::2] = y_temp[:N_half] + left_shifts[1]
+
+        x[1::2] = x_temp[:N_half] + right_shifts[0]
+        y[1::2] = y_temp[:N_half] + right_shifts[1]
+
+        angle = np.pi / 2
+
+        indices = np.arange(4, len(x), 2)
+        max_horizontal_shift = sep_dist * 2
+        max_vertical_shift = max(dist_range)
+
+        base_hor = max_horizontal_shift * min(angle, np.pi / 4) / (np.pi / 4)
+        horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
+        x[indices] += horizontal_shifts
+        x[indices + 1] += horizontal_shifts
+
+        if angle > np.pi / 4:
+            base_ver = max_vertical_shift * (angle - np.pi / 4) / (np.pi / 4)
+            horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
+            y[indices] -= horizontal_shifts
+            y[indices + 1] -= horizontal_shifts
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -471,7 +514,7 @@ class Walker3DStepperEnv(EnvBase):
         phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
         # self.steps[step_index].set_position(pos=pos, quat=quaternion)
-        self.rendered_steps[step_index].set_position(pos=pos)
+        self.rendered_steps[step_index].set_position(pos=pos, quat=quaternion)
 
     def randomize_terrain(self, replace=True):
         if replace:
@@ -522,7 +565,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
-        # self.swing_leg = self.swing_legs[self.next_step_index]
+        self.swing_leg = self.swing_legs[self.next_step_index]
         # print(f"swing legs {self.swing_legs}, with first at {self.swing_leg}")
         self.calc_feet_state()
 
