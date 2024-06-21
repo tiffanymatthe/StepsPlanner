@@ -763,7 +763,9 @@ class Walker3DStepperEnv(EnvBase):
             )
         )
 
-        x_dist_to_target = np.abs(self.robot.feet_xyz[:, 0] - self.terrain_info[self.next_step_index, 0])
+        # allow horizontal step to extend + if swing leg is 1 else neg if swing leg is 0 for x direction
+        padding_x = self.step_radius if self.swing_leg == 1 else -self.step_radius
+        x_dist_to_target = np.abs(self.robot.feet_xyz[:, 0] - (self.terrain_info[self.next_step_index, 0] + padding_x))
         y_dist_to_target = np.abs(self.robot.feet_xyz[:, 1] - self.terrain_info[self.next_step_index, 1])
 
         robot_id = self.robot.id
@@ -806,12 +808,15 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
+        x_radius = self.step_radius * 2
+        y_radius = self.step_radius
+
         if self.next_step_index > 1:
             x_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 0] - self.prev_leg_pos[:,0])
             y_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 1] - self.prev_leg_pos[:,1])
-            foot_in_target = x_dist_to_target[self.swing_leg] < self.step_radius and y_dist_to_target[self.swing_leg] < self.step_radius
-            foot_in_prev_target = x_dist_to_prev_target[self.swing_leg] < self.step_radius and y_dist_to_prev_target[self.swing_leg] < self.step_radius
-            other_foot_in_prev_target = x_dist_to_prev_target[1-self.swing_leg] < self.step_radius and y_dist_to_prev_target[1-self.swing_leg] < self.step_radius
+            foot_in_target = x_dist_to_target[self.swing_leg] < x_radius and y_dist_to_target[self.swing_leg] < y_radius
+            foot_in_prev_target = x_dist_to_prev_target[self.swing_leg] < x_radius and y_dist_to_prev_target[self.swing_leg] < y_radius
+            other_foot_in_prev_target = x_dist_to_prev_target[1-self.swing_leg] < x_radius and y_dist_to_prev_target[1-self.swing_leg] < y_radius
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
@@ -821,7 +826,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         self.other_leg_has_fallen = self.next_step_index > 2 and not other_leg_in_air and not other_foot_in_prev_target
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < x_radius and y_dist_to_target[self.swing_leg] < y_radius and self.swing_leg_lifted
 
         if self.target_reached:
             self.target_reached_count += 1
