@@ -938,10 +938,10 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if (self.angle >= 0 and self.swing_leg == 1) or (self.angle < 0 and self.swing_leg == 0):
+        if (self.angle >= 0 and self.swing_leg == 0) or (self.angle < 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
             # only change when moving leg in direction
-            self.walk_target = np.copy(self.terrain_info[self.next_step_index + 1, 0:3])
-            if self.swing_leg == 0:
+            self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
+            if self.swing_leg == 1:
                 self.walk_target[0] += self.step_radius
             else:
                 self.walk_target[0] -= self.step_radius
