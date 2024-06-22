@@ -358,7 +358,7 @@ class Walker3DStepperEnv(EnvBase):
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-20, 20])
         self.tilt_range = np.array([-15, 15])
-        self.step_param_dim = 6
+        self.step_param_dim = 5
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
@@ -427,9 +427,10 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        heading_targets = np.copy(dphi) + 90 * DEG2RAD
+        # heading_targets = np.copy(dphi) + 90 * DEG2RAD
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
+        # return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
     def create_terrain(self):
 
@@ -570,13 +571,13 @@ class Walker3DStepperEnv(EnvBase):
             )
             self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(Colors["crimson"])
             self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(Colors["dodgerblue"])
-            self.arrow.set_position(
-                pos=[
-                    self.terrain_info[self.next_step_index, 0],
-                    self.terrain_info[self.next_step_index, 1],
-                    self.terrain_info[self.next_step_index, 2] + 0.4
-                ], heading=self.terrain_info[self.next_step_index, 6]
-            )
+            # self.arrow.set_position(
+            #     pos=[
+            #         self.terrain_info[self.next_step_index, 0],
+            #         self.terrain_info[self.next_step_index, 1],
+            #         self.terrain_info[self.next_step_index, 2] + 0.4
+            #     ], heading=self.terrain_info[self.next_step_index, 6]
+            # )
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
@@ -728,7 +729,7 @@ class Walker3DStepperEnv(EnvBase):
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
 
-        self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
+        # self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
 
         if self.next_step_index == 1 or self.swing_leg_lifted:
             # if first step or already lifted, say true
@@ -877,7 +878,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_to_targets = target_thetas - self.robot.body_rpy[2]
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
-        heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
+        # heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         deltas = concatenate(
             (
@@ -886,7 +887,7 @@ class Walker3DStepperEnv(EnvBase):
                 (delta_pos[:, 2])[:, None],  # z
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
-                (heading_angle_to_targets)[:, None],
+                # (heading_angle_to_targets)[:, None],
             ),
             axis=1,
         )
