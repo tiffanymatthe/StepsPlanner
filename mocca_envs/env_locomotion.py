@@ -317,13 +317,10 @@ class Walker3DStepperEnv(EnvBase):
         ]
     robot_init_velocity = None
 
-    pre_lift_count = 1000
-    ground_stay_count = 1500
-
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.2
-    rendered_step_count = 5
+    rendered_step_count = 3
     init_step_separation = 0.65
 
     lookahead = 2
@@ -390,7 +387,6 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        # dist_range = dist_range * 0 + 0.33
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -511,7 +507,7 @@ class Walker3DStepperEnv(EnvBase):
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
         )
-        self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
+        self.swing_leg = 1 if self.robot.mirrored else 0
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
@@ -519,8 +515,6 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
-        # self.swing_leg = self.swing_legs[self.next_step_index]
-        # print(f"swing legs {self.swing_legs}, with first at {self.swing_leg}")
         self.calc_feet_state()
 
         # Reset camera
@@ -557,7 +551,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
-        reward -= self.heading_penalty * 0
+        # reward -= self.heading_penalty * 0
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -613,13 +607,7 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0) / self.scene.dt
-
-        # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
-        # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        # self.linear_potential = -self.distance_to_target / self.scene.dt
+        self.linear_potential = -self.distance_to_target / self.scene.dt
 
     def calc_base_reward(self, action):
 
@@ -679,9 +667,11 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.contact_bonus -= 100
 
-        self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
+        # self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
+        # self.other_leg_has_fallen
+
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
@@ -719,11 +709,8 @@ class Walker3DStepperEnv(EnvBase):
 
         robot_id = self.robot.id
         client_id = self._p._client
-        target_id_list = [[next_step.id],[curr_step.id]]
-        target_cover_id_list = [[next_step.cover_id],[curr_step.cover_id]]
-        if self.swing_leg == 1:
-            target_id_list.reverse()
-            target_cover_id_list.reverse()
+        target_id_list = [next_step.id]
+        target_cover_id_list = [next_step.cover_id]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -732,8 +719,8 @@ class Walker3DStepperEnv(EnvBase):
             self.robot.feet_contact[i] = pybullet.getContactStates(
                 bodyA=robot_id,
                 linkIndexA=foot.bodyPartIndex,
-                bodiesB=target_id_list[i],
-                linkIndicesB=target_cover_id_list[i],
+                bodiesB=target_id_list,
+                linkIndicesB=target_cover_id_list,
                 results=contact,
                 physicsClientId=client_id,
             )
@@ -757,12 +744,15 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
+        x_range = self.step_radius * 2
+        y_range = self.step_radius
+
         if self.next_step_index > 1:
             x_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 0] - self.prev_leg_pos[:,0])
             y_dist_to_prev_target = np.abs(self.robot.feet_xyz[:, 1] - self.prev_leg_pos[:,1])
-            foot_in_target = x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius
-            foot_in_prev_target = x_dist_to_prev_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_prev_target[self.swing_leg] < self.step_radius
-            other_foot_in_prev_target = x_dist_to_prev_target[1-self.swing_leg] < self.step_radius * 2 and y_dist_to_prev_target[1-self.swing_leg] < self.step_radius
+            foot_in_target = x_dist_to_target[self.swing_leg] < x_range and y_dist_to_target[self.swing_leg] < y_range
+            foot_in_prev_target = x_dist_to_prev_target[self.swing_leg] < x_range and y_dist_to_prev_target[self.swing_leg] < y_range
+            other_foot_in_prev_target = x_dist_to_prev_target[1-self.swing_leg] < x_range and y_dist_to_prev_target[1-self.swing_leg] < y_range
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
@@ -772,7 +762,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         self.other_leg_has_fallen = self.next_step_index > 2 and not other_leg_in_air and not other_foot_in_prev_target
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < self.step_radius * 2 and y_dist_to_target[self.swing_leg] < self.step_radius and self.swing_leg_lifted
+        self.target_reached = not swing_leg_in_air and x_dist_to_target[self.swing_leg] < x_range and y_dist_to_target[self.swing_leg] < y_range and self.swing_leg_lifted
 
         if self.target_reached:
             self.target_reached_count += 1
@@ -949,7 +939,7 @@ class Walker3DStepperEnv(EnvBase):
                 (
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
-                    i * self.step_param_dim + 5, # heading
+                    # i * self.step_param_dim + 5, # heading
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],

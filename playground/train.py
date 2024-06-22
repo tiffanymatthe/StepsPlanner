@@ -257,8 +257,8 @@ def main(_seed, _config, _run):
             end = time.time()
             mean_metric = (
                 (sum(curriculum_metrics) / len(curriculum_metrics))
-                if args.use_curriculum
-                else 0
+                # if args.use_curriculum
+                # else 0
             )
             logger.log_epoch(
                 {
