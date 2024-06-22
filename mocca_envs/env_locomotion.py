@@ -949,7 +949,7 @@ class Walker3DStepperEnv(EnvBase):
                 (
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
-                    i * self.step_param_dim + 5, # heading
+                    # i * self.step_param_dim + 5, # heading
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
