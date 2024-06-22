@@ -701,7 +701,8 @@ class Walker3DStepperEnv(EnvBase):
         # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
         smallest_angle = min(diff, (2 * np.pi) - diff)
 
-        smallest_angle -= np.pi
+        if smallest_angle >= np.pi:
+            smallest_angle -= 2 * np.pi
         
         return smallest_angle
 
