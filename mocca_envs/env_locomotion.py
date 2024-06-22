@@ -557,7 +557,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
-        # reward -= self.heading_penalty * 0
+        reward -= self.heading_penalty
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -679,6 +679,11 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.contact_bonus -= 100
 
+        if np.abs(self.heading_rad_to_target) < 0.4:
+            self.heading_penalty = 0
+        else:
+            self.heading_penalty = (np.abs(self.heading_rad_to_target) - 0.4) / (np.pi - 0.4)
+
         # self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
@@ -686,7 +691,7 @@ class Walker3DStepperEnv(EnvBase):
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
     def smallest_angle_between(self, angle1, angle2):
-        # Normalize the angles to the range [0, 2pi)
+        # Normalize the angles to the range [-pi,pi)
         angle1 = angle1 % (2 * np.pi)
         angle2 = angle2 % (2 * np.pi)
         
@@ -695,6 +700,8 @@ class Walker3DStepperEnv(EnvBase):
         
         # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
         smallest_angle = min(diff, (2 * np.pi) - diff)
+
+        smallest_angle -= np.pi
         
         return smallest_angle
 
@@ -949,7 +956,7 @@ class Walker3DStepperEnv(EnvBase):
                 (
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
-                    # i * self.step_param_dim + 5, # heading
+                    i * self.step_param_dim + 5, # heading
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
