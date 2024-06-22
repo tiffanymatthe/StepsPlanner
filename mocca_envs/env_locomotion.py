@@ -324,7 +324,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.15
     rendered_step_count = 20
-    init_step_separation = 0.55
+    init_step_separation = 0.65
 
     lookahead = 2
     lookbehind = 1
@@ -462,23 +462,23 @@ class Walker3DStepperEnv(EnvBase):
         x[1::2] = x_temp[:N_half] + right_shifts[0]
         y[1::2] = y_temp[:N_half] + right_shifts[1]
 
-        angle = self.angle_curriculum[self.curriculum]
+        self.angle = self.angle_curriculum[self.curriculum]
 
         indices = np.arange(4, len(x), 2)
         max_horizontal_shift = sep_dist * 2
         max_vertical_shift = max(dist_range)
-        extra_vertical_shift = 0.2 * (1 - min(angle, np.pi / 4) / (np.pi / 4))
+        extra_vertical_shift = 0.3 * (1 - min(self.angle, np.pi / 4) / (np.pi / 4))
         extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
-        base_hor = max_horizontal_shift * min(angle, np.pi / 4) / (np.pi / 4)
+        base_hor = max_horizontal_shift * min(self.angle, np.pi / 4) / (np.pi / 4)
         horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
         x[indices] += horizontal_shifts
         x[indices + 1] += horizontal_shifts
         y[indices] += extra_vertical_shifts
         y[indices + 1] += extra_vertical_shifts
 
-        if angle > np.pi / 4:
-            base_ver = max_vertical_shift * (angle - np.pi / 4) / (np.pi / 4)
+        if self.angle > np.pi / 4:
+            base_ver = max_vertical_shift * (self.angle - np.pi / 4) / (np.pi / 4)
             horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
@@ -938,7 +938,13 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        self.walk_target = targets[self.walk_target_index, 0:3]
+        if (self.angle >= 0 and self.swing_leg == 1) or (self.angle < 0 and self.swing_leg == 0):
+            # only change when moving leg in direction
+            self.walk_target = np.copy(self.terrain_info[self.next_step_index + 1, 0:3])
+            if self.swing_leg == 0:
+                self.walk_target[0] += self.step_radius
+            else:
+                self.walk_target[0] -= self.step_radius
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
