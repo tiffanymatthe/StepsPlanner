@@ -464,7 +464,9 @@ class Walker3DStepperEnv(EnvBase):
         x[1::2] = x_temp[:N_half] + right_shifts[0]
         y[1::2] = y_temp[:N_half] + right_shifts[1]
 
-        self.angle = self.angle_curriculum[self.curriculum]
+        weights = np.linspace(1,10,self.curriculum+1)
+        weights /= sum(weights)
+        self.angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
         indices = np.arange(4, len(x), 2)
         max_horizontal_shift = sep_dist * 2
