@@ -386,10 +386,11 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
         ratio = self.curriculum / self.max_curriculum
+        ratio = 0
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        dist_range = np.array([self.dist_range[0], dist_upper[0]])
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -431,7 +432,9 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
-        heading_targets[2:] += self.np_random.choice([-np.pi/4,np.pi/4,np.pi/8, -np.pi/8, 0])
+        heading_targets[3:] += self.np_random.choice([np.pi/8, -np.pi/8, 0])
+        if self.curriculum > 0:
+            heading_targets[3:] += self.np_random.choice([np.pi/8, -np.pi/8, 0])
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -555,7 +558,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         # reward += self.legs_bonus
-        # reward -= self.heading_penalty
+        reward -= self.heading_penalty
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
@@ -671,7 +674,10 @@ class Walker3DStepperEnv(EnvBase):
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
-        self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
+        if np.abs(self.heading_rad_to_target) > 0.2:
+            self.heading_penalty = - np.exp(-0.5 * np.abs(self.heading_rad_to_target) **2) + 1
+        else:
+            self.heading_penalty = 0
 
         # self.other_leg_has_fallen
 
