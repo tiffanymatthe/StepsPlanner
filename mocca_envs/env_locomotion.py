@@ -672,7 +672,7 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
+        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.2) / self.scene.dt
 
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
@@ -723,10 +723,10 @@ class Walker3DStepperEnv(EnvBase):
         # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
         #     self.legs_bonus -= 1
 
-        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and abs(swing_foot_tilt) > 10 * DEG2RAD:
-            self.legs_bonus -= abs(swing_foot_tilt)
+        # if self.target_reached and abs(swing_foot_tilt) > 10 * DEG2RAD:
+        #     self.legs_bonus -= abs(swing_foot_tilt)
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
