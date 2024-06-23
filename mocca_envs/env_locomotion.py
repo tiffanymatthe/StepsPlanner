@@ -357,6 +357,8 @@ class Walker3DStepperEnv(EnvBase):
         # Env settings
         self.next_step_index = self.lookbehind
 
+        self.legs_bonus = 0
+
         # Terrain info
         self.dist_range = np.array([0.65, 1.25])
         self.pitch_range = np.array([-30, +30])  # degrees
@@ -611,11 +613,11 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        # reward += self.contact_bonus
+        reward += self.legs_bonus
         # reward -= self.heading_penalty * 0.2
 
         # if self.progress != 0:
-        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
+        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -714,12 +716,17 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        # self.contact_bonus = 0
+        self.legs_bonus = 0
         # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 200 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-        #     self.contact_bonus += 0.5
+        #     self.legs_bonus += 0.5
 
         # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
-        #     self.contact_bonus -= 1
+        #     self.legs_bonus -= 1
+
+        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+
+        if self.target_reached and abs(swing_foot_tilt) > 10 * DEG2RAD:
+            self.legs_bonus -= abs(swing_foot_tilt)
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
@@ -730,7 +737,7 @@ class Walker3DStepperEnv(EnvBase):
             self.body_stationary_count = 0
         count = 2000
         # if self.body_stationary_count > count:
-        #     self.contact_bonus -= 100
+        #     self.legs_bonus -= 100
 
         # self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
 
