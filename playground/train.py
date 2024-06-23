@@ -257,8 +257,8 @@ def main(_seed, _config, _run):
             end = time.time()
             mean_metric = (
                 (sum(curriculum_metrics) / len(curriculum_metrics))
-                if args.use_curriculum
-                else 0
+                # if args.use_curriculum
+                # else 0
             )
             logger.log_epoch(
                 {
@@ -271,5 +271,6 @@ def main(_seed, _config, _run):
                     "value_loss": value_loss,
                     "action_loss": action_loss,
                     "stats": {"rew": episode_rewards},
+                    "lr": scheduled_lr,
                 }
             )
