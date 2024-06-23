@@ -725,7 +725,7 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and abs(swing_foot_tilt) > 10 * DEG2RAD:
+        if self.target_reached and abs(swing_foot_tilt) > 5 * DEG2RAD:
             self.legs_bonus -= abs(swing_foot_tilt)
 
         # if self.swing_leg_has_fallen:
