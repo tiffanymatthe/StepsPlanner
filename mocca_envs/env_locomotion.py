@@ -614,7 +614,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        reward -= self.heading_penalty
+        # reward -= self.heading_penalty * 0.2
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
@@ -739,10 +739,7 @@ class Walker3DStepperEnv(EnvBase):
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
-        if abs(self.heading_rad_to_target) > 0.2:
-            self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
-        else:
-            self.heading_penalty = 0
+        # self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
@@ -758,9 +755,6 @@ class Walker3DStepperEnv(EnvBase):
         
         # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
         smallest_angle = min(diff, (2 * np.pi) - diff)
-
-        if smallest_angle > np.pi:
-            smallest_angle -= 2 * np.pi
         
         return smallest_angle
 
