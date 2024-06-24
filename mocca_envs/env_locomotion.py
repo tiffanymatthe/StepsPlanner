@@ -616,7 +616,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        reward -= self.heading_penalty * 0.2
+        reward -= self.heading_penalty * 2
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
@@ -674,7 +674,7 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.2) / self.scene.dt
+        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.1) / self.scene.dt
 
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
@@ -704,7 +704,7 @@ class Walker3DStepperEnv(EnvBase):
             self.posture_penalty += abs(self.robot.body_rpy[0])
 
         speed = sqrt(ss(self.robot.body_vel))
-        self.speed_penalty = max(speed - 1.4, 0)
+        self.speed_penalty = max(speed - 1.2, 0)
 
         electricity_cost = self.electricity_cost * nansum(
             abs(action * self.robot.joint_speeds)
