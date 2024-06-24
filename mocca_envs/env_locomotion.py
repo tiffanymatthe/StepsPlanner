@@ -466,23 +466,23 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
         indices = np.arange(4, len(x), 2)
         max_horizontal_shift = sep_dist * 4
         max_vertical_shift = max(dist_range)
-        extra_vertical_shift = 0.3 * (1 - min(self.angle, np.pi / 4) / (np.pi / 4))
+        extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
         extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
-        base_hor = max_horizontal_shift * min(self.angle, np.pi / 4) / (np.pi / 4)
+        base_hor = max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
         horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
         x[indices] += horizontal_shifts
         x[indices + 1] += horizontal_shifts
         y[indices] += extra_vertical_shifts
         y[indices + 1] += extra_vertical_shifts
 
-        if self.angle > np.pi / 4:
-            base_ver = max_vertical_shift * (self.angle - np.pi / 4) / (np.pi / 4)
+        if self.path_angle > np.pi / 4:
+            base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
             horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
@@ -954,7 +954,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if (self.angle >= 0 and self.swing_leg == 0) or (self.angle < 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
+        if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle < 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
             # only change when moving leg in direction
             if self.next_step_index + 2 < self.num_steps:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
