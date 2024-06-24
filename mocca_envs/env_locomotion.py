@@ -323,8 +323,8 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.2
-    rendered_step_count = 4
-    init_step_separation = 0.75
+    rendered_step_count = 20
+    init_step_separation = 0.6
 
     lookahead = 2
     lookbehind = 1
@@ -498,10 +498,12 @@ class Walker3DStepperEnv(EnvBase):
         x_temp = np.copy(x)
         y_temp = np.copy(y)
 
-        rotation_angle = np.linspace(0, 2 * np.pi , (N-2)//2)
+        rotation_angle = np.arange(0, (N-2)//2) * np.pi / 4
         if not self.robot.mirrored:
             rotation_angle *= -1
         rotation_angle = np.repeat(rotation_angle, 2)
+
+        print(rotation_angle)
 
         x[2:] = x_temp[2:] * np.cos(rotation_angle) - y_temp[2:] * np.sin(rotation_angle)
         y[2:] = x_temp[2:] * np.sin(rotation_angle) + y_temp[2:] * np.cos(rotation_angle)
