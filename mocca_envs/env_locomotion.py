@@ -330,7 +330,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [] # [6, 7, 13, 14]
+    stop_steps = [2,3,4,5,6,7,8,9,10,11,12,13,14] # [6, 7, 13, 14]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -727,9 +727,9 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
-            # allow negative tilt since on heels
-            self.legs_bonus -= abs(swing_foot_tilt) * 2.5
+        # if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
+        #     # allow negative tilt since on heels
+        #     self.legs_bonus -= abs(swing_foot_tilt) * 2.5
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
@@ -868,11 +868,11 @@ class Walker3DStepperEnv(EnvBase):
                     self.next_step_index += 1
                     self.swing_leg = (self.swing_leg + 1) % 2
                     # self.swing_leg = self.swing_legs[self.next_step_index]
-                    if (
-                        self.next_step_index - 1 in self.stop_steps
-                        and self.next_step_index - 2 in self.stop_steps
-                    ):
-                        self.swing_leg = 1 - self.swing_leg
+                    # if (
+                    #     self.next_step_index - 1 in self.stop_steps
+                    #     and self.next_step_index - 2 in self.stop_steps
+                    # ):
+                    #     self.swing_leg = 1 - self.swing_leg
                     self.target_reached_count = 0
                     self.swing_leg_lifted = False
                     self.swing_leg_lifted_count = 0
