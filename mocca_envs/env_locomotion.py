@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.2
-    rendered_step_count = 20
+    rendered_step_count = 3
     init_step_separation = 0.70
 
     lookahead = 2
@@ -393,7 +393,7 @@ class Walker3DStepperEnv(EnvBase):
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[0]])
-        dist_range = dist_range * 0 + 0.33
+        dist_range = dist_range * 0 + 0.45
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
