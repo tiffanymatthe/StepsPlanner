@@ -324,7 +324,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 4
     step_radius = 0.2
     rendered_step_count = 3
-    init_step_separation = 0.70
+    init_step_separation = 0.75
 
     lookahead = 2
     lookbehind = 1
@@ -392,8 +392,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[0]])
-        dist_range = dist_range * 0 + 0.45
+        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        # dist_range = dist_range * 0 + 0.45
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
@@ -410,7 +410,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        dr[1] = self.init_step_separation
+        # dr[1] = self.init_step_separation
         dphi[1:3] = 0.0
         dtheta[1:3] = np.pi / 2
 
