@@ -676,7 +676,8 @@ class Walker3DStepperEnv(EnvBase):
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
-        self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
+        if abs(self.heading_rad_to_target) > 0.15:
+            self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
 
         # self.other_leg_has_fallen
 
