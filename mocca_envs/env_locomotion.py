@@ -704,7 +704,7 @@ class Walker3DStepperEnv(EnvBase):
             self.posture_penalty += abs(self.robot.body_rpy[0])
 
         speed = sqrt(ss(self.robot.body_vel))
-        self.speed_penalty = max(speed - 1.4, 0)
+        self.speed_penalty = max(speed - 1.6, 0)
 
         electricity_cost = self.electricity_cost * nansum(
             abs(action * self.robot.joint_speeds)
