@@ -850,7 +850,7 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
-        x_radius = self.step_radius * 2
+        x_radius = self.step_radius
         y_radius = self.step_radius
 
         if self.next_step_index > 1:
