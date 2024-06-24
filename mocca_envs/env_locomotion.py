@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.2
-    rendered_step_count = 3
+    rendered_step_count = 4
     init_step_separation = 0.75
 
     lookahead = 2
@@ -410,8 +410,8 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        # dr[1] = self.init_step_separation
-        dphi[1:3] = 0.0
+        dr[1] = self.init_step_separation
+        dphi[1:3] = 0
         dtheta[1:3] = np.pi / 2
 
         x_tilt[0:3] = 0
@@ -421,12 +421,15 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets = np.copy(dphi) * 0 + 90 * DEG2RAD
 
+        dr[2:] *= 0
+
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
 
         if not self.walk_forward:
             dy *= -1
+
 
         # # Fix overlapping steps
         # dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
@@ -464,32 +467,49 @@ class Walker3DStepperEnv(EnvBase):
         x[1::2] = x_temp[:N_half] + right_shifts[0]
         y[1::2] = y_temp[:N_half] + right_shifts[1]
 
-        weights = np.linspace(1,10,self.curriculum+1)
-        weights /= sum(weights)
+        # weights = np.linspace(1,10,self.curriculum+1)
+        # weights /= sum(weights)
         self.path_angle = 0 # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
-        indices = np.arange(4, len(x), 2)
-        max_horizontal_shift = sep_dist * 4
-        max_vertical_shift = max(dist_range)
-        extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
-        extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
+        # indices = np.arange(4, len(x), 2)
+        # max_horizontal_shift = sep_dist * 4
+        # max_vertical_shift = max(dist_range)
+        # extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
+        # extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
-        base_hor = max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
-        horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
-        x[indices] += horizontal_shifts
-        x[indices + 1] += horizontal_shifts
-        y[indices] += extra_vertical_shifts
-        y[indices + 1] += extra_vertical_shifts
+        # base_hor = max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
+        # horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
+        # x[indices] += horizontal_shifts
+        # x[indices + 1] += horizontal_shifts
+        # y[indices] += extra_vertical_shifts
+        # y[indices + 1] += extra_vertical_shifts
 
-        if self.path_angle > np.pi / 4:
-            base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
-            horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
-            y[indices] -= horizontal_shifts
-            y[indices + 1] -= horizontal_shifts
+        # if self.path_angle > np.pi / 4:
+        #     base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
+        #     horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
+        #     y[indices] -= horizontal_shifts
+        #     y[indices + 1] -= horizontal_shifts
 
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
             x *= -1
+
+        # rotate by a certain number
+        x_temp = np.copy(x)
+        y_temp = np.copy(y)
+
+        rotation_angle = np.linspace(0, 2 * np.pi , (N-2)//2)
+        if not self.robot.mirrored:
+            rotation_angle *= -1
+        rotation_angle = np.repeat(rotation_angle, 2)
+
+        x[2:] = x_temp[2:] * np.cos(rotation_angle) - y_temp[2:] * np.sin(rotation_angle)
+        y[2:] = x_temp[2:] * np.sin(rotation_angle) + y_temp[2:] * np.cos(rotation_angle)
+
+        rotation_angle = np.insert(rotation_angle, 0, 0)
+        rotation_angle = np.insert(rotation_angle, 0, 0)
+
+        heading_targets += rotation_angle
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
