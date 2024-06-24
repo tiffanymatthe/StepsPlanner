@@ -503,8 +503,6 @@ class Walker3DStepperEnv(EnvBase):
             rotation_angle *= -1
         rotation_angle = np.repeat(rotation_angle, 2)
 
-        print(rotation_angle)
-
         x[2:] = x_temp[2:] * np.cos(rotation_angle) - y_temp[2:] * np.sin(rotation_angle)
         y[2:] = x_temp[2:] * np.sin(rotation_angle) + y_temp[2:] * np.cos(rotation_angle)
 
