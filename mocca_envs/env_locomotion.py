@@ -814,7 +814,7 @@ class Walker3DStepperEnv(EnvBase):
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
 
-        self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
+        self.heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
         if self.next_step_index == 1 or self.swing_leg_lifted:
             # if first step or already lifted, say true
@@ -973,7 +973,9 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_to_targets = target_thetas - self.robot.body_rpy[2]
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
-        heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
+        # should angles be per feet? yes so it doesn't change too much
+        feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[1-self.swing_leg,2]])
+        heading_angle_to_targets = targets[:, 6] - feet_heading
 
         deltas = concatenate(
             (
