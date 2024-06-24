@@ -729,7 +729,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
             # allow negative tilt since on heels
-            self.legs_bonus -= abs(swing_foot_tilt) * 5
+            self.legs_bonus -= abs(swing_foot_tilt) * 2.5
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
