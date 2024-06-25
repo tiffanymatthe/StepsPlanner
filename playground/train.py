@@ -235,7 +235,7 @@ def main(_seed, _config, _run):
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
                 > advance_threshold
-                and nanmean(avg_heading_errs) < 10 * DEG2RAD
+                and nanmean(avg_heading_errs) < 15 * DEG2RAD
                 and current_curriculum < max_curriculum
             ):
                 current_curriculum += 1
