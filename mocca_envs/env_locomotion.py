@@ -323,6 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
+    foot_sep = 0.16
     rendered_step_count = 3
     init_step_separation = 0.75
 
@@ -330,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [5,7,9,11,13,15,17,19] # [6, 7, 13, 14]
+    stop_steps = [3,5,7,9,11,13,15,17,19] # [6, 7, 13, 14]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -410,7 +411,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        # dr[1] = self.init_step_separation
+        dr[1] = self.init_step_separation
         dphi[1:3] = 0.0
         dtheta[1:3] = np.pi / 2
 
@@ -441,15 +442,13 @@ class Walker3DStepperEnv(EnvBase):
 
         self.swing_legs = np.ones(N, dtype=np.int8)
 
-        sep_dist = 0.16
-
         # Assuming N is defined somewhere in the class or passed as an argument CHATGPT
         N_half = N // 2
         angles = dphi[:N_half]
 
         # Calculate shifts
-        left_shifts = np.array([np.cos(angles + np.pi / 2), np.sin(angles + np.pi / 2)]) * sep_dist
-        right_shifts = np.array([np.cos(angles - np.pi / 2), np.sin(angles - np.pi / 2)]) * sep_dist
+        left_shifts = np.array([np.cos(angles + np.pi / 2), np.sin(angles + np.pi / 2)]) * self.foot_sep
+        right_shifts = np.array([np.cos(angles - np.pi / 2), np.sin(angles - np.pi / 2)]) * self.foot_sep
 
         # Flip the shifts
         left_shifts = np.flip(left_shifts, axis=0)
@@ -469,7 +468,7 @@ class Walker3DStepperEnv(EnvBase):
         self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
         indices = np.arange(4, len(x), 2)
-        max_horizontal_shift = sep_dist * 4
+        max_horizontal_shift = self.foot_sep * 4
         max_vertical_shift = max(dist_range)
         extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
         extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
@@ -616,7 +615,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        reward -= self.heading_penalty * 2
+        # reward -= self.heading_penalty
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
@@ -674,7 +673,7 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target * 0.5 + foot_distance_to_target) / self.scene.dt
+        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.1) / self.scene.dt
 
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
@@ -688,7 +687,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 3
+        self.progress = linear_progress
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -719,13 +718,13 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.legs_bonus = 0
-        # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 200 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-        #     self.legs_bonus += 0.5
+        if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 3 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+            self.legs_bonus += 1
 
         # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
         #     self.legs_bonus -= 1
 
-        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
         # if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
         #     # allow negative tilt since on heels
@@ -956,14 +955,14 @@ class Walker3DStepperEnv(EnvBase):
 
         if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle < 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
             # only change when moving leg in direction
-            if self.next_step_index + 2 < self.num_steps:
+            if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
             else:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
             if self.swing_leg == 1:
-                self.walk_target[0] += self.step_radius
+                self.walk_target[0] += self.foot_sep
             else:
-                self.walk_target[0] -= self.step_radius
+                self.walk_target[0] -= self.foot_sep
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])

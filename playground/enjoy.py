@@ -107,7 +107,7 @@ def main():
         env.set_env_params({"curriculum": int(curriculum)})
 
         obs = env.reset()
-        env.camera._cam_yaw = 90
+        env.camera._cam_yaw = 0
         ep_reward = 0
 
         robot_headings = []
