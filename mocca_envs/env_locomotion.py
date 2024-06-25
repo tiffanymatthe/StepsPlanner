@@ -644,6 +644,7 @@ class Walker3DStepperEnv(EnvBase):
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
+            print(self.next_step_index)
             info["curriculum_metric"] = self.next_step_index
 
         return state, reward, self.done, info
@@ -673,8 +674,8 @@ class Walker3DStepperEnv(EnvBase):
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:3] - self.robot.feet_xyz[self.swing_leg, 0:3]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
-        self.distance_to_target = sqrt(ss(foot_target_delta[0:3]))
+        self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.1) / self.scene.dt
+        self.distance_to_target = sqrt(ss(foot_target_delta[0:2]))
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         # self.linear_potential = -self.distance_to_target / self.scene.dt
