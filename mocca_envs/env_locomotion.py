@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     ground_stay_count = 1500
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 4
+    num_steps = 6
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -687,7 +687,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2
+        self.progress = linear_progress
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -955,7 +955,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle <= 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
             # only change when moving leg in direction
-            if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
+            if self.next_step_index + 2 < self.num_steps: # and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
             else:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
