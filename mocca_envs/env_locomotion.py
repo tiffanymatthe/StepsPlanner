@@ -340,7 +340,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = 0
         self.max_curriculum = 9
-        self.advance_threshold = 12  # steps_reached
+        self.advance_threshold = 17  # steps_reached
 
         self.legs_bonus = 0
         self.heading_penalty = 0
@@ -441,6 +441,8 @@ class Walker3DStepperEnv(EnvBase):
             heading_targets[2:] += self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4])
         if self.curriculum > 2:
             heading_targets[2:] += self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4, -np.pi / 3, np.pi / 3])
+        if self.curriculum > 3:
+            heading_targets[2:] += self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4, -np.pi / 3, np.pi / 3, -np.pi/2, np.pi /2])
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
