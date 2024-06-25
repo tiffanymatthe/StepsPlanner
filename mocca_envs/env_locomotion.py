@@ -330,7 +330,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [] # [6, 7, 13, 14]
+    stop_steps = [6, 7, 13, 14]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -511,7 +511,9 @@ class Walker3DStepperEnv(EnvBase):
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
         )
-        self.swing_leg = 0 if self.robot.mirrored else 1 # for backwards
+        self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
+        if not self.walk_forward:
+            self.swing_leg = 1 - self.swing_leg
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
