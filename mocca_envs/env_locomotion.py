@@ -340,7 +340,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = 0
         self.max_curriculum = 9
-        self.advance_threshold = 12  # steps_reached
+        self.advance_threshold = 16  # steps_reached
 
         self.legs_bonus = 0
         self.heading_penalty = 0
