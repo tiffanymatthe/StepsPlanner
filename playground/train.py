@@ -34,6 +34,8 @@ from common.misc_utils import linear_decay, exponential_decay, set_optimizer_lr
 from common.csv_utils import ConsoleCSVLogger
 from common.sacred_utils import ex, init
 
+DEG2RAD = np.pi / 180
+RAD2DEG = 180 / np.pi
 
 @ex.config
 def configs():
@@ -169,6 +171,7 @@ def main(_seed, _config, _run):
 
     episode_rewards = deque(maxlen=args.num_processes)
     curriculum_metrics = deque(maxlen=args.num_processes)
+    avg_heading_errs = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -211,6 +214,8 @@ def main(_seed, _config, _run):
                         episode_rewards.append(info["episode"]["r"])
                     if "curriculum_metric" in info:
                         curriculum_metrics.append(info["curriculum_metric"])
+                    if "avg_heading_err" in info:
+                        avg_heading_errs.append(info["avg_heading_err"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -230,6 +235,7 @@ def main(_seed, _config, _run):
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
                 > advance_threshold
+                and nanmean(avg_heading_errs) < 10 * DEG2RAD
                 and current_curriculum < max_curriculum
             ):
                 current_curriculum += 1
@@ -258,11 +264,13 @@ def main(_seed, _config, _run):
         if len(episode_rewards) > 1:
             end = time.time()
             mean_metric = nanmean(curriculum_metrics)
+            heading_metric = nanmean(avg_heading_errs)
             logger.log_epoch(
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,
+                    "avg_heading_err": heading_metric,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,

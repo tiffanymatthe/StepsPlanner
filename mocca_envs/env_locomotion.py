@@ -346,6 +346,8 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = min(14, self.num_steps)  # steps_reached
 
+        self.heading_errors = []
+
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
@@ -614,6 +616,8 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
+        self.heading_errors = []
+
         self.reached_last_step = False
 
         self.set_stop_on_next_step = False
@@ -715,6 +719,7 @@ class Walker3DStepperEnv(EnvBase):
                     info["curriculum_metric"] = self.next_step_index
             else:
                 info["curriculum_metric"] = np.nan
+            info["avg_heading_err"] = nanmean(self.heading_errors)
 
         return state, reward, self.done, info
 
@@ -916,6 +921,9 @@ class Walker3DStepperEnv(EnvBase):
         self.other_leg_has_fallen = self.next_step_index > 2 and not other_leg_in_air and not other_foot_in_prev_target
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < x_radius and y_dist_to_target[self.swing_leg] < y_radius and (self.swing_leg_lifted or self.reached_last_step)
+
+        if self.target_reached:
+            self.heading_errors.append(abs(self.heading_rad_to_target))
 
         if self.target_reached:
             self.target_reached_count += 1
