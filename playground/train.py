@@ -18,6 +18,8 @@ os.sys.path.insert(0, parent_dir)
 import numpy as np
 import torch
 
+from bottleneck import nanmean
+
 import mocca_envs
 from algorithms.ppo import PPO
 from algorithms.storage import RolloutStorage
@@ -226,7 +228,7 @@ def main(_seed, _config, _run):
             if (
                 args.use_curriculum
                 and len(curriculum_metrics) > 0
-                and (sum(curriculum_metrics) / len(curriculum_metrics))
+                and nanmean(curriculum_metrics)
                 > advance_threshold
                 and current_curriculum < max_curriculum
             ):

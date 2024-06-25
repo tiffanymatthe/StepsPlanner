@@ -1,4 +1,4 @@
-from math import sin, cos, atan2, sqrt
+from math import sin, cos, atan2, sqrt, isclose
 import os
 
 from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin, nanmean, nansum
@@ -340,7 +340,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = 0
         self.max_curriculum = 9
-        self.advance_threshold = 17  # steps_reached
+        self.advance_threshold = 12  # steps_reached
 
         self.legs_bonus = 0
         self.heading_penalty = 0
@@ -436,13 +436,15 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets = np.copy(dphi) + 90 * DEG2RAD
 
         if self.curriculum == 1:
-            heading_targets[2:] += self.np_random.choice([np.pi/8, -np.pi/8, 0])
+            self.heading_shift = self.np_random.choice([np.pi/8, -np.pi/8, 0])
         if self.curriculum > 1:
-            heading_targets[2:] += self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4])
+            self.heading_shift = self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4])
         if self.curriculum > 2:
-            heading_targets[2:] += self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4, -np.pi / 3, np.pi / 3])
+            self.heading_shift = self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4, -np.pi / 3, np.pi / 3])
         if self.curriculum > 3:
-            heading_targets[2:] += self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4, -np.pi / 3, np.pi / 3, -np.pi/2, np.pi /2])
+            self.heading_shift = self.np_random.choice([np.pi/8, -np.pi/8, 0, -np.pi / 4, np.pi / 4, -np.pi / 3, np.pi / 3, -np.pi/2, np.pi /2])
+
+        heading_targets[2:] += self.heading_shift
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -595,7 +597,17 @@ class Walker3DStepperEnv(EnvBase):
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
-            info["curriculum_metric"] = self.next_step_index
+            if (
+                self.curriculum == 0
+                or (self.curriculum == 1 and isclose(abs(self.heading_shift), np.pi / 8))
+                or (self.curriculum == 2 and isclose(abs(self.heading_shift), np.pi / 4))
+                or (self.curriculum == 3 and isclose(abs(self.heading_shift), np.pi / 3))
+                or (self.curriculum == 4 and isclose(abs(self.heading_shift), np.pi / 2))
+                or self.curriculum > 4
+            ):
+                info["curriculum_metric"] = self.next_step_index
+            else:
+                info["curriculum_metric"] = np.nan
 
         return state, reward, self.done, info
 
