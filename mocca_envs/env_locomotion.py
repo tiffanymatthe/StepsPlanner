@@ -671,10 +671,10 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
+        foot_target_delta = self.terrain_info[self.next_step_index, 0:3] - self.robot.feet_xyz[self.swing_leg, 0:3]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
         self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
-        self.distance_to_target = foot_distance_to_target
+        self.distance_to_target = sqrt(ss(foot_target_delta[0:3]))
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         # self.linear_potential = -self.distance_to_target / self.scene.dt
