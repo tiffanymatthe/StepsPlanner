@@ -614,8 +614,8 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        reward += self.legs_bonus
-        # reward -= self.heading_penalty
+        # reward += self.legs_bonus
+        reward -= self.heading_penalty
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
@@ -720,7 +720,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
-        self.legs_bonus = 0
+        # self.legs_bonus = 0
         # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 3 and self._foot_target_contacts[self.swing_leg, 0] == 0:
         #     self.legs_bonus += 1
 
@@ -744,7 +744,7 @@ class Walker3DStepperEnv(EnvBase):
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
-        if abs(self.heading_rad_to_target) >= 0.2:
+        if abs(self.heading_rad_to_target) >= 10 * DEG2RAD and self.target_reached and self.next_step_index > 1:
             self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
         else:
             self.heading_penalty = 0
