@@ -865,7 +865,8 @@ class Walker3DStepperEnv(EnvBase):
                     self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
-                    self.swing_leg = (self.swing_leg + 1) % 2
+                    if self.next_step_index < self.num_steps:
+                        self.swing_leg = (self.swing_leg + 1) % 2
                     # self.swing_leg = self.swing_legs[self.next_step_index]
                     # if (
                     #     self.next_step_index - 1 in self.stop_steps
