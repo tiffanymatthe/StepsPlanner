@@ -974,7 +974,10 @@ class Walker3DStepperEnv(EnvBase):
         angle_to_targets = target_thetas - self.robot.body_rpy[2]
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
         # should angles be per feet? yes so it doesn't change too much
-        feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[1-self.swing_leg,2]])
+        if not self.stop_on_next_step:
+            feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[1-self.swing_leg,2]])
+        else:
+            feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
 
         deltas = concatenate(
