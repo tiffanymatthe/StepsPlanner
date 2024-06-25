@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     ground_stay_count = 1500
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 6
+    num_steps = 4
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -670,11 +670,11 @@ class Walker3DStepperEnv(EnvBase):
         # self.angle_to_target = walk_target_theta - self.robot.body_rpy[2]
 
         walk_target_delta = self.walk_target - self.robot.body_xyz
-        self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+        body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
-
+        self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
+        self.distance_to_target = foot_distance_to_target
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         # self.linear_potential = -self.distance_to_target / self.scene.dt
@@ -955,7 +955,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle <= 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
             # only change when moving leg in direction
-            if self.next_step_index + 2 < self.num_steps: # and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
+            if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
             else:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
