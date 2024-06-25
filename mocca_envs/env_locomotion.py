@@ -673,7 +673,7 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(self.distance_to_target + foot_distance_to_target * 0.1) / self.scene.dt
+        self.linear_potential = -(self.distance_to_target * 0 + foot_distance_to_target) / self.scene.dt
 
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
@@ -687,7 +687,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress
+        self.progress = linear_progress * 2
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -718,8 +718,8 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.legs_bonus = 0
-        if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 3 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-            self.legs_bonus += 1
+        # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 3 and self._foot_target_contacts[self.swing_leg, 0] == 0:
+        #     self.legs_bonus += 1
 
         # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
         #     self.legs_bonus -= 1
@@ -953,9 +953,9 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle < 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
+        if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle <= 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
             # only change when moving leg in direction
-            if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps:
+            if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
             else:
                 self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
