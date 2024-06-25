@@ -513,6 +513,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted_count = 0
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
+        self.heading_errors = []
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
