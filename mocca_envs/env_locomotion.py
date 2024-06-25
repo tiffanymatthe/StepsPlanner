@@ -644,8 +644,10 @@ class Walker3DStepperEnv(EnvBase):
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
-            print(self.next_step_index)
-            info["curriculum_metric"] = self.next_step_index
+            if self.next_step_index == self.num_steps - 1 and self.target_reached:
+                info["curriculum_metric"] = self.next_step_index + 1
+            else:
+                info["curriculum_metric"] = self.next_step_index
 
         return state, reward, self.done, info
 
