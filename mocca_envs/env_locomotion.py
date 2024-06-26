@@ -753,14 +753,13 @@ class Walker3DStepperEnv(EnvBase):
 
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
-
-        if abs(self.progress) < 0.02 and not self.stop_on_next_step:
+        if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
         else:
             self.body_stationary_count = 0
-        count = 200
+        count = 100
         if self.body_stationary_count > count:
-            self.legs_bonus -= 100
+            self.legs_bonus -= 200
 
         # if abs(self.heading_rad_to_target) >= 15 * DEG2RAD and self.target_reached and self.next_step_index > 1:
         #     self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
