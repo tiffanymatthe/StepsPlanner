@@ -748,6 +748,8 @@ class Walker3DStepperEnv(EnvBase):
                 physicsClientId=client_id,
             )
 
+
+
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
 
@@ -804,11 +806,11 @@ class Walker3DStepperEnv(EnvBase):
                     self.next_step_index += 1
                     self.swing_leg = (self.swing_leg + 1) % 2
                     # self.swing_leg = self.swing_legs[self.next_step_index]
-                    if (
-                        self.next_step_index - 1 in self.stop_steps
-                        and self.next_step_index - 2 in self.stop_steps
-                    ):
-                        self.swing_leg = 1 - self.swing_leg
+                    # if (
+                    #     self.next_step_index - 1 in self.stop_steps
+                    #     and self.next_step_index - 2 in self.stop_steps
+                    # ):
+                    #     self.swing_leg = 1 - self.swing_leg
                     self.target_reached_count = 0
                     self.swing_leg_lifted = False
                     self.swing_leg_lifted_count = 0
@@ -1775,7 +1777,6 @@ class Monkey3DStepperEnv(Walker3DStepperEnv):
             and self.next_step_index - 2 in self.stop_steps
         ):
             self.swing_leg = nanargmax(self._foot_target_contacts[:, 0])
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0
 
         # At least one foot is on the plank
         if self.target_reached:
