@@ -484,7 +484,7 @@ class Walker3DStepperEnv(EnvBase):
         indices = np.arange(4, len(x), 2)
         max_horizontal_shift = self.foot_sep * 4
         max_vertical_shift = max(dist_range)
-        extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
+        extra_vertical_shift = 0 # 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
         extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
         base_hor = max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
