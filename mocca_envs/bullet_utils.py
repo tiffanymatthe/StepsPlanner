@@ -421,13 +421,20 @@ class Camera:
             if not camera.env_should_wait:
                 self.cpp_world.step()
 
+        
+        def pause_global_step(self):
+            time.sleep(camera._target_period)
+
+            camera.env_should_wait = False
+            self.cpp_world.step()
+
         old_apply_action = env.robot.apply_action
 
         def new_apply_action(self, action):
             if not camera.env_should_wait:
                 old_apply_action(action)
 
-        env.scene.global_step = types.MethodType(new_global_step, env.scene)
+        env.scene.global_step = types.MethodType(pause_global_step, env.scene)
         env.robot.apply_action = types.MethodType(new_apply_action, env.robot)
 
     def track(self, pos, smooth_coef=None):
