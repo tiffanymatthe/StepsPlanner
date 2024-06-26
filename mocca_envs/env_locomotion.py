@@ -511,10 +511,10 @@ class Walker3DStepperEnv(EnvBase):
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
         )
-        self.swing_leg = 0 if self.robot.mirrored else 1
-        # self.swing_leg = 1 if self.robot.mirrored else 0
-        # if not self.walk_forward:
-        #     self.swing_leg = 1 - self.swing_leg
+        # self.swing_leg = 0 if self.robot.mirrored else 1
+        self.swing_leg = 1 if self.robot.mirrored else 0
+        if not self.walk_forward:
+            self.swing_leg = 1 - self.swing_leg
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
