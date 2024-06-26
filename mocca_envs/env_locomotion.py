@@ -570,7 +570,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         # reward += self.legs_bonus
-        reward -= self.heading_penalty * 10
+        reward -= self.heading_penalty * 2
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
@@ -698,7 +698,7 @@ class Walker3DStepperEnv(EnvBase):
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
-        if abs(self.heading_rad_to_target) > 5 * DEG2RAD:
+        if abs(self.heading_rad_to_target) > 10 * DEG2RAD:
             self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
 
         # self.other_leg_has_fallen
@@ -765,7 +765,6 @@ class Walker3DStepperEnv(EnvBase):
 
         self.avg_heading = [self.robot.body_rpy[2], self.robot.lower_body_rpy[2], self.robot.feet_rpy[0][2], self.robot.feet_rpy[1][2]]
         self.avg_heading = sum(self.avg_heading) / len(self.avg_heading)
-
         self.heading_rad_to_target = self.smallest_angle_between(self.avg_heading, self.terrain_info[self.next_step_index, 6])
 
         if self.next_step_index == 1 or self.swing_leg_lifted:
