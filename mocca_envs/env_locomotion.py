@@ -676,7 +676,7 @@ class Walker3DStepperEnv(EnvBase):
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:3] - self.robot.feet_xyz[self.swing_leg, 0:3]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
+        self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.2) / self.scene.dt
         self.distance_to_target = sqrt(ss(foot_target_delta[0:3]))
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
@@ -744,10 +744,10 @@ class Walker3DStepperEnv(EnvBase):
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
-        if abs(self.heading_rad_to_target) >= 10 * DEG2RAD and self.target_reached and self.next_step_index > 1:
-            self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
-        else:
-            self.heading_penalty = 0
+        # if abs(self.heading_rad_to_target) >= 15 * DEG2RAD and self.target_reached and self.next_step_index > 1:
+        #     self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
+        # else:
+        #     self.heading_penalty = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
