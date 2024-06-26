@@ -387,7 +387,7 @@ class Walker3DStepperEnv(EnvBase):
         self._foot_target_contacts = np.zeros((F, 1), dtype=np.float32)
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
-    def flip_swing_legs(self, swing_legs):
+    def flip_swing_legs(self, swing_legs, x, y):
         pair_indices = np.arange(0, len(swing_legs), 2)
         flip_decision = np.random.rand(len(pair_indices)) < 0.5
         for idx, flip in zip(pair_indices, flip_decision):
@@ -395,6 +395,8 @@ class Walker3DStepperEnv(EnvBase):
                 continue # do not do 01 and 23, those are starting points
             if flip:
                 swing_legs[idx], swing_legs[idx + 1] = swing_legs[idx + 1], swing_legs[idx]
+                x[idx], x[idx + 1] = x[idx+1], x[idx]
+                y[idx], y[idx + 1] = y[idx + 1], y[idx]
 
 
     def generate_step_placements(self):
@@ -468,7 +470,6 @@ class Walker3DStepperEnv(EnvBase):
 
         # Update x and y arrays
         self.swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
-        self.flip_swing_legs(self.swing_legs)
 
         x[::2] = x_temp[:N_half] + left_shifts[0]
         y[::2] = y_temp[:N_half] + left_shifts[1]
@@ -498,6 +499,8 @@ class Walker3DStepperEnv(EnvBase):
             horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
+
+        self.flip_swing_legs(self.swing_legs, x, y)
 
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
@@ -884,8 +887,8 @@ class Walker3DStepperEnv(EnvBase):
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
                     if self.next_step_index < self.num_steps:
-                        self.swing_leg = (self.swing_leg + 1) % 2
-                    # self.swing_leg = self.swing_legs[self.next_step_index]
+                    #     self.swing_leg = (self.swing_leg + 1) % 2
+                        self.swing_leg = self.swing_legs[self.next_step_index]
                     # if (
                     #     self.next_step_index - 1 in self.stop_steps
                     #     and self.next_step_index - 2 in self.stop_steps
