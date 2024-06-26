@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     ground_stay_count = 1500
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 4
+    num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -331,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [3,5,7,9,11,13,15,17,19] # [6, 7, 13, 14]
+    stop_steps = list(range(2,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -386,6 +386,16 @@ class Walker3DStepperEnv(EnvBase):
         F = len(self.robot.feet)
         self._foot_target_contacts = np.zeros((F, 1), dtype=np.float32)
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
+
+    def flip_swing_legs(self, swing_legs):
+        pair_indices = np.arange(0, len(swing_legs), 2)
+        flip_decision = np.random.rand(len(pair_indices)) < 0.5
+        for idx, flip in zip(pair_indices, flip_decision):
+            if idx <= 2:
+                continue # do not do 01 and 23, those are starting points
+            if flip:
+                swing_legs[idx], swing_legs[idx + 1] = swing_legs[idx + 1], swing_legs[idx]
+
 
     def generate_step_placements(self):
         # Check just in case
@@ -458,6 +468,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Update x and y arrays
         self.swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
+        self.flip_swing_legs(self.swing_legs)
 
         x[::2] = x_temp[:N_half] + left_shifts[0]
         y[::2] = y_temp[:N_half] + left_shifts[1]
