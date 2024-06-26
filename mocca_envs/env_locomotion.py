@@ -358,6 +358,8 @@ class Walker3DStepperEnv(EnvBase):
         # Env settings
         self.next_step_index = self.lookbehind
 
+        self.reached_last_step = False
+
         self.legs_bonus = 0
 
         # Terrain info
@@ -555,6 +557,8 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
+        self.reached_last_step = False
+
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
@@ -644,7 +648,7 @@ class Walker3DStepperEnv(EnvBase):
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
-            if self.next_step_index == self.num_steps - 1 and self.target_reached:
+            if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                 info["curriculum_metric"] = self.next_step_index + 1
             else:
                 info["curriculum_metric"] = self.next_step_index
@@ -676,7 +680,7 @@ class Walker3DStepperEnv(EnvBase):
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
         foot_target_delta = self.terrain_info[self.next_step_index, 0:3] - self.robot.feet_xyz[self.swing_leg, 0:3]
         foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-        self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.2) / self.scene.dt
+        self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
         self.distance_to_target = sqrt(ss(foot_target_delta[0:3]))
         # walk_target_delta = self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg, 0:2]
         # self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
@@ -690,7 +694,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1.3
+        self.progress = linear_progress
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -736,11 +740,11 @@ class Walker3DStepperEnv(EnvBase):
         # if self.swing_leg_has_fallen:
         #     print(f"{self.next_step_index}: swing leg has fallen, terminating")
 
-        if abs(self.progress) < 0.015:
-            self.body_stationary_count += 1
-        else:
-            self.body_stationary_count = 0
-        count = 2000
+        # if abs(self.progress) < 0.015:
+        #     self.body_stationary_count += 1
+        # else:
+        #     self.body_stationary_count = 0
+        # count = 2000
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
@@ -749,7 +753,7 @@ class Walker3DStepperEnv(EnvBase):
         # else:
         #     self.heading_penalty = 0
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen # or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
@@ -848,7 +852,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         self.other_leg_has_fallen = self.next_step_index > 2 and not other_leg_in_air and not other_foot_in_prev_target
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < x_radius and y_dist_to_target[self.swing_leg] < y_radius and self.swing_leg_lifted
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and x_dist_to_target[self.swing_leg] < x_radius and y_dist_to_target[self.swing_leg] < y_radius and (self.swing_leg_lifted or self.reached_last_step)
 
         if self.target_reached:
             self.target_reached_count += 1
@@ -883,6 +887,8 @@ class Walker3DStepperEnv(EnvBase):
                     self.body_stationary_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
+
+                self.reached_last_step = self.reached_last_step or self.next_step_index >= len(self.terrain_info)
 
             # Prevent out of bound
             if self.next_step_index >= len(self.terrain_info):
