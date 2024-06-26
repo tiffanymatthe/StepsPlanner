@@ -511,9 +511,10 @@ class Walker3DStepperEnv(EnvBase):
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
         )
-        self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
-        if not self.walk_forward:
-            self.swing_leg = 1 - self.swing_leg
+        self.swing_leg = 0 if self.robot.mirrored else 1
+        # self.swing_leg = 1 if self.robot.mirrored else 0
+        # if not self.walk_forward:
+        #     self.swing_leg = 1 - self.swing_leg
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
@@ -681,9 +682,13 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.contact_bonus -= 100
 
-        self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
+        self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
+        legs_fell = self.swing_leg_has_fallen or self.other_leg_has_fallen
+        if self.next_step_index in self.stop_steps or self.next_step_index - 1 in self.stop_steps:
+            legs_fell = False
+
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or legs_fell or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
@@ -697,6 +702,9 @@ class Walker3DStepperEnv(EnvBase):
         
         # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
         smallest_angle = min(diff, (2 * np.pi) - diff)
+
+        if smallest_angle > np.pi:
+            smallest_angle -= 2 * np.pi
         
         return smallest_angle
 
