@@ -331,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [2,3,6,7,14,15]
+    stop_steps = [6,7,14,15]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = 0
         self.max_curriculum = 9
-        self.advance_threshold = min(12, self.num_steps)  # steps_reached
+        self.advance_threshold = min(9, self.num_steps)  # steps_reached
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -407,7 +407,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        dist_range = np.array([self.dist_range[0], dist_upper[0]])
         # dist_range = dist_range * 0 + 0.45
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -477,9 +477,9 @@ class Walker3DStepperEnv(EnvBase):
         x[1::2] = x_temp[:N_half] + right_shifts[0]
         y[1::2] = y_temp[:N_half] + right_shifts[1]
 
-        weights = np.linspace(1,10,self.curriculum+1)
-        weights /= sum(weights)
-        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        # weights = np.linspace(1,10,self.curriculum+1)
+        # weights /= sum(weights)
+        self.path_angle = self.angle_curriculum[0] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
         indices = np.arange(4, len(x), 2)
         max_horizontal_shift = self.foot_sep * 4
@@ -571,10 +571,11 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
-        if self.np_random.choice([True, False]):
-            self.stop_steps = [6,7,14,15]
-        else:
-            self.stop_steps = [2,3,6,7,14,15]
+        if self.curriculum > 0:
+            if self.np_random.choice([True, False]):
+                self.stop_steps = [6,7,14,15]
+            else:
+                self.stop_steps = [2,3,6,7,14,15]
 
         self.reached_last_step = False
 
