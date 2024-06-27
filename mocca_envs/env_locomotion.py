@@ -423,6 +423,12 @@ class Walker3DStepperEnv(EnvBase):
         if not self.walk_forward:
             dy *= -1
 
+        # now reverse a small section
+        if self.np_random.choice([True, False]):
+            dy[8:] *= -1
+        if self.np_random.choice([True, False]):
+            dy[15:] *= -1
+
         # Fix overlapping steps
         dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
         dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
