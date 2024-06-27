@@ -331,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [6,7,14,15]
+    stop_steps = list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -391,8 +391,8 @@ class Walker3DStepperEnv(EnvBase):
         pair_indices = np.arange(0, len(swing_legs), 2)
         flip_decision = np.random.rand(len(pair_indices)) < 0.5
         for idx, flip in zip(pair_indices, flip_decision):
-            if idx <= 2:
-                continue # do not do 01 and 23, those are starting points
+            if idx <= 6:
+                continue # do not do 01 and 23 and 45 and 67, those are starting points
             if flip:
                 swing_legs[idx], swing_legs[idx + 1] = swing_legs[idx + 1], swing_legs[idx]
                 x[idx], x[idx + 1] = x[idx+1], x[idx]
@@ -487,7 +487,7 @@ class Walker3DStepperEnv(EnvBase):
         extra_vertical_shift = 0 # 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
         extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
-        base_hor = max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
+        base_hor = 0 if self.curriculum == 0 else max_horizontal_shift / 4 # max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
         horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
         x[indices] += horizontal_shifts
         x[indices + 1] += horizontal_shifts
@@ -500,7 +500,7 @@ class Walker3DStepperEnv(EnvBase):
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
 
-        # self.flip_swing_legs(self.swing_legs, x, y)
+        self.flip_swing_legs(self.swing_legs, x, y)
 
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
@@ -571,11 +571,9 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
-        if self.curriculum > 0:
-            if self.np_random.choice([True, False]):
-                self.stop_steps = [6,7,14,15]
-            else:
-                self.stop_steps = [2,3,6,7,14,15]
+        # if self.curriculum > 0:
+        #     if self.np_random.choice([True, False]):
+        #         self.stop_steps.insert(3)
 
         self.reached_last_step = False
 
@@ -883,7 +881,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2
+            delay = 10 if self.next_step_index > 1 else 2
             if self.target_reached_count >= delay:
                 # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
