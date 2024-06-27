@@ -331,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = list(range(2,20))
+    stop_steps = [6,7,13,14]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
