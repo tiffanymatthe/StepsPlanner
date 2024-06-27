@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.2
-    rendered_step_count = 5
+    rendered_step_count = 20
     init_step_separation = 0.65
 
     lookahead = 2
@@ -392,8 +392,8 @@ class Walker3DStepperEnv(EnvBase):
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
         # dist_range = dist_range * 0 + 0.33
         yaw_range = self.yaw_range * ratio * DEG2RAD
-        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
-        tilt_range = self.tilt_range * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD * 0
 
         N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
@@ -420,14 +420,34 @@ class Walker3DStepperEnv(EnvBase):
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
 
+        negation_indices = [[]]
+
         if not self.walk_forward:
             dy *= -1
+            negation_indices = [slice(0,self.num_steps)]
+
+        already_reversed = False
 
         # now reverse a small section
         if self.np_random.choice([True, False]):
+            already_reversed = True
             dy[8:] *= -1
+            if self.walk_forward:
+                negation_indices = [slice(7,self.num_steps)]
+            else:
+                negation_indices = [slice(0,7)]
         if self.np_random.choice([True, False]):
             dy[15:] *= -1
+            if already_reversed:
+                if self.walk_forward:
+                    negation_indices = [slice(7,14)]
+                else:
+                    negation_indices = [slice(0,7), slice(14,self.num_steps)]
+            else:
+                if self.walk_forward:
+                    negation_indices = [slice(14, self.num_steps)]
+                else:
+                    negation_indices = [slice(0,14)]
 
         # Fix overlapping steps
         dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
@@ -437,7 +457,19 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        heading_targets = np.copy(dphi) + 90 * DEG2RAD
+        angle_diffs = np.arctan2(np.diff(y), np.diff(x))
+
+        for sss in negation_indices:
+            angle_diffs[sss] *= -1
+            angle_diffs[sss] = 180 * DEG2RAD - angle_diffs[sss]
+
+        angle_diffs = np.append(angle_diffs, 90 * DEG2RAD)
+        heading_targets = angle_diffs
+
+        # heading_targets = np.zeros_like(x, dtype=float)
+        # heading_targets[0] = angle_diffs[0]
+        # heading_targets[-1] = angle_diffs[-1]
+        # heading_targets[1:-1] = (angle_diffs[:-1] + angle_diffs[1:]) / 2
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
 
@@ -566,7 +598,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.contact_bonus
-        reward -= self.heading_penalty * 4
+        reward -= self.heading_penalty
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -688,7 +720,8 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.contact_bonus -= 100
 
-        self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
+        if abs(self.heading_rad_to_target) > 15 * DEG2RAD:
+            self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
 
         legs_fell = self.swing_leg_has_fallen or self.other_leg_has_fallen
         # if self.next_step_index in self.stop_steps or self.next_step_index - 1 in self.stop_steps:
