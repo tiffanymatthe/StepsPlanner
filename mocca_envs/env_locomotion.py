@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_random_start = True
     robot_init_position = [
             [0, -0.3, 1.32], #backward
-            [0, 0, 1.32]
+            [0, 0.3, 1.32]
         ]
     robot_init_velocity = None
 
@@ -339,7 +339,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=True, **kwargs)
-        self.robot.set_base_pose(pose="stand")
+        self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
         self.curriculum = 0
