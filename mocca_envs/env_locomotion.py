@@ -501,7 +501,7 @@ class Walker3DStepperEnv(EnvBase):
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
 
-        self.flip_swing_legs(self.swing_legs, x, y)
+        # self.flip_swing_legs(self.swing_legs, x, y)
 
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
