@@ -324,14 +324,14 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 3
+    rendered_step_count = 10
     init_step_separation = 0.75
 
     lookahead = 2
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = list(range(4,20))
+    stop_steps = list(range(2,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -404,14 +404,13 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         ratio = self.curriculum / self.max_curriculum
         ratio = 0
-
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[0]])
+        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
         # dist_range = dist_range * 0 + 0.45
         yaw_range = self.yaw_range * ratio * DEG2RAD
-        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
-        tilt_range = self.tilt_range * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD * 0
 
         N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
@@ -500,7 +499,7 @@ class Walker3DStepperEnv(EnvBase):
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
 
-        self.flip_swing_legs(self.swing_legs, x, y)
+        # self.flip_swing_legs(self.swing_legs, x, y)
 
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
@@ -570,10 +569,6 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted_count = 0
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
-
-        # if self.curriculum > 0:
-        #     if self.np_random.choice([True, False]):
-        #         self.stop_steps.insert(3)
 
         self.reached_last_step = False
 
