@@ -1008,7 +1008,7 @@ class Walker3DStepperEnv(EnvBase):
             feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
 
-        swing_legs_at_targets = np.where(targets[:, 7] == 0, 0, -1)
+        swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         deltas = concatenate(
             (
