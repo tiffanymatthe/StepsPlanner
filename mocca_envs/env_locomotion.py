@@ -617,7 +617,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         # reward += self.contact_bonus
-        # reward -= self.heading_penalty * 0.2
+        reward -= self.heading_penalty
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.contact_bonus}")
@@ -737,7 +737,10 @@ class Walker3DStepperEnv(EnvBase):
         # if self.body_stationary_count > count:
         #     self.contact_bonus -= 100
 
-        # self.heading_penalty = - np.exp(-0.5 * self.heading_rad_to_target **2) + 1
+        if self.target_reached and abs(self.heading_rad_to_target) > 10 * DEG2RAD and self.next_step_index > 3:
+            self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
+        else:
+            self.heading_penalty = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
@@ -753,6 +756,9 @@ class Walker3DStepperEnv(EnvBase):
         
         # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
         smallest_angle = min(diff, (2 * np.pi) - diff)
+
+        if smallest_angle > np.pi:
+            smallest_angle -= 2 * np.pi
         
         return smallest_angle
 
@@ -801,7 +807,7 @@ class Walker3DStepperEnv(EnvBase):
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
 
-        self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
+        self.heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg, 2], self.terrain_info[self.next_step_index, 6])
 
         if self.next_step_index == 1 or self.swing_leg_lifted:
             # if first step or already lifted, say true
@@ -959,7 +965,8 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_to_targets = target_thetas - self.robot.body_rpy[2]
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
-        heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
+        feet_heading = np.array([self.robot.feet_rpy[int(i),2] for i in targets[:, 7]])
+        heading_angle_to_targets = targets[:, 6] - feet_heading
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
