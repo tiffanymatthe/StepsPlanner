@@ -367,7 +367,7 @@ class Walker3DStepperEnv(EnvBase):
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-20, 20])
         self.tilt_range = np.array([-15, 15])
-        self.step_param_dim = 6
+        self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
@@ -506,7 +506,7 @@ class Walker3DStepperEnv(EnvBase):
             self.swing_legs = 1 - self.swing_legs
             x *= -1
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, self.swing_legs), axis=1)
 
     def create_terrain(self):
 
@@ -561,6 +561,11 @@ class Walker3DStepperEnv(EnvBase):
     def reset(self):
         if self.state_id >= 0:
             self._p.restoreState(self.state_id)
+
+        if self.curriculum == 1:
+            self.stop_steps = [6, 7, 13, 14]
+        elif self.curriculum > 1:
+            self.stop_steps = list(range(4,20))
 
         self.timestep = 0
         self.done = False
@@ -1003,6 +1008,8 @@ class Walker3DStepperEnv(EnvBase):
             feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
 
+        swing_legs_at_targets = np.where(targets[:, 7] == 0, 0, -1)
+
         deltas = concatenate(
             (
                 (np.sin(angle_to_targets) * distance_to_targets)[:, None],  # x
@@ -1010,7 +1017,8 @@ class Walker3DStepperEnv(EnvBase):
                 (delta_pos[:, 2])[:, None],  # z
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
-                (heading_angle_to_targets)[:, None],
+                (heading_angle_to_targets)[:, None], # heading
+                (swing_legs_at_targets)[:, None],  # swing_legs
             ),
             axis=1,
         )
@@ -1064,6 +1072,7 @@ class Walker3DStepperEnv(EnvBase):
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
                     i * self.step_param_dim + 5, # heading
+                    i * self.step_param_dim + 6, # swing legs
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
