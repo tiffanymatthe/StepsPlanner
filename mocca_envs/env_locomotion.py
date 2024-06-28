@@ -760,8 +760,8 @@ class Walker3DStepperEnv(EnvBase):
         if self.current_target_count == 30 and not self.swing_leg_lifted:
             self.legs_bonus -= 5
             # print(f"{self.next_step_index} not lifted")
-        if self.swing_leg_lifted and self.swing_num == 1 and 1 <= self.swing_leg_lifted_count <= 5:
-            self.legs_bonus += 5
+        # if self.swing_leg_lifted and self.swing_num == 1 and 1 <= self.swing_leg_lifted_count <= 5:
+        #     self.legs_bonus += 5
             # print(f"{self.next_step_index} lifted, {self.swing_leg_lifted_count}")
 
         # if self.swing_leg_has_fallen:
