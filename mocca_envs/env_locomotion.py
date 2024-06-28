@@ -961,7 +961,7 @@ class Walker3DStepperEnv(EnvBase):
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
         heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
-        swing_legs_at_targets = np.where(targets[:, 7] == 0, 0, -1)
+        swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         deltas = concatenate(
             (
