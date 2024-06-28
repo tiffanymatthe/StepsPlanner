@@ -484,7 +484,7 @@ class Walker3DStepperEnv(EnvBase):
         indices = np.arange(4, len(x), 2)
         max_horizontal_shift = self.foot_sep * 4
         max_vertical_shift = max(dist_range)
-        extra_vertical_shift = 0 # 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
+        extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
         extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
         base_hor = 0 if self.curriculum == 0 else max_horizontal_shift / 4 # max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
@@ -1002,11 +1002,12 @@ class Walker3DStepperEnv(EnvBase):
         angle_to_targets = target_thetas - self.robot.body_rpy[2]
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
         # should angles be per feet? yes so it doesn't change too much
-        if not self.stop_on_next_step:
-            feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[1-self.swing_leg,2]])
-        else:
-            feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2]])
-        heading_angle_to_targets = targets[:, 6] - feet_heading
+        # if not self.stop_on_next_step:
+        #     feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[1-self.swing_leg,2]])
+        # else:
+        #     feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2]])
+        # heading_angle_to_targets = targets[:, 6] - feet_heading
+        heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
