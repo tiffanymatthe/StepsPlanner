@@ -331,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = list(range(2,20))
+    stop_steps = list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -638,7 +638,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        # reward -= self.heading_penalty
+        reward -= self.heading_penalty
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
@@ -766,10 +766,11 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        # if abs(self.heading_rad_to_target) >= 15 * DEG2RAD and self.target_reached and self.next_step_index > 1:
-        #     self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
-        # else:
-        #     self.heading_penalty = 0
+        if abs(self.heading_rad_to_target) >= 15 * DEG2RAD and self.target_reached and self.next_step_index > 3:
+            # print(self.heading_rad_to_target)
+            self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
+        else:
+            self.heading_penalty = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
@@ -998,12 +999,9 @@ class Walker3DStepperEnv(EnvBase):
         angle_to_targets = target_thetas - self.robot.body_rpy[2]
         distance_to_targets = np.sqrt(ss(delta_pos[:, 0:2], axis=1))
         # should angles be per feet? yes so it doesn't change too much
-        # if not self.stop_on_next_step:
-        #     feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[1-self.swing_leg,2]])
-        # else:
-        #     feet_heading = np.array([self.robot.feet_rpy[1-self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2],self.robot.feet_rpy[self.swing_leg,2]])
-        # heading_angle_to_targets = targets[:, 6] - feet_heading
-        heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
+        feet_heading = np.array([self.robot.feet_rpy[int(i), 2] for i in targets[:, 7]])
+        heading_angle_to_targets = targets[:, 6] - feet_heading
+        # heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
