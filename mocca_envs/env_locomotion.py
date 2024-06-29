@@ -324,7 +324,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.20
     foot_sep = 0.16
-    rendered_step_count = 10
+    rendered_step_count = 20
     init_step_separation = 0.70
 
     lookahead = 2
@@ -367,6 +367,7 @@ class Walker3DStepperEnv(EnvBase):
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-20, 20])
         self.tilt_range = np.array([-15, 15])
+        self.shift_range = np.array([-0.5, 0.5])
         self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
@@ -403,15 +404,15 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
         ratio = self.curriculum / self.max_curriculum
-        ratio = 0
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[0]])
-        dist_range = dist_range * 0 + 0.33
-        yaw_range = self.yaw_range * ratio * DEG2RAD
-        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
-        tilt_range = self.tilt_range * ratio * DEG2RAD
+        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        # dist_range = dist_range * 0 + 0.33
+        yaw_range = self.yaw_range * ratio * DEG2RAD * 0
+        pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD * 0
+        shift_range = self.shift_range * ratio
 
         N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
@@ -419,6 +420,7 @@ class Walker3DStepperEnv(EnvBase):
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
+        shifts = np.repeat(self.np_random.uniform(*shift_range, size=N // 2), 2)
 
         # make first step below feet
         dr[0] = 0.0
@@ -431,6 +433,7 @@ class Walker3DStepperEnv(EnvBase):
 
         x_tilt[0:3] = 0
         y_tilt[0:3] = 0
+        shifts[0:4] = 0
 
         dphi = np.cumsum(dphi)
 
@@ -450,6 +453,8 @@ class Walker3DStepperEnv(EnvBase):
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
+
+        x += shifts
 
         x_temp = np.copy(x)
         y_temp = np.copy(y)
@@ -481,24 +486,24 @@ class Walker3DStepperEnv(EnvBase):
         # weights /= sum(weights)
         self.path_angle = self.angle_curriculum[0] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
-        indices = np.arange(4, len(x), 2)
-        max_horizontal_shift = self.foot_sep * 4
-        max_vertical_shift = max(dist_range)
-        extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
-        extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
+        # indices = np.arange(4, len(x), 2)
+        # max_horizontal_shift = self.foot_sep * 4
+        # max_vertical_shift = max(dist_range)
+        # extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
+        # extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
-        base_hor = 0 if self.curriculum == 0 else max_horizontal_shift / 4 # max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
-        horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
-        x[indices] += horizontal_shifts
-        x[indices + 1] += horizontal_shifts
-        y[indices] += extra_vertical_shifts
-        y[indices + 1] += extra_vertical_shifts
+        # base_hor = 0 if self.curriculum == 0 else max_horizontal_shift / 4 # max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
+        # horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
+        # x[indices] += horizontal_shifts
+        # x[indices + 1] += horizontal_shifts
+        # y[indices] += extra_vertical_shifts
+        # y[indices + 1] += extra_vertical_shifts
 
-        if self.path_angle > np.pi / 4:
-            base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
-            horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
-            y[indices] -= horizontal_shifts
-            y[indices + 1] -= horizontal_shifts
+        # if self.path_angle > np.pi / 4:
+        #     base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
+        #     horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
+        #     y[indices] -= horizontal_shifts
+        #     y[indices + 1] -= horizontal_shifts
 
         self.flip_swing_legs(self.swing_legs, x, y)
 
