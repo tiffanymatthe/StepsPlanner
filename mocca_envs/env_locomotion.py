@@ -500,7 +500,7 @@ class Walker3DStepperEnv(EnvBase):
             y[indices] -= horizontal_shifts
             y[indices + 1] -= horizontal_shifts
 
-        # self.flip_swing_legs(self.swing_legs, x, y)
+        self.flip_swing_legs(self.swing_legs, x, y)
 
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
@@ -561,11 +561,6 @@ class Walker3DStepperEnv(EnvBase):
     def reset(self):
         if self.state_id >= 0:
             self._p.restoreState(self.state_id)
-
-        if self.curriculum == 1:
-            self.stop_steps = [6, 7, 13, 14]
-        elif self.curriculum > 1:
-            self.stop_steps = list(range(4,20))
 
         self.timestep = 0
         self.done = False
