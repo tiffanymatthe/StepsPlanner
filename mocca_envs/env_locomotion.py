@@ -365,7 +365,7 @@ class Walker3DStepperEnv(EnvBase):
         # Terrain info
         self.dist_range = np.array([0.65, 1.25])
         self.pitch_range = np.array([-30, +30])  # degrees
-        self.yaw_range = np.array([-35, 35])
+        self.yaw_range = np.array([-20, 20])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.5, 0.5])
         self.step_param_dim = 7
@@ -409,14 +409,14 @@ class Walker3DStepperEnv(EnvBase):
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
         dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
         # dist_range = dist_range * 0 + 0.33
-        yaw_range = self.yaw_range * ratio * DEG2RAD
+        yaw_range = self.yaw_range * ratio * DEG2RAD * 0
         pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD * 0
         shift_range = self.shift_range * ratio
 
         N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
-        dphi = self.np_random.uniform(*yaw_range, size=N // 2)
+        dphi = self.np_random.uniform(*yaw_range, size=N)
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -428,16 +428,16 @@ class Walker3DStepperEnv(EnvBase):
         dtheta[0] = np.pi / 2
 
         dr[1] = self.init_step_separation
-        dphi[1] = 0.0
+        dphi[1:3] = 0.0
         dtheta[1:3] = np.pi / 2
 
         x_tilt[0:3] = 0
         y_tilt[0:3] = 0
         shifts[0:4] = 0
 
-        dphi = np.repeat(np.cumsum(dphi), 2)
+        dphi = np.cumsum(dphi)
 
-        heading_targets = np.copy(dphi) + 90 * DEG2RAD
+        heading_targets = np.copy(dphi) * 0 + 90 * DEG2RAD
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
