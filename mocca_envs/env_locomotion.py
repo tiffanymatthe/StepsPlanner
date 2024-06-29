@@ -331,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = list(range(4,20))
+    stop_steps = list(range(2,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -567,11 +567,6 @@ class Walker3DStepperEnv(EnvBase):
         if self.state_id >= 0:
             self._p.restoreState(self.state_id)
 
-        if self.curriculum == 1:
-            self.stop_steps = [6, 7, 13, 14]
-        elif self.curriculum > 1:
-            self.stop_steps = list(range(4,20))
-
         self.timestep = 0
         self.done = False
         self.target_reached_count = 0
@@ -580,10 +575,6 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted_count = 0
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
-
-        # if self.curriculum > 0:
-        #     if self.np_random.choice([True, False]):
-        #         self.stop_steps.insert(3)
 
         self.reached_last_step = False
 
