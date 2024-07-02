@@ -365,9 +365,9 @@ class Walker3DStepperEnv(EnvBase):
         # Terrain info
         self.dist_range = np.array([0.65, 1.25])
         self.pitch_range = np.array([-30, +30])  # degrees
-        self.yaw_range = np.array([-20, 20])
+        self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
-        self.shift_range = np.array([-0.5, 0.5])
+        self.shift_range = np.array([-0.7,0.7])
         self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
@@ -415,12 +415,14 @@ class Walker3DStepperEnv(EnvBase):
         shift_range = self.shift_range * ratio
 
         N = self.num_steps
-        dr = self.np_random.uniform(*dist_range, size=N)
-        dphi = self.np_random.uniform(*yaw_range, size=N // 2)
-        dtheta = self.np_random.uniform(*pitch_range, size=N)
-        x_tilt = self.np_random.uniform(*tilt_range, size=N)
-        y_tilt = self.np_random.uniform(*tilt_range, size=N)
-        shifts = np.repeat(self.np_random.uniform(*shift_range, size=N // 2), 2)
+        assert N % 2 == 0
+        M = N // 2
+        dr = self.np_random.uniform(*dist_range, size=M)
+        dphi = self.np_random.uniform(*yaw_range, size=M)
+        dtheta = self.np_random.uniform(*pitch_range, size=M)
+        x_tilt = self.np_random.uniform(*tilt_range, size=M)
+        y_tilt = self.np_random.uniform(*tilt_range, size=M)
+        shifts = self.np_random.uniform(*shift_range, size=M) * 0
 
         # make first step below feet
         dr[0] = 0.0
@@ -428,22 +430,24 @@ class Walker3DStepperEnv(EnvBase):
         dtheta[0] = np.pi / 2
 
         dr[1] = self.init_step_separation
-        dphi[1:4] = 0.0
-        dtheta[1:3] = np.pi / 2
+        dphi[1:3] = 0.0
+        dtheta[1] = np.pi / 2
 
-        x_tilt[0:3] = 0
-        y_tilt[0:3] = 0
-        shifts[0:4] = 0
+        x_tilt[0:2] = 0
+        y_tilt[0:2] = 0
+        shifts[0:2] = 0
 
         dphi = np.cumsum(dphi)
-        dphi = np.repeat(dphi, 2)
-
-        heading_targets = np.copy(dphi) + 90 * DEG2RAD
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
 
+        heading_targets = np.copy(dphi)
+        heading_targets_temp = heading_targets - self.np_random.choice([0, 20 * DEG2RAD, 30 * DEG2RAD, 40 * DEG2RAD]) * np.sign(heading_targets)
+        mask = np.sign(heading_targets) == np.sign(heading_targets_temp)
+        heading_targets[mask] = heading_targets_temp[mask]
+        print(heading_targets)
         dphi *= 0
 
         if not self.walk_forward:
@@ -464,13 +468,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.swing_legs = np.ones(N, dtype=np.int8)
 
-        # Assuming N is defined somewhere in the class or passed as an argument CHATGPT
-        N_half = N // 2
-        angles = dphi[:N_half]
-
         # Calculate shifts
-        left_shifts = np.array([np.cos(angles + np.pi / 2), np.sin(angles + np.pi / 2)]) * self.foot_sep
-        right_shifts = np.array([np.cos(angles - np.pi / 2), np.sin(angles - np.pi / 2)]) * self.foot_sep
+        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
+        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
 
         # Flip the shifts
         left_shifts = np.flip(left_shifts, axis=0)
@@ -479,11 +479,14 @@ class Walker3DStepperEnv(EnvBase):
         # Update x and y arrays
         self.swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
-        x[::2] = x_temp[:N_half] + left_shifts[0]
-        y[::2] = y_temp[:N_half] + left_shifts[1]
+        x = np.repeat(x, 2)
+        y = np.repeat(y, 2)
 
-        x[1::2] = x_temp[:N_half] + right_shifts[0]
-        y[1::2] = y_temp[:N_half] + right_shifts[1]
+        x[::2] = x_temp + left_shifts[0]
+        y[::2] = y_temp + left_shifts[1]
+
+        x[1::2] = x_temp + right_shifts[0]
+        y[1::2] = y_temp + right_shifts[1]
 
         # weights = np.linspace(1,10,self.curriculum+1)
         # weights /= sum(weights)
@@ -513,6 +516,14 @@ class Walker3DStepperEnv(EnvBase):
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
             x *= -1
+        else:
+            heading_targets *= -1
+
+        x_tilt = np.repeat(x_tilt, 2)
+        y_tilt = np.repeat(y_tilt, 2)
+        z = np.repeat(z, 2)
+        dphi = np.repeat(dphi, 2)
+        heading_targets = np.repeat(heading_targets, 2) + 90 * DEG2RAD
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, self.swing_legs), axis=1)
 
@@ -770,7 +781,6 @@ class Walker3DStepperEnv(EnvBase):
             self.legs_bonus -= 100
 
         if abs(self.heading_rad_to_target) >= 15 * DEG2RAD and self.target_reached and self.next_step_index > 3:
-            # print(self.heading_rad_to_target)
             self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
         else:
             self.heading_penalty = 0
