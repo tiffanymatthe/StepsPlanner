@@ -350,7 +350,7 @@ class Walker3DStepperEnv(EnvBase):
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
         self.applied_gain_curriculum = np.linspace(1.0, 1.2, N)
-        self.angle_curriculum = np.linspace(0, 3 * np.pi / 4, N)
+        self.angle_curriculum = np.linspace(0, np.pi / 2, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
@@ -425,7 +425,7 @@ class Walker3DStepperEnv(EnvBase):
         assert N % 2 == 0
         M = N // 2
         dr = self.np_random.uniform(*dist_range, size=M)
-        dphi = self.np_random.uniform(*yaw_range, size=M) * 0 + self.path_angle
+        dphi = self.np_random.uniform(*yaw_range, size=M) * 0 # + self.path_angle
         dtheta = self.np_random.uniform(*pitch_range, size=M)
         x_tilt = self.np_random.uniform(*tilt_range, size=M)
         y_tilt = self.np_random.uniform(*tilt_range, size=M)
@@ -532,6 +532,8 @@ class Walker3DStepperEnv(EnvBase):
         #     horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
         #     y[indices] -= horizontal_shifts
         #     y[indices + 1] -= horizontal_shifts
+
+        heading_targets[3:] += self.path_angle
 
         self.flip_swing_legs(self.swing_legs, x, y, flip_decision)
 
