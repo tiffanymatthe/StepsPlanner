@@ -447,7 +447,6 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets_temp = heading_targets - self.np_random.choice([0, 20 * DEG2RAD, 30 * DEG2RAD, 40 * DEG2RAD]) * np.sign(heading_targets)
         mask = np.sign(heading_targets) == np.sign(heading_targets_temp)
         heading_targets[mask] = heading_targets_temp[mask]
-        print(heading_targets)
         dphi *= 0
 
         if not self.walk_forward:
@@ -782,6 +781,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if abs(self.heading_rad_to_target) >= 15 * DEG2RAD and self.target_reached and self.next_step_index > 3:
             self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
+            self.heading_penalty *= 0.1
         else:
             self.heading_penalty = 0
 
