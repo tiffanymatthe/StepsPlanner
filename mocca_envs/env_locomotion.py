@@ -437,16 +437,19 @@ class Walker3DStepperEnv(EnvBase):
         y_tilt[0:2] = 0
         shifts[0:2] = 0
 
-        dphi = np.cumsum(dphi)
+        dphi_summed = np.cumsum(dphi)
 
-        dy = dr * np.sin(dtheta) * np.cos(dphi)
-        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dy = dr * np.sin(dtheta) * np.cos(dphi_summed)
+        dx = dr * np.sin(dtheta) * np.sin(dphi_summed)
         dz = dr * np.cos(dtheta)
 
         heading_targets = np.copy(dphi)
-        heading_targets_temp = heading_targets - self.np_random.choice([0, 20 * DEG2RAD, 30 * DEG2RAD, 40 * DEG2RAD]) * np.sign(heading_targets)
+        heading_targets_temp = heading_targets - self.np_random.choice([0, 20 * DEG2RAD, 30 * DEG2RAD, 40 * DEG2RAD, 50 * DEG2RAD, 70 * DEG2RAD]) * np.sign(heading_targets)
         mask = np.sign(heading_targets) == np.sign(heading_targets_temp)
         heading_targets[mask] = heading_targets_temp[mask]
+        heading_targets = np.cumsum(heading_targets)
+        dphi = dphi_summed
+
         dphi *= 0
 
         if not self.walk_forward:
