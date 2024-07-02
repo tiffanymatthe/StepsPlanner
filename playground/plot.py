@@ -81,7 +81,7 @@ def main():
     data = [load_path(path, args) for path in args.load_paths]
 
     # getting rid of
-    legends = [l for (l, d) in zip(legends, data) if d is not None]
+    legends = [(l[1:] if l.startswith('_') else l) for (l, d) in zip(legends, data) if d is not None]
     data = [d for d in data if d is not None]
 
     if args.group:
