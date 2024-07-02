@@ -11,6 +11,8 @@ import os
 import time
 from collections import deque
 
+from bottleneck import nanmean
+
 current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
 os.sys.path.insert(0, parent_dir)
@@ -226,7 +228,7 @@ def main(_seed, _config, _run):
             if (
                 args.use_curriculum
                 and len(curriculum_metrics) > 0
-                and (sum(curriculum_metrics) / len(curriculum_metrics))
+                and nanmean(curriculum_metrics)
                 > advance_threshold
                 and current_curriculum < max_curriculum
             ):
@@ -255,11 +257,7 @@ def main(_seed, _config, _run):
 
         if len(episode_rewards) > 1:
             end = time.time()
-            mean_metric = (
-                (sum(curriculum_metrics) / len(curriculum_metrics))
-                # if args.use_curriculum
-                # else 0
-            )
+            mean_metric = nanmean(curriculum_metrics)
             logger.log_epoch(
                 {
                     "iter": iteration + 1,

@@ -1,4 +1,4 @@
-from math import sin, cos, atan2, sqrt
+from math import sin, cos, atan2, sqrt, isclose
 import os
 
 from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin, nanmean, nansum
@@ -324,7 +324,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.20
     foot_sep = 0.16
-    rendered_step_count = 6
+    rendered_step_count = 12
     init_step_separation = 0.70
 
     lookahead = 2
@@ -703,10 +703,16 @@ class Walker3DStepperEnv(EnvBase):
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
-            if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
-                info["curriculum_metric"] = self.next_step_index + 1
+            if (
+                self.curriculum == 0
+                or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+            ):
+                if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
+                    info["curriculum_metric"] = self.next_step_index + 1
+                else:
+                    info["curriculum_metric"] = self.next_step_index
             else:
-                info["curriculum_metric"] = self.next_step_index
+                info["curriculum_metric"] = np.nan
 
         return state, reward, self.done, info
 
