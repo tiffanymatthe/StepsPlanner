@@ -324,7 +324,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.20
     foot_sep = 0.16
-    rendered_step_count = 20
+    rendered_step_count = 6
     init_step_separation = 0.70
 
     lookahead = 2
@@ -350,7 +350,7 @@ class Walker3DStepperEnv(EnvBase):
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
         self.applied_gain_curriculum = np.linspace(1.0, 1.2, N)
-        self.angle_curriculum = np.linspace(0, np.pi / 2, N)
+        self.angle_curriculum = np.linspace(0, 3 * np.pi / 4, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
@@ -388,12 +388,15 @@ class Walker3DStepperEnv(EnvBase):
         self._foot_target_contacts = np.zeros((F, 1), dtype=np.float32)
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
-    def flip_swing_legs(self, swing_legs, x, y):
+    def flip_swing_legs(self, swing_legs, x, y, flip_array=None):
         pair_indices = np.arange(0, len(swing_legs), 2)
-        flip_decision = np.random.rand(len(pair_indices)) < 0.5
+        if flip_array is None:
+            flip_decision = np.random.rand(len(pair_indices)) < 0.5
+            # do not do 01 and 23 and 45
+            flip_decision[:3] = False
+        else: 
+            flip_decision = flip_array
         for idx, flip in zip(pair_indices, flip_decision):
-            if idx <= 4:
-                continue # do not do 01 and 23 and 45, those are starting points
             if flip:
                 swing_legs[idx], swing_legs[idx + 1] = swing_legs[idx + 1], swing_legs[idx]
                 x[idx], x[idx + 1] = x[idx+1], x[idx]
@@ -414,15 +417,25 @@ class Walker3DStepperEnv(EnvBase):
         tilt_range = self.tilt_range * ratio * DEG2RAD * 0
         shift_range = self.shift_range * ratio
 
+        weights = np.linspace(1,10,self.curriculum+1)
+        weights /= sum(weights)
+        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+
         N = self.num_steps
         assert N % 2 == 0
         M = N // 2
         dr = self.np_random.uniform(*dist_range, size=M)
-        dphi = self.np_random.uniform(*yaw_range, size=M)
+        dphi = self.np_random.uniform(*yaw_range, size=M) * 0 + self.path_angle
         dtheta = self.np_random.uniform(*pitch_range, size=M)
         x_tilt = self.np_random.uniform(*tilt_range, size=M)
         y_tilt = self.np_random.uniform(*tilt_range, size=M)
         shifts = self.np_random.uniform(*shift_range, size=M) * 0
+
+        # randomly make negative for path angle (after 2 index)
+        flip_decision = np.random.rand(M) < 0.5
+        flip_decision[:3] = False
+        dphi[flip_decision] *= -1
+
 
         # make first step below feet
         dr[0] = 0.0
@@ -436,6 +449,7 @@ class Walker3DStepperEnv(EnvBase):
         x_tilt[0:2] = 0
         y_tilt[0:2] = 0
         shifts[0:2] = 0
+        # dphi[5] = 0
 
         dphi_summed = np.cumsum(dphi)
 
@@ -444,9 +458,9 @@ class Walker3DStepperEnv(EnvBase):
         dz = dr * np.cos(dtheta)
 
         heading_targets = np.copy(dphi)
-        heading_targets_temp = heading_targets - self.np_random.choice([0, 20 * DEG2RAD, 30 * DEG2RAD, 40 * DEG2RAD, 50 * DEG2RAD, 70 * DEG2RAD]) * np.sign(heading_targets)
-        mask = np.sign(heading_targets) == np.sign(heading_targets_temp)
-        heading_targets[mask] = heading_targets_temp[mask]
+        # heading_targets_temp = heading_targets - self.np_random.choice([0, 20 * DEG2RAD, 30 * DEG2RAD, 40 * DEG2RAD, 50 * DEG2RAD, 70 * DEG2RAD]) * np.sign(heading_targets)
+        # mask = np.sign(heading_targets) == np.sign(heading_targets_temp)
+        # heading_targets[mask] = heading_targets_temp[mask]
         heading_targets = np.cumsum(heading_targets)
         dphi = dphi_summed
 
@@ -465,9 +479,6 @@ class Walker3DStepperEnv(EnvBase):
 
         x += shifts
 
-        x_temp = np.copy(x)
-        y_temp = np.copy(y)
-
         self.swing_legs = np.ones(N, dtype=np.int8)
 
         # Calculate shifts
@@ -481,6 +492,15 @@ class Walker3DStepperEnv(EnvBase):
         # Update x and y arrays
         self.swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
+        # y[3] = y[1] + 0.2
+        # x[3] /= 3
+        # y[4] = y[0] + 0.2
+        # x[4] = x[0]
+        # x[5], y[5] = 0, -0.4
+
+        x_temp = np.copy(x)
+        y_temp = np.copy(y)
+
         x = np.repeat(x, 2)
         y = np.repeat(y, 2)
 
@@ -492,7 +512,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # weights = np.linspace(1,10,self.curriculum+1)
         # weights /= sum(weights)
-        self.path_angle = self.angle_curriculum[0] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        # self.path_angle = self.angle_curriculum[0] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
         # indices = np.arange(4, len(x), 2)
         # max_horizontal_shift = self.foot_sep * 4
@@ -513,7 +533,7 @@ class Walker3DStepperEnv(EnvBase):
         #     y[indices] -= horizontal_shifts
         #     y[indices + 1] -= horizontal_shifts
 
-        self.flip_swing_legs(self.swing_legs, x, y)
+        self.flip_swing_legs(self.swing_legs, x, y, flip_decision)
 
         if self.robot.mirrored:
             self.swing_legs = 1 - self.swing_legs
