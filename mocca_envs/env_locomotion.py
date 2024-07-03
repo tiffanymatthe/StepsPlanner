@@ -473,9 +473,10 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets[3:] += self.path_angle
 
         if self.robot.mirrored:
-            self.swing_legs = 1 - self.swing_legs
+            # self.swing_legs = 1 - self.swing_legs
             x *= -1
         else:
+            self.swing_legs = 1 - self.swing_legs
             heading_targets *= -1
 
         # switched dy and dx before, so need to rectify
