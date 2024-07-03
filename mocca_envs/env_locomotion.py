@@ -363,6 +363,7 @@ class Walker3DStepperEnv(EnvBase):
         self.reached_last_step = False
 
         self.legs_bonus = 0
+        self.heading_penalty = 0
 
         # Terrain info
         self.dist_range = np.array([0.65, 1])
@@ -683,7 +684,7 @@ class Walker3DStepperEnv(EnvBase):
         reward -= self.heading_penalty
 
         # if self.progress != 0:
-        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}") #, {self.legs_bonus}")
+        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_penalty}")
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -717,9 +718,10 @@ class Walker3DStepperEnv(EnvBase):
                     info["curriculum_metric"] = self.next_step_index + 1
                 else:
                     info["curriculum_metric"] = self.next_step_index
+                info["avg_heading_err"] = nanmean(self.heading_errors)
             else:
                 info["curriculum_metric"] = np.nan
-            info["avg_heading_err"] = nanmean(self.heading_errors)
+                info["avg_heading_err"] = np.nan
 
         return state, reward, self.done, info
 
@@ -815,9 +817,8 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if abs(self.heading_rad_to_target) >= 15 * DEG2RAD and self.target_reached and self.next_step_index > 3:
+        if abs(self.heading_rad_to_target) >= 5 * DEG2RAD and self.target_reached and self.next_step_index > 3:
             self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
-            self.heading_penalty *= 0.1
         else:
             self.heading_penalty = 0
 
