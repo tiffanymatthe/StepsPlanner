@@ -103,6 +103,7 @@ def main():
 
     xlim_max = float("-inf")
     for i, df in enumerate(data):
+        df.fillna(0, inplace=True)
         for j, column in enumerate(args.columns):
             b = df[args.row].iloc[-1]
             xlim_max = b if b > xlim_max else xlim_max
