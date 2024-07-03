@@ -17,10 +17,16 @@ os.sys.path.append(parent_dir)
 
 import torch
 
+from bottleneck import nanmean
+
 import mocca_envs
 from common.controller import MixedActor
 from common.envs_utils import make_env
 from common.misc_utils import EpisodeRunner
+
+import numpy as np
+DEG2RAD = np.pi / 180
+RAD2DEG = 180 / np.pi
 
 
 def main():
@@ -162,7 +168,7 @@ def main():
                     robot_headings = []
                     heading_targets = []
                     reached_steps = []
-                print("--- Episode reward:", ep_reward)
+                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg")
                 obs = env.reset(reset_runner=False)
                 ep_reward = 0
 
