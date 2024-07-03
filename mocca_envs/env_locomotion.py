@@ -328,7 +328,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = list(range(4,20))
+    stop_steps = [6, 7, 13, 14]
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -341,7 +341,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = 0
         self.max_curriculum = 9
-        self.advance_threshold = min(14, self.num_steps)  # steps_reached
+        self.advance_threshold = min(12, self.num_steps)  # steps_reached
 
         self.heading_errors = []
         self.match_feet = False
