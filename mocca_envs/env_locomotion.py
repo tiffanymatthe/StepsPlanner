@@ -1129,7 +1129,11 @@ class Walker3DStepperEnv(EnvBase):
                 else:
                     self.walk_target[0] -= self.foot_sep
         else:
-            self.walk_target = targets[self.walk_target_index, 0:3]
+            self.walk_target = np.copy(targets[self.walk_target_index, 0:3])
+            if self.swing_leg == 0:
+                self.walk_target[0] += self.foot_sep
+            else:
+                self.walk_target[0] -= self.foot_sep
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
