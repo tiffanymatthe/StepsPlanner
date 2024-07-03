@@ -317,9 +317,6 @@ class Walker3DStepperEnv(EnvBase):
         ]
     robot_init_velocity = None
 
-    pre_lift_count = 1000
-    ground_stay_count = 1500
-
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.20
@@ -347,6 +344,7 @@ class Walker3DStepperEnv(EnvBase):
         self.advance_threshold = min(14, self.num_steps)  # steps_reached
 
         self.heading_errors = []
+        self.match_feet = False
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -406,7 +404,93 @@ class Walker3DStepperEnv(EnvBase):
                 y[idx], y[idx + 1] = y[idx + 1], y[idx]
 
 
+    def generate_step_placements_normal(self):
+        # Check just in case
+        self.curriculum = min(self.curriculum, self.max_curriculum)
+        ratio = self.curriculum / self.max_curriculum
+
+        # {self.max_curriculum + 1} levels in total
+        dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
+        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        yaw_range = self.yaw_range * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD * 0
+
+        weights = np.linspace(1,10,self.curriculum+1)
+        weights /= sum(weights)
+        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+
+        N = self.num_steps
+        dr = self.np_random.uniform(*dist_range, size=N)
+        dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle
+        dtheta = self.np_random.uniform(*pitch_range, size=N)
+        x_tilt = self.np_random.uniform(*tilt_range, size=N)
+        y_tilt = self.np_random.uniform(*tilt_range, size=N)
+
+        # make first step below feet
+        dr[0] = 0.0
+        dphi[0] = 0.0
+        dtheta[0] = np.pi / 2
+
+        dr[1] = self.init_step_separation
+        dphi[1] = 0.0
+        dtheta[1] = np.pi / 2
+
+        x_tilt[0:2] = 0
+        y_tilt[0:2] = 0
+
+        dphi = np.cumsum(dphi)
+
+        dy = dr * np.sin(dtheta) * np.cos(dphi)
+        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dz = dr * np.cos(dtheta)
+
+        heading_targets = np.copy(dphi)
+
+        if not self.walk_forward:
+            dy *= -1
+
+        x = np.cumsum(dx)
+        y = np.cumsum(dy)
+        z = np.cumsum(dz)
+
+        self.swing_legs = np.ones(N, dtype=np.int8)
+
+        # Update x and y arrays
+        self.swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
+        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        x += np.where(self.swing_legs == 1, left_shifts[0], right_shifts[0])
+        y += np.where(self.swing_legs == 1, left_shifts[1], right_shifts[1])
+
+        heading_targets[3:] += self.path_angle
+
+        if self.robot.mirrored:
+            self.swing_legs = 1 - self.swing_legs
+            x *= -1
+        else:
+            heading_targets *= -1
+
+        # switched dy and dx before, so need to rectify
+        heading_targets += 90 * DEG2RAD
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, self.swing_legs), axis=1)
+    
+
     def generate_step_placements(self):
+        if self.match_feet:
+            return self.generate_step_placements_matched()
+        else:
+            return self.generate_step_placements_normal()
+
+    def generate_step_placements_matched(self):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
         ratio = self.curriculum / self.max_curriculum
@@ -1035,16 +1119,19 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle <= 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
-            # only change when moving leg in direction
-            if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
-                self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
-            else:
-                self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
-            if self.swing_leg == 1:
-                self.walk_target[0] += self.foot_sep
-            else:
-                self.walk_target[0] -= self.foot_sep
+        if self.match_feet:
+            if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle <= 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
+                # only change when moving leg in direction
+                if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
+                    self.walk_target = np.copy(self.terrain_info[self.next_step_index + 2, 0:3])
+                else:
+                    self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
+                if self.swing_leg == 1:
+                    self.walk_target[0] += self.foot_sep
+                else:
+                    self.walk_target[0] -= self.foot_sep
+        else:
+            self.walk_target = targets[self.walk_target_index, 0:3]
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
