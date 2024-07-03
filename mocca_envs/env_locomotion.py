@@ -454,10 +454,10 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        self.swing_legs = np.ones(N, dtype=np.int8)
+        swing_legs = np.ones(N, dtype=np.int8)
 
         # Update x and y arrays
-        self.swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
+        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
@@ -467,22 +467,22 @@ class Walker3DStepperEnv(EnvBase):
         left_shifts = np.flip(left_shifts, axis=0)
         right_shifts = np.flip(right_shifts, axis=0)
 
-        x += np.where(self.swing_legs == 1, left_shifts[0], right_shifts[0])
-        y += np.where(self.swing_legs == 1, left_shifts[1], right_shifts[1])
+        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
+        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
 
         heading_targets[3:] += self.path_angle
 
         if self.robot.mirrored:
-            # self.swing_legs = 1 - self.swing_legs
+            # swing_legs = 1 - swing_legs
             x *= -1
         else:
-            self.swing_legs = 1 - self.swing_legs
+            swing_legs = 1 - swing_legs
             heading_targets *= -1
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, self.swing_legs), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
     
 
     def generate_step_placements(self):
@@ -567,7 +567,7 @@ class Walker3DStepperEnv(EnvBase):
 
         x += shifts
 
-        self.swing_legs = np.ones(N, dtype=np.int8)
+        swing_legs = np.ones(N, dtype=np.int8)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
@@ -578,7 +578,7 @@ class Walker3DStepperEnv(EnvBase):
         right_shifts = np.flip(right_shifts, axis=0)
 
         # Update x and y arrays
-        self.swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
+        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
         # y[3] = y[1] + 0.2
         # x[3] /= 3
@@ -623,10 +623,10 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets[3:] += self.path_angle
 
-        self.flip_swing_legs(self.swing_legs, x, y, flip_decision)
+        self.flip_swing_legs(swing_legs, x, y, flip_decision)
 
         if self.robot.mirrored:
-            self.swing_legs = 1 - self.swing_legs
+            swing_legs = 1 - swing_legs
             x *= -1
         else:
             heading_targets *= -1
@@ -637,7 +637,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi = np.repeat(dphi, 2)
         heading_targets = np.repeat(heading_targets, 2) + 90 * DEG2RAD
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, self.swing_legs), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
     def create_terrain(self):
 
@@ -728,8 +728,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
-        self.swing_leg = self.swing_legs[self.next_step_index]
-        # print(f"swing legs {self.swing_legs}, with first at {self.swing_leg}")
+        self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
         self.calc_feet_state()
 
         # Reset camera
@@ -1030,13 +1029,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
                     if self.next_step_index < self.num_steps:
-                    #     self.swing_leg = (self.swing_leg + 1) % 2
-                        self.swing_leg = self.swing_legs[self.next_step_index]
-                    # if (
-                    #     self.next_step_index - 1 in self.stop_steps
-                    #     and self.next_step_index - 2 in self.stop_steps
-                    # ):
-                    #     self.swing_leg = 1 - self.swing_leg
+                        self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
                     self.target_reached_count = 0
                     self.swing_leg_lifted = False
                     self.swing_leg_lifted_count = 0
