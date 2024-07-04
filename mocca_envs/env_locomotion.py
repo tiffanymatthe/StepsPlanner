@@ -920,6 +920,7 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.legs_bonus = 0
+        self.heading_bonus = 0
 
         # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
@@ -935,10 +936,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if self.target_reached:
-            self.heading_bonus = np.exp(-0.5 * abs(self.heading_rad_to_target) **2)
-        else:
-            self.heading_bonus = 0
+        # if self.target_reached:
+        #     self.heading_bonus = np.exp(-0.5 * abs(self.heading_rad_to_target) **2)
+        # else:
+        #     self.heading_bonus = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
