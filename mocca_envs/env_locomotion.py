@@ -464,6 +464,8 @@ class Walker3DStepperEnv(EnvBase):
 
         dy[self.stop_steps[1::2]] = 0
         dy[-1] = 0
+        dx[self.stop_steps[1::2]] = 0
+        dx[-1] = 0
 
         heading_targets = np.copy(dphi)
 
