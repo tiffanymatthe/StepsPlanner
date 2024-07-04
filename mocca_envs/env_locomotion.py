@@ -328,7 +328,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = list(range(4,20)) #  [6, 7, 13, 14]
+    stop_steps = [6, 7, 13, 14] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
         self.advance_threshold = min(12, self.num_steps)  # steps_reached
 
         self.heading_errors = []
-        self.match_feet = True
+        self.match_feet = False
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -445,8 +445,7 @@ class Walker3DStepperEnv(EnvBase):
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
 
-        dy[7] = 0
-        dy[14] = 0
+        dy[self.stop_steps[1::2]] = 0
         dy[-1] = 0
 
         heading_targets = np.copy(dphi)
@@ -893,11 +892,11 @@ class Walker3DStepperEnv(EnvBase):
         # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
         #     self.legs_bonus -= 1
 
-        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        # if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
-        #     # allow negative tilt since on heels
-        #     self.legs_bonus -= abs(swing_foot_tilt) * 2
+        if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
+            # allow negative tilt since on heels
+            self.legs_bonus -= abs(swing_foot_tilt) * 2
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
