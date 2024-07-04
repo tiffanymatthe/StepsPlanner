@@ -11,8 +11,6 @@ import os
 import time
 from collections import deque
 
-from bottleneck import nanmean
-
 current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
 os.sys.path.insert(0, parent_dir)
@@ -44,7 +42,6 @@ def configs():
     # Env settings
     use_mirror = True
     use_curriculum = False
-    plank_class = "VeryLargePlank"
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -94,7 +91,7 @@ def main(_seed, _config, _run):
     env_name_parts = env_name.split(":")
     save_name = "-".join(env_name_parts) if len(env_name_parts) > 1 else env_name
 
-    env_kwargs = {"plank_class": args.plank_class}
+    env_kwargs = {}
 
     dummy_env = make_env(env_name, **env_kwargs)
 
@@ -170,8 +167,6 @@ def main(_seed, _config, _run):
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
-    curriculum_metrics = deque(maxlen=args.num_processes)
-    avg_heading_errs = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -212,10 +207,6 @@ def main(_seed, _config, _run):
                     # This information is added by common.envs_utils.Monitor
                     if "episode" in info:
                         episode_rewards.append(info["episode"]["r"])
-                    if "curriculum_metric" in info:
-                        curriculum_metrics.append(info["curriculum_metric"])
-                    if "avg_heading_err" in info:
-                        avg_heading_errs.append(info["avg_heading_err"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -228,18 +219,6 @@ def main(_seed, _config, _run):
                 )
 
             next_value = actor_critic.get_value(rollouts.observations[-1]).detach()
-
-            # Update curriculum after roll-out
-            if (
-                args.use_curriculum
-                and len(curriculum_metrics) > 0
-                and nanmean(curriculum_metrics)
-                > advance_threshold
-                and nanmean(avg_heading_errs) < 5 * DEG2RAD
-                and current_curriculum < max_curriculum
-            ):
-                current_curriculum += 1
-                envs.set_env_params({"curriculum": current_curriculum})
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
@@ -263,14 +242,10 @@ def main(_seed, _config, _run):
 
         if len(episode_rewards) > 1:
             end = time.time()
-            mean_metric = nanmean(curriculum_metrics)
-            heading_metric = nanmean(avg_heading_errs)
             logger.log_epoch(
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
-                    "curriculum_metric": mean_metric,
-                    "avg_heading_err": heading_metric,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,

@@ -309,6 +309,8 @@ class Walker3DStepperEnv(EnvBase):
     sim_frame_skip = 4
     max_timestep = 1000
 
+    plank_class = VeryLargePlank
+
     robot_class = Walker3D
     robot_random_start = True
     robot_init_position = [0, 0, 1.32]
@@ -364,13 +366,9 @@ class Walker3DStepperEnv(EnvBase):
             mirror=True # allow random chance of mirroring robot
         )
 
-        self.calc_feet_state()
-
         # Reset camera
         if self.is_rendered or self.use_egl:
             self.camera.lookat(self.robot.body_xyz)
-
-        self.calc_potential()
 
         state = self.robot_state
 
@@ -481,9 +479,7 @@ class Walker3DStepperEnv(EnvBase):
             )
         )
 
-        negation_obs_indices = concatenate(
-            (robot_neg_obs_indices, self.robot_obs_dim)
-        )
+        negation_obs_indices = robot_neg_obs_indices
 
         # Used for creating mirrored actions
         negation_action_indices = self.robot._negation_joint_indices

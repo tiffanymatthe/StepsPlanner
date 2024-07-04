@@ -43,7 +43,6 @@ class ConsoleCSVLogger(CSVLogger):
             (
                 f'Updates {data["iter"]}, '
                 f'curriculum {data["curriculum"]}, '
-                f'curriculum metric {data["curriculum_metric"]:.2f}, '
                 f'num timesteps {data["total_num_steps"]}, '
                 f'FPS {data["fps"]}, '
                 f'mean/median reward {data["mean_rew"]:.1f}/{data["median_rew"]:.1f}, '
