@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
         self.advance_threshold = min(12, self.num_steps)  # steps_reached
 
         self.heading_errors = []
-        self.match_feet = False
+        self.match_feet = True
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -1126,7 +1126,7 @@ class Walker3DStepperEnv(EnvBase):
                 if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
                     match_walk_target_index = self.next_step_index + 2
                 self.walk_target = np.copy(self.terrain_info[match_walk_target_index, 0:3])
-                if int(targets[match_walk_target_index, 7]) == 1:
+                if int(self.terrain_info[match_walk_target_index, 7]) == 1:
                     self.walk_target[0] += self.foot_sep
                 else:
                     self.walk_target[0] -= self.foot_sep
