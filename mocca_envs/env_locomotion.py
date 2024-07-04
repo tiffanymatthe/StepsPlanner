@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.match_feet = False
         self.allow_swing_leg_switch = True
-        self.heading_penalty_weight = 0
+        self.heading_bonus_weight = 0
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -363,7 +363,7 @@ class Walker3DStepperEnv(EnvBase):
         self.reached_last_step = False
 
         self.legs_bonus = 0
-        self.heading_penalty = 0
+        self.heading_bonus = 0
 
         # Terrain info
         self.dist_range = np.array([0.65, 1])
@@ -800,10 +800,10 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        reward -= self.heading_penalty * self.heading_penalty_weight
+        reward += self.heading_bonus * self.heading_bonus_weight
 
         # if self.progress != 0:
-        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_penalty}")
+        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten()))
@@ -918,11 +918,6 @@ class Walker3DStepperEnv(EnvBase):
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
 
         self.legs_bonus = 0
-        # if self.swing_leg_lifted and 1 <= self.swing_leg_lifted_count <= 3 and self._foot_target_contacts[self.swing_leg, 0] == 0:
-        #     self.legs_bonus += 1
-
-        # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
-        #     self.legs_bonus -= 1
 
         # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
@@ -938,10 +933,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if abs(self.heading_rad_to_target) >= 5 * DEG2RAD and self.target_reached and self.next_step_index > 3:
-            self.heading_penalty = - np.exp(-0.5 * abs(self.heading_rad_to_target) **2) + 1
-        else:
-            self.heading_penalty = 0
+        self.heading_bonus = np.exp(-0.5 * abs(self.heading_rad_to_target) **2)
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
