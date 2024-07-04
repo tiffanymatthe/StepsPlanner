@@ -857,8 +857,6 @@ class Walker3DStepperEnv(EnvBase):
         self.progress = linear_progress
         if self.match_feet:
             self.progress *= 1.5
-        else:
-            self.progress *= 2
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -895,11 +893,11 @@ class Walker3DStepperEnv(EnvBase):
         # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
         #     self.legs_bonus -= 1
 
-        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
-            # allow negative tilt since on heels
-            self.legs_bonus -= abs(swing_foot_tilt) * 2
+        # if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
+        #     # allow negative tilt since on heels
+        #     self.legs_bonus -= abs(swing_foot_tilt) * 2
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
