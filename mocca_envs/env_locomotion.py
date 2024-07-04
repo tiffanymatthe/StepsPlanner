@@ -393,14 +393,8 @@ class Walker3DStepperEnv(EnvBase):
         state = self.robot_state
 
         if self.is_rendered or self.use_egl:
-            self._handle_keyboard(callback=self.handle_keyboard)
+            self._handle_keyboard()
             self.camera.track(pos=self.robot.body_xyz)
-            self.target.set_position(pos=self.walk_target)
-            self.target.set_color(
-                Colors["dodgerblue"]
-                if self.distance_to_target < 0.15
-                else Colors["crimson"]
-            )
 
         info = {}
 

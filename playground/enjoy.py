@@ -48,7 +48,6 @@ def main():
     parser.add_argument("--plot", type=int, default=1)
     parser.add_argument("--render", type=int, default=1)
     parser.add_argument("--save", type=int, default=0)
-    parser.add_argument("--heading", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--ffmpeg", type=int, default=0)
     parser.add_argument("--csv", type=str, default=None)
     args = parser.parse_args()
@@ -116,10 +115,6 @@ def main():
         env.camera._cam_yaw = 90
         ep_reward = 0
 
-        robot_headings = []
-        heading_targets = []
-        reached_steps = []
-
         controller = actor_critic.actor
 
         done = False
@@ -136,39 +131,13 @@ def main():
             else:
                 action = controller(obs)
 
-            if args.heading:
-                robot_headings.append(env.robot.body_rpy[2])
-                heading_targets.append(env.terrain_info[:,6][env.next_step_index])
-                reached_steps.append(env.target_reached)
-
             cpu_actions = action.squeeze().cpu().numpy()
             obs, reward, done, _ = env.step(cpu_actions)
             env.camera.lookat(env.robot.body_xyz)
             ep_reward += reward
 
             if done:
-                if args.heading:
-                    plt.plot(heading_targets, label="Target")
-                    # avg_heading = ema(np.array(robot_headings))
-                    # plt.plot(avg_heading, label="Robot Heading EMA")
-                    plt.plot(robot_headings, label="Actual")
-                    # plt.plot(butt_headings, label="butt heading")
-                    # plt.plot(l_headings, label="left foot heading")
-                    # plt.plot(r_headings, label="right foot heading")
-                    # plt.plot(np.array(l_headings)/2 + np.array(r_headings)/2, label="Avg foot heading")
-                    steps = np.multiply(reached_steps, robot_headings)
-                    steps[steps==0] = np.nan
-                    plt.plot(steps, 'o', mfc='none', label="step reached")
-                    plt.legend()
-                    steps = np.ma.array(steps, mask=np.isnan(steps))
-                    heading_targets = np.ma.array(heading_targets, mask=np.isnan(steps))
-                    mse = np.square(steps - heading_targets).mean()
-                    plt.title(f"MSE at steps: {mse}")
-                    plt.show()
-                    robot_headings = []
-                    heading_targets = []
-                    reached_steps = []
-                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg")
+                print(f"--- Episode reward: {ep_reward}")
                 obs = env.reset(reset_runner=False)
                 ep_reward = 0
 
