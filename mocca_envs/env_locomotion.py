@@ -345,6 +345,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.match_feet = False
+        self.allow_swing_leg_switch = True
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -478,14 +479,15 @@ class Walker3DStepperEnv(EnvBase):
         # Update x and y arrays
         swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
-        flip_array = np.zeros(N, dtype=np.int8)
-        toggle_indices = np.array(self.stop_steps[1::2]) + 1
-        random_choices = np.random.choice([True, False], size=len(toggle_indices))
-        flip_array[toggle_indices[random_choices]] = 1
-        toggle_cumsum = np.cumsum(flip_array)
-        flip_array[toggle_cumsum % 2 == 1] = 1
+        if self.allow_swing_leg_switch:
+            flip_array = np.zeros(N, dtype=np.int8)
+            toggle_indices = np.array(self.stop_steps[1::2]) + 1
+            random_choices = np.random.choice([True, False], size=len(toggle_indices))
+            flip_array[toggle_indices[random_choices]] = 1
+            toggle_cumsum = np.cumsum(flip_array)
+            flip_array[toggle_cumsum % 2 == 1] = 1
 
-        # self.flip_swing_legs_normal(swing_legs, flip_array)
+            self.flip_swing_legs_normal(swing_legs, flip_array)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
