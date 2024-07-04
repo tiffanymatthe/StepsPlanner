@@ -345,7 +345,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.match_feet = False
-        self.allow_swing_leg_switch = True
+        self.allow_swing_leg_switch = False
 
         # Robot settings
         N = self.max_curriculum + 1
