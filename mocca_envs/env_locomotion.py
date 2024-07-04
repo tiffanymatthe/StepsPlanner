@@ -390,7 +390,7 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def flip_swing_legs(self, swing_legs, x, y, flip_array=None):
-        pair_indices = np.arange(0, len(swing_legs), 2)
+        pair_indices = np.arange(0, len(swing_legs), 2) if len(flip_array) > len(swing_legs) else np.arange(0, len(swing_legs))
         if flip_array is None:
             flip_decision = np.random.rand(len(pair_indices)) < 0.5
             # do not do 01 and 23 and 45
@@ -398,10 +398,26 @@ class Walker3DStepperEnv(EnvBase):
         else: 
             flip_decision = flip_array
         for idx, flip in zip(pair_indices, flip_decision):
+            if idx == len(flip_array) - 1:
+                break
             if flip:
                 swing_legs[idx], swing_legs[idx + 1] = swing_legs[idx + 1], swing_legs[idx]
                 x[idx], x[idx + 1] = x[idx+1], x[idx]
                 y[idx], y[idx + 1] = y[idx + 1], y[idx]
+
+    def flip_swing_legs_normal(self, swing_legs, flip_array=None):
+        pair_indices = np.arange(0, len(swing_legs), 2) if len(flip_array) > len(swing_legs) else np.arange(0, len(swing_legs))
+        if flip_array is None:
+            flip_decision = np.random.rand(len(pair_indices)) < 0.5
+            # do not do 01 and 23 and 45
+            flip_decision[:3] = False
+        else: 
+            flip_decision = flip_array
+        for idx, flip in zip(pair_indices, flip_decision):
+            if idx == len(flip_array) - 1:
+                break
+            if flip:
+                swing_legs[idx], swing_legs[idx + 1] = swing_legs[idx + 1], swing_legs[idx]
 
 
     def generate_step_placements_normal(self):
@@ -422,7 +438,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
-        dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle
+        dphi = self.np_random.uniform(*yaw_range, size=N) # + self.path_angle
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -462,6 +478,15 @@ class Walker3DStepperEnv(EnvBase):
         # Update x and y arrays
         swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
+        flip_array = np.zeros(N, dtype=np.int8)
+        toggle_indices = np.array(self.stop_steps[1::2]) + 1
+        random_choices = np.random.choice([True, False], size=len(toggle_indices))
+        flip_array[toggle_indices[random_choices]] = 1
+        toggle_cumsum = np.cumsum(flip_array)
+        flip_array[toggle_cumsum % 2 == 1] = 1
+
+        self.flip_swing_legs_normal(swing_legs, flip_array)
+
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
         right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
@@ -484,6 +509,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
+
+        dphi *= 0
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
     
