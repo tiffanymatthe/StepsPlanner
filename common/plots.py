@@ -6,6 +6,9 @@ Ploting utility for plotting dynamically changing data with Matplotlib
 from __future__ import absolute_import, division, print_function
 from builtins import bytes, str, open, super, range, zip, round, input, int, pow, object
 
+import warnings
+warnings.filterwarnings("ignore")
+
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib
 import warnings
