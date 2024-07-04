@@ -345,7 +345,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.match_feet = False
-        self.allow_swing_leg_switch = False
+        self.allow_swing_leg_switch = True
+        self.heading_penalty_weight = 0
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -799,7 +800,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        reward -= self.heading_penalty * 5
+        reward -= self.heading_penalty * self.heading_penalty_weight
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_penalty}")
