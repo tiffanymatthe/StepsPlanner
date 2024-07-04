@@ -888,6 +888,8 @@ class Walker3DStepperEnv(EnvBase):
         self.progress = linear_progress
         if self.match_feet:
             self.progress *= 1.5
+        else:
+            self.progress *= 1.5
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
