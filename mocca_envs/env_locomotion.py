@@ -320,8 +320,8 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.20
-    foot_sep = 0.16
-    rendered_step_count = 12
+    foot_sep = 0.15
+    rendered_step_count = 20
     init_step_separation = 0.70
 
     lookahead = 2
@@ -444,6 +444,10 @@ class Walker3DStepperEnv(EnvBase):
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
+
+        dy[7] = 0
+        dy[14] = 0
+        dy[-1] = 0
 
         heading_targets = np.copy(dphi)
 
