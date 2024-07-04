@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.match_feet = False
         self.allow_swing_leg_switch = False
-        self.heading_bonus_weight = 1
+        self.heading_bonus_weight = 0
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -889,7 +889,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.match_feet:
             self.progress *= 1.5
         else:
-            self.progress *= 1
+            self.progress *= 2
 
         # if self.next_step_index != self._prev_next_step_index:
         #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
@@ -936,10 +936,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        # if self.target_reached:
-        #     self.heading_bonus = np.exp(-0.5 * abs(self.heading_rad_to_target) **2)
-        # else:
-        #     self.heading_bonus = 0
+        if self.target_reached:
+            self.heading_bonus = np.exp(-0.5 * abs(self.heading_rad_to_target) **2)
+        else:
+            self.heading_bonus = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
