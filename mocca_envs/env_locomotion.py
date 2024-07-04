@@ -485,7 +485,7 @@ class Walker3DStepperEnv(EnvBase):
         toggle_cumsum = np.cumsum(flip_array)
         flip_array[toggle_cumsum % 2 == 1] = 1
 
-        self.flip_swing_legs_normal(swing_legs, flip_array)
+        # self.flip_swing_legs_normal(swing_legs, flip_array)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
@@ -795,7 +795,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        reward -= self.heading_penalty * 10
+        reward -= self.heading_penalty * 5
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_penalty}")
@@ -919,11 +919,11 @@ class Walker3DStepperEnv(EnvBase):
         # if abs(self.robot.body_rpy[2]) > 15 * DEG2RAD or abs(self.robot.lower_body_rpy[2]) > 15 * DEG2RAD:
         #     self.legs_bonus -= 1
 
-        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
-            # allow negative tilt since on heels
-            self.legs_bonus -= abs(swing_foot_tilt) * 2
+        # if self.target_reached and swing_foot_tilt > 5 * DEG2RAD:
+        #     # allow negative tilt since on heels
+        #     self.legs_bonus -= abs(swing_foot_tilt) * 2
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
