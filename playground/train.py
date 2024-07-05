@@ -61,7 +61,7 @@ def configs():
     # Auxiliary configurations
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     seed = 16
-    save_every = int(num_frames // 20)
+    save_every = int(num_frames // 5)
     log_interval = 2
     net = None
 
