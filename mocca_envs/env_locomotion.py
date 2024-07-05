@@ -345,8 +345,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.match_feet = False
-        self.allow_swing_leg_switch = True
+        self.allow_swing_leg_switch = False
         self.heading_bonus_weight = 1
+        self.tilt_bonus_weight = 3
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -926,7 +927,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.target_reached and swing_foot_tilt <= 5 * DEG2RAD:
             # allow negative tilt since on heels
-            self.legs_bonus += 1
+            self.legs_bonus += 1 * self.tilt_bonus_weight
             # self.legs_bonus -= abs(swing_foot_tilt) * 2
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
