@@ -347,7 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         self.match_feet = False
         self.allow_swing_leg_switch = False
         self.heading_bonus_weight = 1
-        self.tilt_bonus_weight = 3
+        self.tilt_bonus_weight = 1
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -435,9 +435,10 @@ class Walker3DStepperEnv(EnvBase):
         pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD * 0
 
-        weights = np.linspace(1,10,self.curriculum+1)
-        weights /= sum(weights)
-        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        # weights = np.linspace(1,10,self.curriculum+1)
+        # weights /= sum(weights)
+        # self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
@@ -689,12 +690,17 @@ class Walker3DStepperEnv(EnvBase):
 
         # One big step for all
         p = self.plank_class(self._p, self.step_radius, options=options)
-        for index in range(self.rendered_step_count):
-            # p = self.plank_class(self._p, self.step_radius, options=options)
-            self.steps.append(p)
-            self.rendered_steps.append(VBox(self._p, radius=self.step_radius, length=0.005, pos=None))
-            step_ids = step_ids | {(p.id, p.base_id)}
-            cover_ids = cover_ids | {(p.id, p.cover_id)}
+        self.steps.append(p)
+        step_ids = step_ids | {(p.id, p.base_id)}
+        cover_ids = cover_ids | {(p.id, p.cover_id)}
+        if self.is_rendered or self.use_egl:
+            for index in range(self.rendered_step_count):
+                # # p = self.plank_class(self._p, self.step_radius, options=options)
+                # self.steps.append(p)
+                if self.is_rendered or self.use_egl:
+                    self.rendered_steps.append(VBox(self._p, radius=self.step_radius, length=0.005, pos=None))
+                # step_ids = step_ids | {(p.id, p.base_id)}
+                # cover_ids = cover_ids | {(p.id, p.cover_id)}
 
         # Need set for detecting contact
         self.all_contact_object_ids = set(step_ids) | set(cover_ids)
@@ -707,14 +713,14 @@ class Walker3DStepperEnv(EnvBase):
         pos = self.terrain_info[info_index, 0:3]
         phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
-        # self.steps[step_index].set_position(pos=pos, quat=quaternion)
         self.rendered_steps[step_index].set_position(pos=pos, quat=quaternion)
 
     def randomize_terrain(self, replace=True):
         if replace:
             self.terrain_info = self.generate_step_placements()
-        for index in range(self.rendered_step_count):
-            self.set_step_state(index, index)
+        if self.is_rendered or self.use_egl:
+            for index in range(self.rendered_step_count):
+                self.set_step_state(index, index)
 
     def update_steps(self):
         if self.rendered_step_count == self.num_steps:
@@ -965,11 +971,8 @@ class Walker3DStepperEnv(EnvBase):
 
     def calc_feet_state(self):
         # Calculate contact separately for step
-        target_cover_index = self.next_step_index % self.rendered_step_count
-        next_step = self.steps[target_cover_index]
-
-        curr_cover_index = (self.next_step_index - 1) % self.rendered_step_count
-        curr_step = self.steps[curr_cover_index]
+        # target_cover_index = self.next_step_index % self.rendered_step_count
+        next_step = self.steps[0]
 
         self.foot_dist_to_target = np.sqrt(
             ss(
@@ -986,11 +989,8 @@ class Walker3DStepperEnv(EnvBase):
 
         robot_id = self.robot.id
         client_id = self._p._client
-        target_id_list = [[next_step.id],[curr_step.id]]
-        target_cover_id_list = [[next_step.cover_id],[curr_step.cover_id]]
-        if self.swing_leg == 1:
-            target_id_list.reverse()
-            target_cover_id_list.reverse()
+        target_id_list = [next_step.id]
+        target_cover_id_list = [next_step.cover_id]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -999,8 +999,8 @@ class Walker3DStepperEnv(EnvBase):
             self.robot.feet_contact[i] = pybullet.getContactStates(
                 bodyA=robot_id,
                 linkIndexA=foot.bodyPartIndex,
-                bodiesB=target_id_list[i],
-                linkIndicesB=target_cover_id_list[i],
+                bodiesB=target_id_list,
+                linkIndicesB=target_cover_id_list,
                 results=contact,
                 physicsClientId=client_id,
             )
