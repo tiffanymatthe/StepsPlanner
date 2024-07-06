@@ -347,6 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         self.match_feet = False
         self.allow_swing_leg_switch = True
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
+        self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
 
         # Robot settings
@@ -945,7 +946,7 @@ class Walker3DStepperEnv(EnvBase):
             self.legs_bonus -= 100
 
         if self.target_reached:
-            self.heading_bonus = np.exp(-0.5 * abs(self.heading_rad_to_target) **2)
+            self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) **2)
         else:
             self.heading_bonus = 0
 

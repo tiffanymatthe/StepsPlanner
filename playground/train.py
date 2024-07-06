@@ -46,6 +46,7 @@ def configs():
     use_curriculum = False
     plank_class = "VeryLargePlank"
     heading_bonus_weight = 1
+    gauss_width = 0.5
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -95,7 +96,11 @@ def main(_seed, _config, _run):
     env_name_parts = env_name.split(":")
     save_name = "-".join(env_name_parts) if len(env_name_parts) > 1 else env_name
 
-    env_kwargs = {"plank_class": args.plank_class, "heading_bonus_weight": args.heading_bonus_weight}
+    env_kwargs = {
+        "plank_class": args.plank_class,
+        "heading_bonus_weight": args.heading_bonus_weight,
+        "gauss_width": args.gauss_width,
+    }
 
     dummy_env = make_env(env_name, **env_kwargs)
 
