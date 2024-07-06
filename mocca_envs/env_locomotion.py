@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.match_feet = False
         self.allow_swing_leg_switch = True
-        self.heading_bonus_weight = 1
+        self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.tilt_bonus_weight = 1
 
         # Robot settings
