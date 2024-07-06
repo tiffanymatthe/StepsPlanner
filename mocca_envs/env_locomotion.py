@@ -420,7 +420,7 @@ class Walker3DStepperEnv(EnvBase):
             if idx == len(flip_array) - 1:
                 break
             if flip:
-                swing_legs[idx], swing_legs[idx + 1] = swing_legs[idx + 1], swing_legs[idx]
+                swing_legs[idx] = 1 - swing_legs[idx]
 
 
     def generate_step_placements_normal(self):
@@ -491,6 +491,7 @@ class Walker3DStepperEnv(EnvBase):
             flip_array[toggle_indices[random_choices]] = 1
             toggle_cumsum = np.cumsum(flip_array)
             flip_array[toggle_cumsum % 2 == 1] = 1
+            flip_array[toggle_cumsum % 2 == 0] = 0
 
             self.flip_swing_legs_normal(swing_legs, flip_array)
 
