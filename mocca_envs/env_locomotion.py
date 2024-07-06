@@ -328,7 +328,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [4, 5, 8, 9, 13, 14] # list(range(4,20))
+    stop_steps = [4, 5, 8, 9, 13, 14, 18, 19] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -409,7 +409,7 @@ class Walker3DStepperEnv(EnvBase):
                 y[idx], y[idx + 1] = y[idx + 1], y[idx]
 
     def flip_swing_legs_normal(self, swing_legs, flip_array=None):
-        pair_indices = np.arange(0, len(swing_legs), 2) if len(flip_array) > len(swing_legs) else np.arange(0, len(swing_legs))
+        pair_indices = np.arange(0, len(swing_legs))
         if flip_array is None:
             flip_decision = np.random.rand(len(pair_indices)) < 0.5
             # do not do 01 and 23 and 45
@@ -417,8 +417,6 @@ class Walker3DStepperEnv(EnvBase):
         else: 
             flip_decision = flip_array
         for idx, flip in zip(pair_indices, flip_decision):
-            if idx == len(flip_array) - 1:
-                break
             if flip:
                 swing_legs[idx] = 1 - swing_legs[idx]
 
@@ -466,9 +464,7 @@ class Walker3DStepperEnv(EnvBase):
         dz = dr * np.cos(dtheta)
 
         dy[self.stop_steps[1::2]] = 0
-        dy[-1] = 0
         dx[self.stop_steps[1::2]] = 0
-        dx[-1] = 0
 
         heading_targets = np.copy(dphi)
 
@@ -485,11 +481,13 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
         if self.allow_swing_leg_switch:
-            flip_array = np.zeros(N, dtype=np.int8)
+            flip_array = np.zeros(N + 1, dtype=np.int8)
             toggle_indices = np.array(self.stop_steps[1::2]) + 1
             random_choices = np.random.choice([True, False], size=len(toggle_indices))
             flip_array[toggle_indices[random_choices]] = 1
             toggle_cumsum = np.cumsum(flip_array)
+            toggle_cumsum = toggle_cumsum[:-1]
+            flip_array = flip_array[:-1]
             flip_array[toggle_cumsum % 2 == 1] = 1
             flip_array[toggle_cumsum % 2 == 0] = 0
 
@@ -699,7 +697,7 @@ class Walker3DStepperEnv(EnvBase):
                 # # p = self.plank_class(self._p, self.step_radius, options=options)
                 # self.steps.append(p)
                 if self.is_rendered or self.use_egl:
-                    self.rendered_steps.append(VBox(self._p, radius=self.step_radius, length=0.005, pos=None))
+                    self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
                 # step_ids = step_ids | {(p.id, p.base_id)}
                 # cover_ids = cover_ids | {(p.id, p.cover_id)}
 
@@ -714,7 +712,7 @@ class Walker3DStepperEnv(EnvBase):
         pos = self.terrain_info[info_index, 0:3]
         phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
-        self.rendered_steps[step_index].set_position(pos=pos, quat=quaternion)
+        self.rendered_steps[step_index].set_position(pos=pos) #, quat=quaternion)
 
     def randomize_terrain(self, replace=True):
         if replace:
