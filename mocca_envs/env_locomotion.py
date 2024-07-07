@@ -721,8 +721,7 @@ class Walker3DStepperEnv(EnvBase):
             for index in range(self.rendered_step_count):
                 # # p = self.plank_class(self._p, self.step_radius, options=options)
                 # self.steps.append(p)
-                if self.is_rendered or self.use_egl:
-                    self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
+                self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
                 # step_ids = step_ids | {(p.id, p.base_id)}
                 # cover_ids = cover_ids | {(p.id, p.cover_id)}
 
@@ -747,7 +746,7 @@ class Walker3DStepperEnv(EnvBase):
                 self.set_step_state(index, index)
 
     def update_steps(self):
-        if self.rendered_step_count == self.num_steps:
+        if self.rendered_step_count == self.num_steps or not (self.is_rendered or self.use_egl):
             return
 
         if self.next_step_index >= self.rendered_step_count:
