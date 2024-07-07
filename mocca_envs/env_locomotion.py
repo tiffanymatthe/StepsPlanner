@@ -349,6 +349,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
+        self.past_last_step = False
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -516,6 +517,10 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
+
+        # vary heading targets to be either 0 diff from prev heading, or half, or full
+        choices = np.array([0, 0.5, 1])
+        heading_targets = heading_targets - np.diff(heading_targets, prepend=0) * self.np_random.choice(choices, size=N)
 
         dphi *= 0
 
@@ -745,6 +750,7 @@ class Walker3DStepperEnv(EnvBase):
         self.body_stationary_count = 0
 
         self.heading_errors = []
+        self.past_last_step = False
 
         self.reached_last_step = False
 
@@ -1047,7 +1053,9 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
-        if self.target_reached:
+        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
+
+        if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
 
         if self.target_reached:
