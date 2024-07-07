@@ -924,8 +924,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.progress *= 2
 
-        if self.next_step_index != self._prev_next_step_index:
-            print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
+        # if self.next_step_index != self._prev_next_step_index:
+        #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
         #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
         #     print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
         #     print(f"Next step position: {self.terrain_info[self.next_step_index]}")
