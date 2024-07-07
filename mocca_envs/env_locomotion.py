@@ -530,9 +530,9 @@ class Walker3DStepperEnv(EnvBase):
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
 
-        # vary heading targets to be either 0 diff from prev heading, or half, or full
-        choices = np.array([0, 0.5, 1])
-        heading_targets = heading_targets - np.diff(heading_targets, prepend=0) * self.np_random.choice(choices, size=N)
+        # # vary heading targets to be either 0 diff from prev heading, or half, or full
+        # choices = np.array([0, 0.5, 1])
+        # heading_targets = heading_targets - np.diff(heading_targets, prepend=0) * self.np_random.choice(choices, size=N)
 
         dphi *= 0
 
