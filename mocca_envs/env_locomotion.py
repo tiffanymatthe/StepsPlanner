@@ -346,6 +346,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.match_feet = False
         self.allow_swing_leg_switch = True
+        self.allow_backward_switch = True
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -423,6 +424,19 @@ class Walker3DStepperEnv(EnvBase):
                 swing_legs[idx] = 1 - swing_legs[idx]
 
 
+    def get_random_flip_array(self, N):
+        flip_array = np.zeros(N + 1, dtype=np.int8)
+        toggle_indices = np.array(self.stop_steps[1::2]) + 1
+        random_choices = np.random.choice([True, False], size=len(toggle_indices))
+        flip_array[toggle_indices[random_choices]] = 1
+        toggle_cumsum = np.cumsum(flip_array)
+        toggle_cumsum = toggle_cumsum[:-1]
+        flip_array = flip_array[:-1]
+        flip_array[toggle_cumsum % 2 == 1] = 1
+        flip_array[toggle_cumsum % 2 == 0] = 0
+        return flip_array
+
+
     def generate_step_placements_normal(self):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
@@ -461,6 +475,18 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi = np.cumsum(dphi)
 
+        swing_legs = np.ones(N, dtype=np.int8)
+
+        # Update x and y arrays
+        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
+
+        if not self.walk_forward:
+            swing_legs = 1 - swing_legs
+
+        if self.allow_swing_leg_switch:
+            flip_array = self.get_random_flip_array(N)
+            self.flip_swing_legs_normal(swing_legs, flip_array)
+
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
@@ -473,27 +499,13 @@ class Walker3DStepperEnv(EnvBase):
         if not self.walk_forward:
             dy *= -1
 
+        if self.allow_backward_switch:
+            backward_switch_array = self.get_random_flip_array(N)
+            dy[backward_switch_array.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
+
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
-
-        swing_legs = np.ones(N, dtype=np.int8)
-
-        # Update x and y arrays
-        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
-
-        if self.allow_swing_leg_switch:
-            flip_array = np.zeros(N + 1, dtype=np.int8)
-            toggle_indices = np.array(self.stop_steps[1::2]) + 1
-            random_choices = np.random.choice([True, False], size=len(toggle_indices))
-            flip_array[toggle_indices[random_choices]] = 1
-            toggle_cumsum = np.cumsum(flip_array)
-            toggle_cumsum = toggle_cumsum[:-1]
-            flip_array = flip_array[:-1]
-            flip_array[toggle_cumsum % 2 == 1] = 1
-            flip_array[toggle_cumsum % 2 == 0] = 0
-
-            self.flip_swing_legs_normal(swing_legs, flip_array)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
@@ -523,6 +535,13 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets = heading_targets - np.diff(heading_targets, prepend=0) * self.np_random.choice(choices, size=N)
 
         dphi *= 0
+
+        # print(swing_legs)
+        # print(x)
+        # print(backward_switch_array)
+
+        # assert np.all(x[swing_legs == 0] > 0), "Not all elements at indices of 0 are positive"
+        # assert np.all(x[swing_legs == 1] < 0), "Not all elements at indices of 1 are negative"
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
     
@@ -760,7 +779,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         prev_forward = self.walk_forward
-        self.walk_forward = True # self.np_random.choice([True, False], p=[0.35, 0.65])
+        self.walk_forward = self.np_random.choice([True, False]) #, p=[0.35, 0.65])
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position[self.walk_forward],
@@ -905,8 +924,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.progress *= 2
 
-        # if self.next_step_index != self._prev_next_step_index:
-        #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
+        if self.next_step_index != self._prev_next_step_index:
+            print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
         #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
         #     print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
         #     print(f"Next step position: {self.terrain_info[self.next_step_index]}")
