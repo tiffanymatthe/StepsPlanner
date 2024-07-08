@@ -319,8 +319,8 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.2
-    foot_sep = 0.15
+    step_radius = 0.25
+    foot_sep = 0.16
     rendered_step_count = 3
     init_step_separation = 0.70
 
@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.match_feet = False
         self.allow_swing_leg_switch = True
-        self.allow_backward_switch = True
+        self.allow_backward_switch = False
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -780,7 +780,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         prev_forward = self.walk_forward
-        self.walk_forward = self.np_random.choice([True, False]) #, p=[0.35, 0.65])
+        self.walk_forward = True # self.np_random.choice([True, False]) #, p=[0.35, 0.65])
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position[self.walk_forward],
