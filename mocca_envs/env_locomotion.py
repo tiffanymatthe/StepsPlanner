@@ -372,7 +372,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus = 0
 
         # Terrain info
-        self.dist_range = np.array([0.65, 0.8])
+        self.dist_range = np.array([0.7, 0.0])
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
@@ -457,8 +457,9 @@ class Walker3DStepperEnv(EnvBase):
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
-        dr = self.np_random.uniform(*dist_range, size=N)
-        dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
+        # self.np_random.uniform(*dist_range, size=N) * 0 
+        dr = np.zeros(N) + dist_upper[self.curriculum]
+        dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
