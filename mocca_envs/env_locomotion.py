@@ -372,7 +372,7 @@ class Walker3DStepperEnv(EnvBase):
         # Terrain info
         self.dist_range = np.array([0.65, 1])
         self.pitch_range = np.array([-30, +30])  # degrees
-        self.yaw_range = np.array([-90, 90])
+        self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.7,0.7])
         self.step_param_dim = 7
@@ -473,8 +473,6 @@ class Walker3DStepperEnv(EnvBase):
         x_tilt[0:2] = 0
         y_tilt[0:2] = 0
 
-        dphi = np.cumsum(dphi)
-
         swing_legs = np.ones(N, dtype=np.int8)
 
         # Update x and y arrays
@@ -486,6 +484,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.allow_swing_leg_switch:
             flip_array = self.get_random_flip_array(N)
             self.flip_swing_legs_normal(swing_legs, flip_array)
+
+        dphi[self.stop_steps[1::2]] = 0
+        dphi = np.cumsum(dphi)
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
