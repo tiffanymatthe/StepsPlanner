@@ -507,11 +507,11 @@ class Walker3DStepperEnv(EnvBase):
                 mask.append(idx)
                 # Remove adjacent indices_to_pick to prevent them from being picked
                 indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
-        # mask = self.np_random.choice(indices_to_pick, replace=False, size=4)
         mask = np.array(mask)
         dr[mask] /= 2
         for i in sorted(mask):
             swing_legs[i:] = 1 - swing_legs[i:]
+            dphi[i] += self.np_random.uniform(0, 20 * DEG2RAD) * (1 if swing_legs[i] == 1 else -1)
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
