@@ -13,6 +13,7 @@ from mocca_envs.bullet_objects import (
     VSphere,
     VCylinder,
     VArrow,
+    VFoot,
     VBox,
     Pillar,
     Plank,
@@ -321,7 +322,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 20
+    rendered_step_count = 3
     init_step_separation = 0.70
 
     lookahead = 2
@@ -735,6 +736,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.steps = []
         self.rendered_steps = []
+        self.rendered_feet = []
         step_ids = set()
         cover_ids = set()
 
@@ -755,6 +757,7 @@ class Walker3DStepperEnv(EnvBase):
                 self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
                 # step_ids = step_ids | {(p.id, p.base_id)}
                 # cover_ids = cover_ids | {(p.id, p.cover_id)}
+                self.rendered_feet.append(VFoot(self._p, pos=None))
 
         # Need set for detecting contact
         self.all_contact_object_ids = set(step_ids) | set(cover_ids)
@@ -767,7 +770,12 @@ class Walker3DStepperEnv(EnvBase):
         pos = self.terrain_info[info_index, 0:3]
         phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
+        heading = self.terrain_info[info_index, 6]
+        left = self.terrain_info[info_index, 7]
         self.rendered_steps[step_index].set_position(pos=pos) #, quat=quaternion)
+        new_pos = np.copy(pos)
+        new_pos[2] += 0.005
+        self.rendered_feet[step_index].set_position(pos=new_pos, heading=heading, left=left)
 
     def randomize_terrain(self, replace=True):
         if replace:

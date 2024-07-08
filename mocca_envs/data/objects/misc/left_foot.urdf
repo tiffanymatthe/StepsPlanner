@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot name="foot">
+
+	<!-- * * * Link Definitions * * * -->
+
+ 	<link name="base_link">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <mass value="0"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+		<visual>
+		    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+			<geometry>
+				<box size="1.5 1 0.02"/>
+			</geometry>
+		</visual>
+
+    <!-- Add five small boxes -->
+        <visual name="small_boxes" >
+            <origin xyz="1.2 -0.3 0.0" rpy="0 0 0"/>
+            <geometry>
+                <box size="1 0.5 0.02"/>
+            </geometry>
+        </visual>
+    </link>
+  
+</robot>
