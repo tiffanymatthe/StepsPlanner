@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 3
+    rendered_step_count = 10
     init_step_separation = 0.70
 
     lookahead = 2
@@ -347,6 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         self.match_feet = False
         self.allow_swing_leg_switch = True
         self.allow_backward_switch = False
+        self.for_and_back = False
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -486,6 +487,10 @@ class Walker3DStepperEnv(EnvBase):
             self.flip_swing_legs_normal(swing_legs, flip_array)
 
         dphi[self.stop_steps[1::2]] = 0
+
+        dphi[swing_legs == 1] = np.abs(dphi[swing_legs == 1])
+        dphi[swing_legs == 0] = -np.abs(dphi[swing_legs == 0])
+
         dphi = np.cumsum(dphi)
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
@@ -781,7 +786,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
         prev_forward = self.walk_forward
-        self.walk_forward = True # self.np_random.choice([True, False]) #, p=[0.35, 0.65])
+        self.walk_forward = True if not self.for_and_back else self.np_random.choice([True, False]) #, p=[0.35, 0.65])
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position[self.walk_forward],
