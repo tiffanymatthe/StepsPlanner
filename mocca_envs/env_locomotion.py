@@ -328,7 +328,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [4, 5, 8, 9, 13, 14, 18, 19] # list(range(4,20))
+    stop_steps = [4, 5, 13, 14, 18, 19] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -371,7 +371,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus = 0
 
         # Terrain info
-        self.dist_range = np.array([0.65, 1])
+        self.dist_range = np.array([0.65, 0.8])
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
@@ -450,14 +450,14 @@ class Walker3DStepperEnv(EnvBase):
         pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD * 0
 
-        # weights = np.linspace(1,10,self.curriculum+1)
-        # weights /= sum(weights)
-        # self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
-        self.path_angle = self.angle_curriculum[0]
+        weights = np.linspace(1,10,self.curriculum+1)
+        weights /= sum(weights)
+        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
-        dphi = self.np_random.uniform(*yaw_range, size=N) # + self.path_angle
+        dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -470,6 +470,8 @@ class Walker3DStepperEnv(EnvBase):
         dr[1] = self.init_step_separation
         dphi[1] = 0.0
         dtheta[1] = np.pi / 2
+
+        dphi[2] = 0.0
 
         x_tilt[0:2] = 0
         y_tilt[0:2] = 0
@@ -488,8 +490,11 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi[self.stop_steps[1::2]] = 0
 
-        dphi[swing_legs == 1] = np.abs(dphi[swing_legs == 1])
-        dphi[swing_legs == 0] = -np.abs(dphi[swing_legs == 0])
+        # dphi[swing_legs == 1] = np.abs(dphi[swing_legs == 1])
+        # dphi[swing_legs == 0] = -np.abs(dphi[swing_legs == 0])
+
+        dphi_flip = self.get_random_flip_array(N)
+        dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
         dphi = np.cumsum(dphi)
 
@@ -524,7 +529,7 @@ class Walker3DStepperEnv(EnvBase):
         x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
         y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
 
-        heading_targets[3:] += self.path_angle
+        # heading_targets[3:] += self.path_angle
 
         if self.robot.mirrored:
             # swing_legs = 1 - swing_legs
@@ -870,9 +875,8 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
             if (
-                True
-                # self.curriculum == 0
-                # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                self.curriculum == 0
+                or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
