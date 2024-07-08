@@ -118,9 +118,15 @@ def main():
         env.camera._cam_yaw = 90
         ep_reward = 0
 
-        robot_headings = []
-        heading_targets = []
-        reached_steps = []
+        left_foot_headings = []
+        right_foot_headings = []
+        left_foot_positions = []
+        right_foot_positions = []
+        target_indices = []
+
+        foot_heading_targets = env.terrain_info[:, 6]
+        foot_position_targets = env.terrain_info[:, 0:2]
+        swing_targets = env.terrain_info[:, 7]
 
         controller = actor_critic.actor
 
@@ -139,9 +145,11 @@ def main():
                 action = controller(obs)
 
             if args.heading:
-                robot_headings.append(env.robot.body_rpy[2])
-                heading_targets.append(env.terrain_info[:,6][env.next_step_index])
-                reached_steps.append(env.target_reached)
+                left_foot_headings.append(env.robot.feet_rpy[1, 2])
+                left_foot_positions.append(env.robot.feet_xyz[1, 0:2])
+                right_foot_headings.append(env.robot.feet_rpy[0, 2])
+                right_foot_positions.append(env.robot.feet_xyz[0, 0:2])
+                target_indices.append(env.next_step_index)
 
             cpu_actions = action.squeeze().cpu().numpy()
             obs, reward, done, _ = env.step(cpu_actions)
@@ -150,28 +158,49 @@ def main():
 
             if done:
                 if args.heading:
-                    plt.plot(heading_targets, label="Target")
-                    # avg_heading = ema(np.array(robot_headings))
-                    # plt.plot(avg_heading, label="Robot Heading EMA")
-                    plt.plot(robot_headings, label="Actual")
-                    # plt.plot(butt_headings, label="butt heading")
-                    # plt.plot(l_headings, label="left foot heading")
-                    # plt.plot(r_headings, label="right foot heading")
-                    # plt.plot(np.array(l_headings)/2 + np.array(r_headings)/2, label="Avg foot heading")
-                    steps = np.multiply(reached_steps, robot_headings)
-                    steps[steps==0] = np.nan
-                    plt.plot(steps, 'o', mfc='none', label="step reached")
-                    plt.legend()
-                    steps = np.ma.array(steps, mask=np.isnan(steps))
-                    heading_targets = np.ma.array(heading_targets, mask=np.isnan(steps))
-                    mse = np.square(steps - heading_targets).mean()
-                    plt.title(f"MSE at steps: {mse}")
+                    # plt.plot(heading_targets, label="Target")
+                    # # avg_heading = ema(np.array(robot_headings))
+                    # # plt.plot(avg_heading, label="Robot Heading EMA")
+                    # plt.plot(robot_headings, label="Actual")
+                    # # plt.plot(butt_headings, label="butt heading")
+                    # # plt.plot(l_headings, label="left foot heading")
+                    # # plt.plot(r_headings, label="right foot heading")
+                    # # plt.plot(np.array(l_headings)/2 + np.array(r_headings)/2, label="Avg foot heading")
+                    # steps = np.multiply(reached_steps, robot_headings)
+                    # steps[steps==0] = np.nan
+                    # plt.plot(steps, 'o', mfc='none', label="step reached")
+                    # plt.legend()
+                    # steps = np.ma.array(steps, mask=np.isnan(steps))
+                    # heading_targets = np.ma.array(heading_targets, mask=np.isnan(steps))
+                    # mse = np.square(steps - heading_targets).mean()
+                    # plt.title(f"MSE at steps: {mse}")
+                    # plt.show()
+                    # when target indices switches, extract position and index and plot
+                    target_change_mask = np.roll(target_indices, 1)
+                    target_change_mask[0] = target_indices[0]
+                    target_change_mask = target_indices != target_change_mask
+                    swing_legs_long = swing_targets[target_indices]
+                    left_mask = np.logical_and(swing_legs_long == 1, target_change_mask)
+                    right_mask = np.logical_and(swing_legs_long == 0, target_change_mask)
+                    plt.quiver(*zip(*np.array(left_foot_positions)[left_mask]), np.cos(np.array(left_foot_headings)[left_mask]), np.sin(np.array(left_foot_headings)[left_mask]), color='red')
+                    plt.quiver(*zip(*np.array(right_foot_positions)[right_mask]), np.cos(np.array(right_foot_headings)[right_mask]), np.sin(np.array(right_foot_headings)[right_mask]), color='blue')
+                    plt.scatter(*zip(*np.array(left_foot_positions)), color='red', alpha=0.1)
+                    plt.scatter(*zip(*np.array(right_foot_positions)), color='blue', alpha=0.1)
+                    plt.quiver(*zip(*foot_position_targets), np.cos(foot_heading_targets), np.sin(foot_heading_targets), color="green")
+                    plt.axis('square')
                     plt.show()
-                    robot_headings = []
-                    heading_targets = []
-                    reached_steps = []
+                    
+                    left_foot_headings = []
+                    right_foot_headings = []
+                    left_foot_positions = []
+                    right_foot_positions = []
+                    target_indices = []
                 print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg")
                 obs = env.reset(reset_runner=False)
+                if args.heading:
+                    foot_heading_targets = env.terrain_info[:, 6]
+                    foot_position_targets = env.terrain_info[:, 0:2]
+                    swing_targets = env.terrain_info[:, 7]
                 ep_reward = 0
 
 
