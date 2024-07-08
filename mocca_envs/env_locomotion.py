@@ -436,68 +436,7 @@ class Walker3DStepperEnv(EnvBase):
         flip_array[toggle_cumsum % 2 == 1] = 1
         flip_array[toggle_cumsum % 2 == 0] = 0
         return flip_array
-    
 
-    def generate_step_placements_angled(self):
-        N = self.num_steps
-        dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
-        dr = self.np_random.uniform(*dist_range, size=N)
-
-        dphi = np.zeros(N)
-        dtheta = np.zeros(N) + np.pi / 2
-        x_tilt = np.zeros(N)
-        y_tilt = np.zeros(N)
-
-        # make first step below feet
-        dr[0] = 0.0
-        dphi[0] = 0.0
-        dtheta[0] = np.pi / 2
-
-        dr[1] = self.init_step_separation
-        dphi[1] = 0.0
-        dtheta[1] = np.pi / 2
-
-        dphi[3] = np.pi / 3
-
-        dphi = np.cumsum(dphi)
-        dy = dr * np.sin(dtheta) * np.cos(dphi)
-        dx = dr * np.sin(dtheta) * np.sin(dphi)
-        dz = dr * np.cos(dtheta)
-
-        dy[self.stop_steps[1::2]] = 0
-        dx[self.stop_steps[1::2]] = 0
-
-        x = np.cumsum(dx)
-        y = np.cumsum(dy)
-        z = np.cumsum(dz)
-
-        heading_targets = np.copy(dphi)
-
-        swing_legs = np.ones(N, dtype=np.int8)
-        swing_legs[:N:2] = 0
-        
-        # Calculate shifts
-        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
-        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
-
-        # Flip the shifts
-        left_shifts = np.flip(left_shifts, axis=0)
-        right_shifts = np.flip(right_shifts, axis=0)
-
-        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
-        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
-
-        if self.robot.mirrored:
-            # swing_legs = 1 - swing_legs
-            x *= -1
-        else:
-            swing_legs = 1 - swing_legs
-            heading_targets *= -1
-
-        heading_targets += np.pi / 2
-
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
     def generate_step_placements_normal(self):
         # Check just in case
@@ -616,11 +555,10 @@ class Walker3DStepperEnv(EnvBase):
     
 
     def generate_step_placements(self):
-        return self.generate_step_placements_angled()
-        # if self.match_feet:
-        #     return self.generate_step_placements_matched()
-        # else:
-        #     return self.generate_step_placements_normal()
+        if self.match_feet:
+            return self.generate_step_placements_matched()
+        else:
+            return self.generate_step_placements_normal()
 
     def generate_step_placements_matched(self):
         # Check just in case
