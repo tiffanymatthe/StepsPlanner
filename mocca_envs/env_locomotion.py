@@ -830,6 +830,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.is_rendered or self.use_egl:
             self.camera.lookat(self.robot.body_xyz)
 
+            for step in self.rendered_steps:
+                step.set_color(Colors["crimson"])
+
         self.targets = self.delta_to_k_targets()
         assert self.targets.shape[-1] == self.step_param_dim
 
