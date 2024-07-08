@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 10
+    rendered_step_count = 20
     init_step_separation = 0.70
 
     lookahead = 2
@@ -497,6 +497,21 @@ class Walker3DStepperEnv(EnvBase):
         dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
         dphi = np.cumsum(dphi)
+
+        indices_to_pick = np.arange(N)
+        indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
+        mask = []
+        while len(mask) < 3:
+            idx = self.np_random.choice(indices_to_pick)
+            if all(abs(idx - pi) > 1 for pi in mask):
+                mask.append(idx)
+                # Remove adjacent indices_to_pick to prevent them from being picked
+                indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
+        # mask = self.np_random.choice(indices_to_pick, replace=False, size=4)
+        mask = np.array(mask)
+        dr[mask] /= 2
+        for i in sorted(mask):
+            swing_legs[i:] = 1 - swing_legs[i:]
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
