@@ -347,6 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         self.match_feet = False
         self.allow_swing_leg_switch = True
         self.allow_backward_switch = False
+        self.allow_double_step = False
         self.for_and_back = False
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
@@ -497,21 +498,22 @@ class Walker3DStepperEnv(EnvBase):
         dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
         dphi = np.cumsum(dphi)
-
-        indices_to_pick = np.arange(N)
-        indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
-        mask = []
-        while len(mask) < 3:
-            idx = self.np_random.choice(indices_to_pick)
-            if all(abs(idx - pi) > 1 for pi in mask):
-                mask.append(idx)
-                # Remove adjacent indices_to_pick to prevent them from being picked
-                indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
-        mask = np.array(mask)
-        dr[mask] /= 2
-        for i in sorted(mask):
-            swing_legs[i:] = 1 - swing_legs[i:]
-            dphi[i] += self.np_random.uniform(0, 20 * DEG2RAD) * (1 if swing_legs[i] == 1 else -1)
+        
+        if self.allow_double_step:
+            indices_to_pick = np.arange(N)
+            indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
+            mask = []
+            while len(mask) < 3:
+                idx = self.np_random.choice(indices_to_pick)
+                if all(abs(idx - pi) > 1 for pi in mask):
+                    mask.append(idx)
+                    # Remove adjacent indices_to_pick to prevent them from being picked
+                    indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
+            mask = np.array(mask)
+            dr[mask] /= 2
+            for i in sorted(mask):
+                swing_legs[i:] = 1 - swing_legs[i:]
+                dphi[i] += self.np_random.uniform(0, 20 * DEG2RAD) * (1 if swing_legs[i] == 1 else -1)
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
