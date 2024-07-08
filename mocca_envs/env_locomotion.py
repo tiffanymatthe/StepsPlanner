@@ -531,8 +531,10 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets += 90 * DEG2RAD
 
         # # vary heading targets to be either 0 diff from prev heading, or half, or full
-        # choices = np.array([0, 0.5, 1])
-        # heading_targets = heading_targets - np.diff(heading_targets, prepend=0) * self.np_random.choice(choices, size=N)
+        choices = np.array([0, 0.5, 1])
+        stop_mask = np.ones(N, dtype=bool)
+        stop_mask[self.stop_steps] = False
+        heading_targets[stop_mask] = heading_targets[stop_mask] - np.diff(heading_targets[stop_mask], prepend=0) * self.np_random.choice(choices, size=N-len(self.stop_steps))
 
         dphi *= 0
 
@@ -795,6 +797,7 @@ class Walker3DStepperEnv(EnvBase):
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
+        self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
         self.calc_feet_state()
 
         # Reset camera
@@ -1091,7 +1094,8 @@ class Walker3DStepperEnv(EnvBase):
                 # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
-                    self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
+                    self.prev_leg_pos[self.swing_leg] = self.terrain_info[self.next_step_index, 0:2]
+                    # self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
                     if self.next_step_index < self.num_steps:
