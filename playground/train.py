@@ -244,8 +244,11 @@ def main(_seed, _config, _run):
                 and nanmean(avg_heading_errs) < 7 * DEG2RAD
                 and current_curriculum < max_curriculum
             ):
+                model_name = f"{save_name}_curr_{current_curriculum}.pt"
+                torch.save(actor_critic, os.path.join(args.save_dir, model_name))
                 current_curriculum += 1
                 envs.set_env_params({"curriculum": current_curriculum})
+
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 

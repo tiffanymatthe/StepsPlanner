@@ -342,7 +342,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = 0
         self.max_curriculum = 9
-        self.advance_threshold = min(12, self.num_steps)  # steps_reached
+        self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
         self.heading_errors = []
         self.match_feet = False
@@ -358,7 +358,7 @@ class Walker3DStepperEnv(EnvBase):
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
-        self.applied_gain_curriculum = np.linspace(1.0, 1.2, N)
+        self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
         self.angle_curriculum = np.linspace(0, np.pi / 2, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
@@ -373,7 +373,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus = 0
 
         # Terrain info
-        self.dist_range = np.array([0.7, 0.0])
+        self.dist_range = np.array([0.65, 0.75])
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
@@ -458,9 +458,9 @@ class Walker3DStepperEnv(EnvBase):
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
-        # self.np_random.uniform(*dist_range, size=N) * 0 
-        dr = np.zeros(N) + dist_upper[self.curriculum]
-        dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle * self.np_random.choice([-1, 1])
+        dr = self.np_random.uniform(*dist_range, size=N) 
+        # dr = np.zeros(N) + dist_upper[self.curriculum]
+        dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -904,9 +904,8 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
             if (
-                True
-                # self.curriculum == 0
-                # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                self.curriculum == 0
+                or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
