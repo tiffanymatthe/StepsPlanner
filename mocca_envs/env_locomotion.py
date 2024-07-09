@@ -350,6 +350,7 @@ class Walker3DStepperEnv(EnvBase):
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False
+        self.to_standstill = False
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -373,7 +374,10 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus = 0
 
         # Terrain info
-        self.dist_range = np.array([0.65, 0.0])
+        if self.to_standstill:
+            self.dist_range = np.array([0.65, 0.0])
+        else:
+            self.dist_range = np.array([0.65, 0.75])
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
@@ -458,9 +462,12 @@ class Walker3DStepperEnv(EnvBase):
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
-        # dr = self.np_random.uniform(*dist_range, size=N) 
-        dr = np.zeros(N) + dist_upper[self.curriculum]
-        dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle * self.np_random.choice([-1, 1])
+        if self.to_standstill:
+            dr = np.zeros(N) + dist_upper[self.curriculum]
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0
+        else:
+            dr = self.np_random.uniform(*dist_range, size=N) 
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -904,9 +911,9 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
             if (
-                True
-                # self.curriculum == 0
-                # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                self.to_standstill
+                or self.curriculum == 0
+                or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
