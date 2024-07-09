@@ -350,7 +350,7 @@ class Walker3DStepperEnv(EnvBase):
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False
-        self.to_standstill = False
+        self.to_standstill = True
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -463,8 +463,8 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         if self.to_standstill:
-            dr = np.zeros(N) + dist_upper[self.curriculum]
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0
+            dr = np.zeros(N) + dist_upper[self.max_curriculum]
+            dphi = self.np_random.uniform(*yaw_range, size=N)
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
@@ -568,11 +568,11 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets += 90 * DEG2RAD
 
         # # vary heading targets to be either 0 diff from prev heading, or half, or full
-        choices = np.array([0, 0.5, 1])
-        stop_mask = np.ones(N, dtype=bool)
-        stop_mask[self.stop_steps] = False
-        heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
-        heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
+        # choices = np.array([0, 0.5, 1])
+        # stop_mask = np.ones(N, dtype=bool)
+        # stop_mask[self.stop_steps] = False
+        # heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
+        # heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
 
         dphi *= 0
         # print(swing_legs)
