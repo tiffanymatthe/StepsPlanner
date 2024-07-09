@@ -580,7 +580,7 @@ class Walker3DStepperEnv(EnvBase):
 
         timing_counts = 25 * np.ones(N)
         timing_counts[self.stop_steps[1::2]] = 17 # second step to a standstill is a bit shorter
-        after_stop_indices = self.stop_steps[1::2] + 1
+        after_stop_indices = np.array(self.stop_steps[1::2]) + 1
         after_stop_indices = [x for x in after_stop_indices if x < N]
         timing_counts[after_stop_indices] = 60 # takes some time to get out of a standstill
         # print(swing_legs)
