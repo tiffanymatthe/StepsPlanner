@@ -564,10 +564,10 @@ class Walker3DStepperEnv(EnvBase):
         choices = np.array([0, 0.5, 1])
         stop_mask = np.ones(N, dtype=bool)
         stop_mask[self.stop_steps] = False
-        heading_targets[stop_mask] = heading_targets[stop_mask] - np.diff(heading_targets[stop_mask], prepend=0) * self.np_random.choice(choices, size=N-len(self.stop_steps))
+        heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
+        heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
 
         dphi *= 0
-
         # print(swing_legs)
         # print(x)
         # print(backward_switch_array)
