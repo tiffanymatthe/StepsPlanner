@@ -1139,7 +1139,9 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
 
         if self.target_reached and self.target_reached_count == 0 and not self.past_last_step:
+
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
+            # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.current_target_count}")
             self.timing_count_errors.append(abs(self.timing_count_error))
         else:
             self.timing_count_error = 0
@@ -1282,7 +1284,7 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         # only works for 1 and 2!
-        timing_counts_to_targets = targets[:, 8]
+        timing_counts_to_targets = np.copy(targets[:, 8])
         timing_counts_to_targets[0] = -self.current_target_count
         timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
         timing_counts_to_targets[2] = max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
