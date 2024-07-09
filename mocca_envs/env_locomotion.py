@@ -354,6 +354,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
+        self.timing_bonus_weight = 2
         self.past_last_step = False
 
         # Robot settings
@@ -382,7 +383,7 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.7,0.7])
-        self.step_param_dim = 7
+        self.step_param_dim = 8
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
@@ -575,6 +576,12 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
 
         dphi *= 0
+
+        timing_counts = 25 * np.ones(N)
+        timing_counts[self.stop_steps[1::2]] = 17 # second step to a standstill is a bit shorter
+        after_stop_indices = self.stop_steps[1::2] + 1
+        after_stop_indices = [x for x in after_stop_indices if x < N]
+        timing_counts[after_stop_indices] = 60 # takes some time to get out of a standstill
         # print(swing_legs)
         # print(x)
         # print(backward_switch_array)
@@ -582,7 +589,7 @@ class Walker3DStepperEnv(EnvBase):
         # assert np.all(x[swing_legs == 0] > 0), "Not all elements at indices of 0 are positive"
         # assert np.all(x[swing_legs == 1] < 0), "Not all elements at indices of 1 are negative"
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_counts), axis=1)
     
 
     def generate_step_placements(self):
@@ -882,6 +889,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
         reward += self.heading_bonus * self.heading_bonus_weight
+        reward += self.timing_bonus * self.timing_bonus_weight
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
@@ -1024,6 +1032,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
+        self.timing_bonus = np.exp(-0.03 * abs(self.timing_count_error) **2)
+
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
@@ -1123,6 +1133,11 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
+
+        if self.target_reached and self.target_reached_count == 0 and not self.past_last_step:
+            self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
+        else:
+            self.timing_count_error = 0
 
         if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
@@ -1261,6 +1276,12 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
+        # only works for 1 and 2!
+        timing_counts_to_targets = targets[:, 8]
+        timing_counts_to_targets[0] = -self.current_target_count
+        timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
+        timing_counts_to_targets[2] = max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
+
         deltas = concatenate(
             (
                 (np.sin(angle_to_targets) * distance_to_targets)[:, None],  # x
@@ -1270,6 +1291,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
+                (timing_counts_to_targets)[:, None], # timing_counts
             ),
             axis=1,
         )
