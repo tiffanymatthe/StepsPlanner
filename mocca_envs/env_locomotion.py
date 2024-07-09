@@ -345,6 +345,7 @@ class Walker3DStepperEnv(EnvBase):
         self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
         self.heading_errors = []
+        self.timing_count_errors = []
         self.match_feet = False
         self.allow_swing_leg_switch = True
         self.allow_backward_switch = False
@@ -821,6 +822,7 @@ class Walker3DStepperEnv(EnvBase):
         self.body_stationary_count = 0
 
         self.heading_errors = []
+        self.timing_count_errors = []
         self.past_last_step = False
 
         self.reached_last_step = False
@@ -928,9 +930,11 @@ class Walker3DStepperEnv(EnvBase):
                 else:
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
+                info["avg_timing_err"] = nanmean(self.timing_count_errors)
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
+                info["avg_timing_err"] = np.nan
 
         return state, reward, self.done, info
 
@@ -1136,6 +1140,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.target_reached and self.target_reached_count == 0 and not self.past_last_step:
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
+            self.timing_count_errors.append(abs(self.timing_count_error))
         else:
             self.timing_count_error = 0
 
