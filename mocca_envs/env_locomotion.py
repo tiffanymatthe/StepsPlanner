@@ -336,7 +336,7 @@ class Walker3DStepperEnv(EnvBase):
         plank_name = kwargs.pop("plank_class", None)
         self.plank_class = globals().get(plank_name, self.plank_class)
 
-        super().__init__(self.robot_class, remove_ground=True, **kwargs)
+        super().__init__(self.robot_class, remove_ground=False, **kwargs)
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
@@ -746,10 +746,10 @@ class Walker3DStepperEnv(EnvBase):
         }
 
         # One big step for all
-        p = self.plank_class(self._p, self.step_radius, options=options)
-        self.steps.append(p)
-        step_ids = step_ids | {(p.id, p.base_id)}
-        cover_ids = cover_ids | {(p.id, p.cover_id)}
+        # p = self.plank_class(self._p, self.step_radius, options=options)
+        # self.steps.append(p)
+        # step_ids = step_ids | {(p.id, p.base_id)}
+        # cover_ids = cover_ids | {(p.id, p.cover_id)}
         if self.is_rendered or self.use_egl:
             for index in range(self.rendered_step_count):
                 # # p = self.plank_class(self._p, self.step_radius, options=options)
@@ -1040,7 +1040,7 @@ class Walker3DStepperEnv(EnvBase):
     def calc_feet_state(self):
         # Calculate contact separately for step
         # target_cover_index = self.next_step_index % self.rendered_step_count
-        next_step = self.steps[0]
+        # next_step = self.steps[0]
 
         self.foot_dist_to_target = np.sqrt(
             ss(
@@ -1057,8 +1057,9 @@ class Walker3DStepperEnv(EnvBase):
 
         robot_id = self.robot.id
         client_id = self._p._client
-        target_id_list = [next_step.id]
-        target_cover_id_list = [next_step.cover_id]
+        ground_ids = next(iter(self.ground_ids))
+        target_id_list = [ground_ids[0]] # [next_step.id]
+        target_cover_id_list = [ground_ids[1]] # [next_step.cover_id]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
