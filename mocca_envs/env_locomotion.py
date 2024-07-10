@@ -350,7 +350,7 @@ class Walker3DStepperEnv(EnvBase):
         self.allow_backward_switch = False
         self.allow_double_step = True
         self.for_and_back = False
-        self.to_standstill = True
+        self.to_standstill = False
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -376,6 +376,8 @@ class Walker3DStepperEnv(EnvBase):
         # Terrain info
         if self.to_standstill:
             self.dist_range = np.array([0.65, 0.0])
+        elif self.allow_double_step:
+            self.dist_range = np.array([0.65, 1.25])
         else:
             self.dist_range = np.array([0.65, 0.75])
         self.pitch_range = np.array([-30, +30])  # degrees
@@ -465,6 +467,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.to_standstill:
             dr = np.zeros(N) + dist_upper[self.curriculum]
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0
+        elif self.allow_double_step:
+            dr = self.np_random.uniform(*dist_range, size=N) 
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
@@ -507,7 +512,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
         dphi = np.cumsum(dphi)
-        
+
         if self.allow_double_step:
             indices_to_pick = np.arange(N)
             indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
@@ -519,10 +524,8 @@ class Walker3DStepperEnv(EnvBase):
                     # Remove adjacent indices_to_pick to prevent them from being picked
                     indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
             mask = np.array(mask)
-            dr[mask] /= 2
-            for i in sorted(mask):
-                swing_legs[i:] = 1 - swing_legs[i:]
-                dphi[i] += self.np_random.uniform(0, 20 * DEG2RAD) * (1 if swing_legs[i] == 1 else -1)
+            dr_temp_mask = np.copy(dr[mask])
+            dr[mask] *= 0
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
@@ -530,8 +533,6 @@ class Walker3DStepperEnv(EnvBase):
 
         dy[self.stop_steps[1::2]] = 0
         dx[self.stop_steps[1::2]] = 0
-
-        heading_targets = np.copy(dphi)
 
         if not self.walk_forward:
             dy *= -1
@@ -543,6 +544,23 @@ class Walker3DStepperEnv(EnvBase):
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
+
+        if self.allow_double_step:
+            dr[mask] = dr_temp_mask * 1/2
+            for i in sorted(mask):
+                swing_legs[i:] = 1 - swing_legs[i:]
+                dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
+            
+            dy[mask] = dr[mask] * np.sin(dtheta[mask]) * np.cos(dphi[mask])
+            dx[mask] = dr[mask] * np.sin(dtheta[mask]) * np.sin(dphi[mask])
+            x[mask] += dx[mask]
+            y[mask] += dy[mask]
+            dy[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.cos(dphi[mask-1])
+            dx[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.sin(dphi[mask-1])
+            x[mask-1] -= dx[mask-1]
+            y[mask-1] -= dy[mask-1]
+            
+        heading_targets = np.copy(dphi)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
