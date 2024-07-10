@@ -584,12 +584,6 @@ class Walker3DStepperEnv(EnvBase):
         after_stop_indices = [x for x in after_stop_indices if x < N]
         timing_counts[after_stop_indices] = 45 # takes some time to get out of a standstill
         timing_counts[1] = 5
-        # print(swing_legs)
-        # print(x)
-        # print(backward_switch_array)
-
-        # assert np.all(x[swing_legs == 0] > 0), "Not all elements at indices of 0 are positive"
-        # assert np.all(x[swing_legs == 1] < 0), "Not all elements at indices of 1 are negative"
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_counts), axis=1)
     
