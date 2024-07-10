@@ -579,11 +579,11 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         timing_counts = 25 * np.ones(N)
-        timing_counts[self.stop_steps[1::2]] = 17 # second step to a standstill is a bit shorter
+        timing_counts[self.stop_steps[1::2]] = 20 # second step to a standstill is a bit shorter
         after_stop_indices = np.array(self.stop_steps[1::2]) + 1
         after_stop_indices = [x for x in after_stop_indices if x < N]
-        timing_counts[after_stop_indices] = 60 # takes some time to get out of a standstill
-        timing_counts[1] = 10
+        timing_counts[after_stop_indices] = 45 # takes some time to get out of a standstill
+        timing_counts[1] = 5
         # print(swing_legs)
         # print(x)
         # print(backward_switch_array)
@@ -822,6 +822,8 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
+        # print(self.timing_count_errors)
+        # print(self.terrain_info[:, 8])
         self.heading_errors = []
         self.timing_count_errors = []
         self.past_last_step = False
@@ -1038,7 +1040,7 @@ class Walker3DStepperEnv(EnvBase):
             self.heading_bonus = 0
 
         if self.timing_contact:
-            self.timing_bonus = np.exp(-0.03 * abs(self.timing_count_error) **2)
+            self.timing_bonus = np.exp(-0.005 * abs(self.timing_count_error) **2)
         else:
             self.timing_bonus = 0
 
