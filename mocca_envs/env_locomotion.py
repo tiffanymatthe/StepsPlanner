@@ -1285,9 +1285,9 @@ class Walker3DStepperEnv(EnvBase):
 
         # only works for 1 and 2!
         timing_counts_to_targets = np.copy(targets[:, 8])
-        # timing_counts_to_targets[0] = -self.current_target_count
+        timing_counts_to_targets[0] = -self.current_target_count
         timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
-        # timing_counts_to_targets[2] = max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
+        timing_counts_to_targets[2] = max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
 
         deltas = concatenate(
             (
