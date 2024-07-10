@@ -355,7 +355,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
-        self.timing_bonus_weight = 0.1
+        self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 1)
         self.past_last_step = False
 
         # Robot settings
@@ -1144,7 +1144,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
 
-        self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.past_last_step
+        self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.past_last_step and self.next_step_index > 1
         if self.timing_contact:
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
             # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.current_target_count}")

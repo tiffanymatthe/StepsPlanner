@@ -46,6 +46,7 @@ def configs():
     use_curriculum = False
     plank_class = "VeryLargePlank"
     heading_bonus_weight = 1
+    timing_bonus_weight = 1
     gauss_width = 0.5
 
     # Network settings
@@ -100,6 +101,7 @@ def main(_seed, _config, _run):
         "plank_class": args.plank_class,
         "heading_bonus_weight": args.heading_bonus_weight,
         "gauss_width": args.gauss_width,
+        "timing_bonus_weight": args.timing_bonus_weight,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)
