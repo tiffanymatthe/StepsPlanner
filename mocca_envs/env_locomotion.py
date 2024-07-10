@@ -355,7 +355,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
-        self.timing_bonus_weight = 2
+        self.timing_bonus_weight = 0.1
         self.past_last_step = False
 
         # Robot settings
