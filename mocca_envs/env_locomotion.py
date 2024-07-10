@@ -322,7 +322,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 3
+    rendered_step_count = 10
     init_step_separation = 0.70
 
     lookahead = 2
@@ -348,9 +348,9 @@ class Walker3DStepperEnv(EnvBase):
         self.match_feet = False
         self.allow_swing_leg_switch = True
         self.allow_backward_switch = False
-        self.allow_double_step = False
+        self.allow_double_step = True
         self.for_and_back = False
-        self.to_standstill = False
+        self.to_standstill = True
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -463,8 +463,8 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         if self.to_standstill:
-            dr = np.zeros(N) + dist_upper[self.max_curriculum]
-            dphi = self.np_random.uniform(*yaw_range, size=N)
+            dr = np.zeros(N) + dist_upper[self.curriculum]
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
