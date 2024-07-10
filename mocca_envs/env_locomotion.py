@@ -583,6 +583,7 @@ class Walker3DStepperEnv(EnvBase):
         after_stop_indices = np.array(self.stop_steps[1::2]) + 1
         after_stop_indices = [x for x in after_stop_indices if x < N]
         timing_counts[after_stop_indices] = 60 # takes some time to get out of a standstill
+        timing_counts[1] = 10
         # print(swing_legs)
         # print(x)
         # print(backward_switch_array)
@@ -1036,7 +1037,10 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        self.timing_bonus = np.exp(-0.03 * abs(self.timing_count_error) **2)
+        if self.timing_contact:
+            self.timing_bonus = np.exp(-0.03 * abs(self.timing_count_error) **2)
+        else:
+            self.timing_bonus = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
@@ -1138,8 +1142,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
 
-        if self.target_reached and self.target_reached_count == 0 and not self.past_last_step:
-
+        self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.past_last_step
+        if self.timing_contact:
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
             # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.current_target_count}")
             self.timing_count_errors.append(abs(self.timing_count_error))
