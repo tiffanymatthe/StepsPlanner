@@ -1,13 +1,14 @@
 #!/bin/bash
 set -e
 
-git pull --recurse-submodules
+# git pull --recurse-submodules
 
 NUM_REPLICATES=1
 
 # One folder above the folder containing this file
 PROJECT_PATH=$(dirname $(dirname $(realpath -s $0)))
-EXPERIMENT_PATH=$PROJECT_PATH
+echo $PROJECT_PATH
+EXPERIMENT_PATH='/home/tmatthe/scratch'
 TODAY=`date '+%Y_%m_%d__%H_%M_%S'`
 
 NAME=$1
@@ -22,7 +23,7 @@ LOG_PATH=$EXPERIMENT_PATH/runs/${TODAY}__${NAME}
 mkdir -p $LOG_PATH
 cat > $LOG_PATH/run_script.sh <<EOF
 #!/bin/bash
-#SBATCH --time=12:00:00
+#SBATCH --time=5:00:00
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
 #SBATCH --exclusive
@@ -30,9 +31,9 @@ cat > $LOG_PATH/run_script.sh <<EOF
 #SBATCH --mem=32000M
 #SBATCH --job-name=$NAME
 #SBATCH --array=1-$NUM_REPLICATES
-. $PROJECT_PATH/../venv/bin/activate
+. $PROJECT_PATH/../env/bin/activate
 cd $PROJECT_PATH
-python -m playground.train with experiment_dir="$LOG_PATH/\$SLURM_ARRAY_TASK_ID" replicate_num=\$SLURM_ARRAY_TASK_ID $@
+python -m playground.train with num_processes=50 num_frames=20e7 use_mirror=True use_curriculum=True gauss_width=2 heading_bonus_weight=2 experiment_dir="$LOG_PATH/\$SLURM_ARRAY_TASK_ID" replicate_num=\$SLURM_ARRAY_TASK_ID $@
 EOF
 
 cd $LOG_PATH
