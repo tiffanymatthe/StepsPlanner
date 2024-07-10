@@ -27,7 +27,8 @@ from mocca_envs.robots import Child3D, Laikago, Mike, Monkey3D, Walker2D, Walker
 Colors = {
     "dodgerblue": (0.11764705882352941, 0.5647058823529412, 1.0, 1.0),
     "crimson": (0.8627450980392157, 0.0784313725490196, 0.23529411764705882, 1.0),
-
+    "lightgrey": (0.8274509803921568, 0.8274509803921568, 0.8274509803921568, 1.0),
+    "yellow": (1.0, 1.0, 0.0, 1.0),
 }
 
 DEG2RAD = np.pi / 180
@@ -129,7 +130,7 @@ class Walker3DCustomEnv(EnvBase):
             self.target.set_color(
                 Colors["dodgerblue"]
                 if self.distance_to_target < 0.15
-                else Colors["crimson"]
+                else Colors["lightgrey"]
             )
 
         return state, reward, self.done, {}
@@ -868,7 +869,7 @@ class Walker3DStepperEnv(EnvBase):
             self.camera.lookat(self.robot.body_xyz)
 
             for step in self.rendered_steps:
-                step.set_color(Colors["crimson"])
+                step.set_color(Colors["lightgrey"])
 
         self.targets, self.extra_param = self.delta_to_k_targets()
         assert self.targets.shape[-1] == self.step_param_dim
@@ -917,9 +918,9 @@ class Walker3DStepperEnv(EnvBase):
             self.target.set_color(
                 Colors["dodgerblue"]
                 if self.distance_to_target < 0.15
-                else Colors["crimson"]
+                else Colors["lightgrey"]
             )
-            self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(Colors["crimson"])
+            self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(Colors["lightgrey"])
             self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(Colors["dodgerblue"])
             self.arrow.set_position(
                 pos=[
