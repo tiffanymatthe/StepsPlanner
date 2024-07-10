@@ -1,13 +1,14 @@
 #!/bin/bash
 set -e
 
-git pull --recurse-submodules
+# git pull --recurse-submodules
 
 NUM_REPLICATES=1
 
 # One folder above the folder containing this file
 PROJECT_PATH=$(dirname $(dirname $(realpath -s $0)))
-EXPERIMENT_PATH=$PROJECT_PATH
+echo $PROJECT_PATH
+EXPERIMENT_PATH='/home/tmatthe/scratch/'
 TODAY=`date '+%Y_%m_%d__%H_%M_%S'`
 
 NAME=$1
@@ -30,7 +31,7 @@ cat > $LOG_PATH/run_script.sh <<EOF
 #SBATCH --mem=32000M
 #SBATCH --job-name=$NAME
 #SBATCH --array=1-$NUM_REPLICATES
-. $PROJECT_PATH/../venv/bin/activate
+. $PROJECT_PATH/../env/bin/activate
 cd $PROJECT_PATH
 python -m playground.train with experiment_dir="$LOG_PATH/\$SLURM_ARRAY_TASK_ID" replicate_num=\$SLURM_ARRAY_TASK_ID $@
 EOF
