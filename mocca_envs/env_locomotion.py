@@ -567,12 +567,12 @@ class Walker3DStepperEnv(EnvBase):
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
 
-        # # vary heading targets to be either 0 diff from prev heading, or half, or full
-        # choices = np.array([0, 0.5, 1])
-        # stop_mask = np.ones(N, dtype=bool)
-        # stop_mask[self.stop_steps] = False
-        # heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
-        # heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
+        # vary heading targets to be either 0 diff from prev heading, or half, or full
+        choices = np.array([0, 0.5, 1])
+        stop_mask = np.ones(N, dtype=bool)
+        stop_mask[self.stop_steps] = False
+        heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
+        heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
 
         dphi *= 0
         # print(swing_legs)
