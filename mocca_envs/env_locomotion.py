@@ -357,7 +357,6 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_bonus_weight = 1
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 1)
-        print(f"TIMING bonus weight is {self.timing_bonus_weight}")
 
         self.waiting_for_next_target = False
         self.frozen_time_to_targets = None
@@ -389,7 +388,7 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.7,0.7])
-        self.step_param_dim = 8
+        self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
@@ -398,8 +397,9 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
+        self.extra_step_dim = 0
         high = np.inf * np.ones(
-            self.robot_obs_dim + K * self.step_param_dim, dtype=np.float32
+            self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
         self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
         self.action_space = self.robot.action_space
@@ -1294,18 +1294,18 @@ class Walker3DStepperEnv(EnvBase):
 
         # timing_counts_to_targets = np.copy(targets[:, 8]) * 0
 
-        if self.timing_contact:
-            timing_counts_to_targets = np.zeros(k+j)
-            timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
-            # self.frozen_time_to_targets = timing_counts_to_targets
-        elif not self.waiting_for_next_target:
-            # only works for 1 and 2!
-            timing_counts_to_targets = np.zeros(k+j)
-            # timing_counts_to_targets[0] = 0 # -self.current_target_count
-            timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
-            # timing_counts_to_targets[2] = 0 # max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
-        else:
-            timing_counts_to_targets = np.zeros(k+j) # self.frozen_time_to_targets
+        # if self.timing_contact:
+        #     timing_counts_to_targets = np.zeros(k+j)
+        #     timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
+        #     # self.frozen_time_to_targets = timing_counts_to_targets
+        # elif not self.waiting_for_next_target:
+        #     # only works for 1 and 2!
+        #     timing_counts_to_targets = np.zeros(k+j)
+        #     # timing_counts_to_targets[0] = 0 # -self.current_target_count
+        #     timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
+        #     # timing_counts_to_targets[2] = 0 # max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
+        # else:
+        #     timing_counts_to_targets = np.zeros(k+j) # self.frozen_time_to_targets
 
         deltas = concatenate(
             (
@@ -1316,7 +1316,6 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
-                (timing_counts_to_targets)[:, None], # timing_counts
             ),
             axis=1,
         )
