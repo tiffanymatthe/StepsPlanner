@@ -1296,13 +1296,13 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.timing_contact:
             timing_counts_to_targets = np.zeros(k+j)
-            timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
+            timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
             # self.frozen_time_to_targets = timing_counts_to_targets
         elif not self.waiting_for_next_target:
             # only works for 1 and 2!
             timing_counts_to_targets = np.zeros(k+j)
             # timing_counts_to_targets[0] = 0 # -self.current_target_count
-            timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
+            timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
             # timing_counts_to_targets[2] = 0 # max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
         else:
             timing_counts_to_targets = np.zeros(k+j) # self.frozen_time_to_targets
