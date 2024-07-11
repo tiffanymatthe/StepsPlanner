@@ -864,13 +864,14 @@ class Walker3DStepperEnv(EnvBase):
             for step in self.rendered_steps:
                 step.set_color(Colors["crimson"])
 
-        self.targets = self.delta_to_k_targets()
+        self.targets, self.extra_param = self.delta_to_k_targets()
         assert self.targets.shape[-1] == self.step_param_dim
+        assert self.extra_param.shape[0] == self.extra_step_dim
 
         # Order is important because walk_target is set up above
         self.calc_potential()
 
-        state = concatenate((self.robot_state, self.targets.flatten()))
+        state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
 
         if not self.state_id >= 0:
             self.state_id = self._p.saveState()
@@ -901,7 +902,7 @@ class Walker3DStepperEnv(EnvBase):
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
 
         # targets is calculated by calc_env_state()
-        state = concatenate((self.robot_state, self.targets.flatten()))
+        state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard(callback=self.handle_keyboard)
@@ -1224,7 +1225,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_base_reward(action)
         self.calc_step_reward()
         # use next step to calculate next k steps
-        self.targets = self.delta_to_k_targets()
+        self.targets, self.extra_param = self.delta_to_k_targets()
 
         if cur_step_index != self.next_step_index:
             self.calc_potential()
@@ -1320,7 +1321,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas
+        return deltas, targets[1, 8] - self.current_target_count
 
     def get_mirror_indices(self):
 
