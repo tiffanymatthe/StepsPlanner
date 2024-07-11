@@ -397,7 +397,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 0
+        self.extra_step_dim = 1
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -866,7 +866,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.targets, self.extra_param = self.delta_to_k_targets()
         assert self.targets.shape[-1] == self.step_param_dim
-        assert self.extra_param.shape[0] == self.extra_step_dim
+        # assert self.extra_param.shape[0] == self.extra_step_dim
 
         # Order is important because walk_target is set up above
         self.calc_potential()
@@ -1321,7 +1321,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas, targets[1, 8] - self.current_target_count
+        return deltas, np.array([targets[1, 8] - self.current_target_count])
 
     def get_mirror_indices(self):
 
