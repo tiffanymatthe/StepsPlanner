@@ -356,6 +356,9 @@ class Walker3DStepperEnv(EnvBase):
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 1)
+
+        self.waiting_for_next_target = False
+        self.frozen_time_to_targets = None
         self.past_last_step = False
 
         # Robot settings
@@ -823,6 +826,8 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
 
         self.reached_last_step = False
+        self.waiting_for_next_target = False
+        self.frozen_time_to_targets = None
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
@@ -1138,11 +1143,12 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
 
-        self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.past_last_step and self.next_step_index > 2
+        self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.past_last_step # and self.next_step_index > 2
         if self.timing_contact:
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
             # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.current_target_count}")
             self.timing_count_errors.append(abs(self.timing_count_error))
+            self.waiting_for_next_target = True
         else:
             self.timing_count_error = 0
 
@@ -1168,6 +1174,7 @@ class Walker3DStepperEnv(EnvBase):
                     # self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
+                    self.waiting_for_next_target = False
                     if self.next_step_index < self.num_steps:
                         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
                     self.target_reached_count = 0
@@ -1283,11 +1290,22 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        # only works for 1 and 2!
-        timing_counts_to_targets = np.copy(targets[:, 8])
-        timing_counts_to_targets[0] = -self.current_target_count
-        timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
-        timing_counts_to_targets[2] = max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
+        if self.timing_contact:
+            # free timing_counts_to_targets
+            timing_counts_to_targets = np.copy(targets[:, 8])
+            timing_counts_to_targets[0] = -self.current_target_count
+            timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
+            timing_counts_to_targets[2] = max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
+            self.frozen_time_to_targets = timing_counts_to_targets
+
+        if not self.waiting_for_next_target:
+            # only works for 1 and 2!
+            timing_counts_to_targets = np.copy(targets[:, 8])
+            timing_counts_to_targets[0] = -self.current_target_count
+            timing_counts_to_targets[1] = targets[1, 8] - self.current_target_count
+            timing_counts_to_targets[2] = max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
+        else:
+            timing_counts_to_targets = self.frozen_time_to_targets
 
         deltas = concatenate(
             (
