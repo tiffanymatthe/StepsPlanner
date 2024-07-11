@@ -13,7 +13,7 @@ class CSVLogger(object):
             self.writer = csv.DictWriter(self.csvfile, fieldnames=list(keys))
             self.writer.writeheader()
 
-    def log_epoch(self, data):
+    def log_epoch(self, data, wandb_module=None):
         if "stats" in data:
             for key, values in data["stats"].items():
                 data["mean_" + key] = np.mean(values)
@@ -21,6 +21,9 @@ class CSVLogger(object):
                 data["min_" + key] = np.min(values)
                 data["max_" + key] = np.max(values)
         del data["stats"]
+
+        if wandb_module is not None:
+            wandb_module.log(data)
 
         self.init_writer(data.keys())
         self.writer.writerow(data)
@@ -35,8 +38,8 @@ class ConsoleCSVLogger(CSVLogger):
         super().__init__(*args, **kwargs)
         self.console_log_interval = console_log_interval
 
-    def log_epoch(self, data):
-        super().log_epoch(data)
+    def log_epoch(self, data, wandb_module=None):
+        super().log_epoch(data, wandb_module)
 
         # flush = data["iter"] % self.console_log_interval == 0
         # print(

@@ -11,6 +11,8 @@ import os
 import time
 from collections import deque
 
+import wandb
+
 from bottleneck import nanmean
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -90,6 +92,11 @@ def configs():
 @ex.automain
 def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
+
+    run = wandb.init(
+        project="WalkerStepperEnv-v0",
+        config=args
+    )
 
     env_name = args.env
 
@@ -287,5 +294,6 @@ def main(_seed, _config, _run):
                     "action_loss": action_loss,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
-                }
+                },
+                wandb
             )
