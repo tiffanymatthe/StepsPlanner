@@ -518,7 +518,8 @@ class Walker3DStepperEnv(EnvBase):
             indices_to_pick = np.arange(N)
             indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
             mask = []
-            while len(mask) < 8:
+            num_double_steps = 5 if self.curriculum < 2 else self.np_random.choice(5,6,7,8)
+            while len(mask) < num_double_steps:
                 idx = self.np_random.choice(indices_to_pick)
                 mask.append(idx)
                 indices_to_pick = np.delete(indices_to_pick, np.argwhere(indices_to_pick==idx))
@@ -1147,7 +1148,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
-        self.other_leg_has_fallen = self.next_step_index > 2 and not other_leg_in_air and not other_foot_in_prev_target
+        self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
