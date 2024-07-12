@@ -49,6 +49,7 @@ def configs():
     plank_class = "VeryLargePlank"
     heading_bonus_weight = 1
     gauss_width = 0.5
+    vary_heading = False
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -94,7 +95,7 @@ def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
 
     run = wandb.init(
-        project="WalkerStepperEnv-v0",
+        project="WalkerStepperEnv-v0 - Angled Walking",
         config=args
     )
 
@@ -107,6 +108,7 @@ def main(_seed, _config, _run):
         "plank_class": args.plank_class,
         "heading_bonus_weight": args.heading_bonus_weight,
         "gauss_width": args.gauss_width,
+        "vary_heading": args.vary_heading,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)
