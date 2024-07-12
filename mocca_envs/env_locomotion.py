@@ -1293,20 +1293,12 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        # timing_counts_to_targets = np.copy(targets[:, 8]) * 0
-
-        # if self.timing_contact:
-        #     timing_counts_to_targets = np.zeros(k+j)
-        #     timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
-        #     # self.frozen_time_to_targets = timing_counts_to_targets
-        # elif not self.waiting_for_next_target:
-        #     # only works for 1 and 2!
-        #     timing_counts_to_targets = np.zeros(k+j)
-        #     # timing_counts_to_targets[0] = 0 # -self.current_target_count
-        #     timing_counts_to_targets[1] = max(targets[1, 8] - self.current_target_count, 0)
-        #     # timing_counts_to_targets[2] = 0 # max(targets[2, 8] + timing_counts_to_targets[1], targets[2, 8])
-        # else:
-        #     timing_counts_to_targets = np.zeros(k+j) # self.frozen_time_to_targets
+        if self.timing_contact:
+            timing_counts_to_targets = np.array([0]) #  np.array([targets[1, 8] - self.current_target_count])
+        elif not self.waiting_for_next_target:
+            timing_counts_to_targets[1] = np.array([targets[1, 8] - self.current_target_count])
+        else:
+            timing_counts_to_targets = np.array([0])
 
         deltas = concatenate(
             (
@@ -1321,7 +1313,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas, np.array([targets[1, 8] - self.current_target_count])
+        return deltas, timing_counts_to_targets
 
     def get_mirror_indices(self):
 
