@@ -323,14 +323,14 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 10
+    rendered_step_count = 20
     init_step_separation = 0.70
 
     lookahead = 2
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [4, 5, 13, 14, 18, 19] # list(range(4,20))
+    stop_steps = [4, 5, 18, 19] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -518,15 +518,25 @@ class Walker3DStepperEnv(EnvBase):
             indices_to_pick = np.arange(N)
             indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
             mask = []
-            while len(mask) < 3:
+            while len(mask) < 8:
                 idx = self.np_random.choice(indices_to_pick)
-                if all(abs(idx - pi) > 1 for pi in mask):
-                    mask.append(idx)
-                    # Remove adjacent indices_to_pick to prevent them from being picked
-                    indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
+                mask.append(idx)
+                indices_to_pick = np.delete(indices_to_pick, np.argwhere(indices_to_pick==idx))
+                # indices_to_pick
+                # if all(abs(idx - pi) > 1 for pi in mask):
+                #     mask.append(idx)
+                #     # Remove adjacent indices_to_pick to prevent them from being picked
+                #     indices_to_pick = indices_to_pick[(indices_to_pick != idx)] # - 1) | (indices_to_pick > idx + 1)]
             mask = np.array(mask)
-            dr_temp_mask = np.copy(dr[mask])
-            dr[mask] *= 0
+            # dr_temp_mask = np.copy(dr[mask])
+            # dr[mask] *= 0
+            dr[mask] *= 1/2
+            for i in sorted(mask):
+                swing_legs[i:] = 1 - swing_legs[i:]
+                # dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
+            
+            # dy[mask] = dr[mask] * np.sin(dtheta[mask]) * np.cos(dphi[mask])
+            # dx[mask] = dr[mask] * np.sin(dtheta[mask]) * np.sin(dphi[mask])
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
@@ -546,20 +556,20 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        if self.allow_double_step:
-            dr[mask] = dr_temp_mask * 1/2
-            for i in sorted(mask):
-                swing_legs[i:] = 1 - swing_legs[i:]
-                dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
+        # if self.allow_double_step:
+        #     dr[mask] = dr_temp_mask * 1/2
+        #     for i in sorted(mask):
+        #         swing_legs[i:] = 1 - swing_legs[i:]
+        #         dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
             
-            dy[mask] = dr[mask] * np.sin(dtheta[mask]) * np.cos(dphi[mask])
-            dx[mask] = dr[mask] * np.sin(dtheta[mask]) * np.sin(dphi[mask])
-            x[mask] += dx[mask]
-            y[mask] += dy[mask]
-            dy[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.cos(dphi[mask-1])
-            dx[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.sin(dphi[mask-1])
-            x[mask-1] -= dx[mask-1]
-            y[mask-1] -= dy[mask-1]
+        #     dy[mask] = dr[mask] * np.sin(dtheta[mask]) * np.cos(dphi[mask])
+        #     dx[mask] = dr[mask] * np.sin(dtheta[mask]) * np.sin(dphi[mask])
+        #     x[mask] += dx[mask]
+        #     y[mask] += dy[mask]
+        #     dy[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.cos(dphi[mask-1])
+        #     dx[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.sin(dphi[mask-1])
+        #     x[mask-1] -= dx[mask-1]
+        #     y[mask-1] -= dy[mask-1]
             
         heading_targets = np.copy(dphi)
 
