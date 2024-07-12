@@ -340,7 +340,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
-        self.curriculum = 3
+        self.curriculum = 0
         self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
@@ -377,7 +377,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.to_standstill:
             self.dist_range = np.array([0.65, 0.0])
         else:
-            self.dist_range = np.array([0.65, 0.75])
+            self.dist_range = np.array([0.65, 0.65])
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
@@ -567,12 +567,12 @@ class Walker3DStepperEnv(EnvBase):
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
 
-        # vary heading targets to be either 0 diff from prev heading, or half, or full
-        choices = np.array([0, 0.5, 1])
-        stop_mask = np.ones(N, dtype=bool)
-        stop_mask[self.stop_steps] = False
-        heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
-        heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
+        # # vary heading targets to be either 0 diff from prev heading, or half, or full
+        # choices = np.array([0, 0.5, 1])
+        # stop_mask = np.ones(N, dtype=bool)
+        # stop_mask[self.stop_steps] = False
+        # heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
+        # heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
 
         dphi *= 0
         # print(swing_legs)
