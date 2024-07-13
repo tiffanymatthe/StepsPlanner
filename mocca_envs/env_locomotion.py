@@ -341,7 +341,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
-        self.curriculum = 0
+        self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
