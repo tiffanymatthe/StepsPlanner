@@ -50,6 +50,7 @@ def configs():
     heading_bonus_weight = 1
     timing_bonus_weight = 1
     gauss_width = 0.5
+    timing_width = 0.005
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -109,6 +110,7 @@ def main(_seed, _config, _run):
         "heading_bonus_weight": args.heading_bonus_weight,
         "gauss_width": args.gauss_width,
         "timing_bonus_weight": args.timing_bonus_weight,
+        "timing_width": args.timing_width,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)

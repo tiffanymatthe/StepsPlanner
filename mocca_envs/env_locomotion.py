@@ -357,6 +357,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_bonus_weight = 1
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 1)
+        self.timing_width = kwargs.pop("timing_width", 0.005)
 
         self.waiting_for_next_target = False
         self.frozen_time_to_targets = None
@@ -584,11 +585,11 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         timing_counts = 25 * np.ones(N)
-        timing_counts[self.stop_steps[1::2]] = 20 # second step to a standstill is a bit shorter
+        # timing_counts[self.stop_steps[1::2]] = 25 # second step to a standstill is a bit shorter
         after_stop_indices = np.array(self.stop_steps[1::2]) + 1
         after_stop_indices = [x for x in after_stop_indices if x < N]
-        timing_counts[after_stop_indices] = 45 # takes some time to get out of a standstill
-        timing_counts[1] = 5
+        timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
+        timing_counts[1] = 10
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_counts), axis=1)
     
@@ -1042,7 +1043,7 @@ class Walker3DStepperEnv(EnvBase):
             self.heading_bonus = 0
 
         if self.timing_contact:
-            self.timing_bonus = np.exp(-0.005 * abs(self.timing_count_error) **2)
+            self.timing_bonus = np.exp(-self.timing_width * abs(self.timing_count_error) **2)
         else:
             self.timing_bonus = 0
 
@@ -1146,7 +1147,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
 
-        self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.past_last_step # and self.next_step_index > 2
+        self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.reached_last_step # and self.next_step_index > 2
         if self.timing_contact:
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
             # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.current_target_count}")
