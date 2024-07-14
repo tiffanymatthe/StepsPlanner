@@ -455,7 +455,7 @@ class Walker3DStepperEnv(EnvBase):
     def generate_step_placements_normal(self):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
-        ratio = self.curriculum / self.max_curriculum
+        ratio = 0 # self.curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
@@ -466,7 +466,7 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = 0 # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
@@ -589,7 +589,12 @@ class Walker3DStepperEnv(EnvBase):
         after_stop_indices = np.array(self.stop_steps[1::2]) + 1
         after_stop_indices = [x for x in after_stop_indices if x < N]
         timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
+
+        timing_counts += self.np_random.uniform(-0.5,1.5) * self.curriculum / self.max_curriculum * timing_counts
+
+        timing_counts[0] = 10
         timing_counts[1] = 10
+        timing_counts[2] = 25
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_counts), axis=1)
     
@@ -929,7 +934,7 @@ class Walker3DStepperEnv(EnvBase):
             if (
                 self.to_standstill
                 or self.curriculum == 0
-                or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
