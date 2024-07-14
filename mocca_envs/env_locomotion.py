@@ -516,7 +516,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.allow_double_step:
             indices_to_pick = np.arange(N)
-            indices_to_pick = np.delete(indices_to_pick, [0,1,2,3,*self.stop_steps])
+            indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
             mask = []
             num_double_steps = 5 if self.curriculum < 2 else self.np_random.choice(5,6,7,8)
             while len(mask) < num_double_steps or len(indices_to_pick) == 0:
