@@ -330,7 +330,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [4, 5, 18, 19] # list(range(4,20))
+    stop_steps = [18, 19] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -531,7 +531,7 @@ class Walker3DStepperEnv(EnvBase):
             mask = np.array(mask)
             # dr_temp_mask = np.copy(dr[mask])
             # dr[mask] *= 0
-            # dr[mask] *= 2/3
+            dr[mask] *= 4/5
             for i in sorted(mask):
                 swing_legs[i:] = 1 - swing_legs[i:]
                 # dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
