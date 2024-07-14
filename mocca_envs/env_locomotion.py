@@ -531,7 +531,7 @@ class Walker3DStepperEnv(EnvBase):
             mask = np.array(mask)
             # dr_temp_mask = np.copy(dr[mask])
             # dr[mask] *= 0
-            dr[mask] *= 2/3
+            # dr[mask] *= 2/3
             for i in sorted(mask):
                 swing_legs[i:] = 1 - swing_legs[i:]
                 # dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
