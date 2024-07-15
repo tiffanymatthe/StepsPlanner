@@ -823,6 +823,7 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached_count = 0
         self.both_feet_hit_ground = False
         self.current_target_count = 0
+        self.in_air_count = 0
         self.swing_leg_lifted_count = 0
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
@@ -1121,6 +1122,7 @@ class Walker3DStepperEnv(EnvBase):
         if self._foot_target_contacts[self.swing_leg, 0] == 0:
             # if in the air, increase count
             self.swing_leg_lifted_count += 1
+            self.in_air_count += 1
         else:
             self.swing_leg_lifted_count = 0
 
@@ -1155,8 +1157,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.reached_last_step # and self.next_step_index > 2
         if self.timing_contact:
-            self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.current_target_count
-            # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.current_target_count}")
+            self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.in_air_count
+            # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.in_air_count}")
             self.timing_count_errors.append(abs(self.timing_count_error))
             self.waiting_for_next_target = True
         else:
@@ -1177,9 +1179,9 @@ class Walker3DStepperEnv(EnvBase):
             # Needed for not over counting step bonus
             delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
-                # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
+                    self.in_air_count = 0
                     self.prev_leg_pos[self.swing_leg] = self.terrain_info[self.next_step_index, 0:2]
                     # self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
@@ -1301,9 +1303,9 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         if self.timing_contact:
-            timing_counts_to_targets = np.array([0]) #  np.array([targets[1, 8] - self.current_target_count])
+            timing_counts_to_targets = np.array([0])
         elif not self.waiting_for_next_target:
-            timing_counts_to_targets = np.array([targets[1, 8] - self.current_target_count])
+            timing_counts_to_targets = np.array([targets[1, 8] - self.in_air_count])
         else:
             timing_counts_to_targets = np.array([0])
 
