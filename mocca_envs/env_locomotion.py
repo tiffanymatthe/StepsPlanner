@@ -827,18 +827,19 @@ class Walker3DStepperEnv(EnvBase):
         prev_robot_mirrored = self.robot.mirrored
         prev_forward = self.walk_forward
         self.walk_forward = True if not self.for_and_back else self.np_random.choice([True, False]) #, p=[0.35, 0.65])
+        robot_doing_well = self.next_step_index >= self.num_steps / 2
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position[self.walk_forward],
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=True
+            mirror=robot_doing_well
         )
         # self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
         self.prev_leg = self.swing_leg
 
         # Randomize platforms
-        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
+        replace = robot_doing_well or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
