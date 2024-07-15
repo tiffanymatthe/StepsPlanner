@@ -934,8 +934,9 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
             if (
-                self.to_standstill
-                or self.curriculum == 0
+                True
+                # self.to_standstill
+                # or self.curriculum == 0
                 # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
