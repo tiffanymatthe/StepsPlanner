@@ -378,7 +378,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.to_standstill:
             self.dist_range = np.array([0.65, 0.0])
         elif self.allow_double_step:
-            self.dist_range = np.array([0.65, 1.25])
+            self.dist_range = np.array([0.65, 0.75])
         else:
             self.dist_range = np.array([0.65, 0.75])
         self.pitch_range = np.array([-30, +30])  # degrees
@@ -469,7 +469,7 @@ class Walker3DStepperEnv(EnvBase):
             dr = np.zeros(N) + dist_upper[self.curriculum]
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0
         elif self.allow_double_step:
-            dr = self.np_random.uniform(*dist_range, size=N) 
+            dr = self.np_random.uniform(*dist_range, size=N)
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
@@ -512,32 +512,33 @@ class Walker3DStepperEnv(EnvBase):
         dphi_flip = self.get_random_flip_array(N)
         dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
-        dphi = np.cumsum(dphi)
-
+        # angle double step and go from there (so make previous step same as double step (change angle))
+        # adjust later
         if self.allow_double_step:
             indices_to_pick = np.arange(N)
             indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
             mask = []
-            num_double_steps = 5 if self.curriculum < 2 else self.np_random.choice([5,6,7,8])
-            while len(mask) < num_double_steps or len(indices_to_pick) == 0:
+            num_double_steps = 3 if self.curriculum < 2 else self.np_random.choice([3,4,5])
+            while len(mask) < num_double_steps and len(indices_to_pick) > 0:
                 idx = self.np_random.choice(indices_to_pick)
-                mask.append(idx)
-                indices_to_pick = np.delete(indices_to_pick, np.argwhere(indices_to_pick==idx))
-                # indices_to_pick
-                # if all(abs(idx - pi) > 1 for pi in mask):
-                #     mask.append(idx)
-                #     # Remove adjacent indices_to_pick to prevent them from being picked
-                #     indices_to_pick = indices_to_pick[(indices_to_pick != idx)] # - 1) | (indices_to_pick > idx + 1)]
+                # mask.append(idx)
+                # indices_to_pick = np.delete(indices_to_pick, np.argwhere(indices_to_pick==idx))
+                if all(abs(idx - pi) > 1 for pi in mask):
+                    mask.append(idx)
+                    # Remove adjacent indices_to_pick to prevent them from being picked
+                    indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
             mask = np.array(mask)
-            # dr_temp_mask = np.copy(dr[mask])
-            # dr[mask] *= 0
-            dr[mask] *= 4/5
-            for i in sorted(mask):
+            dphi[mask] = 0 # don't want this to influence the path angle, later need to modify position
+            dr[mask] = 0
+            next_dphis = abs(self.np_random.uniform(*yaw_range, len(mask))) + 20 * DEG2RAD
+            for j, i in enumerate(sorted(mask)):
                 swing_legs[i:] = 1 - swing_legs[i:]
-                # dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
-            
-            # dy[mask] = dr[mask] * np.sin(dtheta[mask]) * np.cos(dphi[mask])
-            # dx[mask] = dr[mask] * np.sin(dtheta[mask]) * np.sin(dphi[mask])
+            for j, i in enumerate(mask):
+                next_dphis[j] *= (1 if swing_legs[i-1] == 1 else -1)
+                dphi[i-1] += next_dphis[j]
+            self.double_step_mask = mask
+        dphi_no_sum = np.copy(dphi)
+        dphi = np.cumsum(dphi)
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
@@ -557,20 +558,11 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        # if self.allow_double_step:
-        #     dr[mask] = dr_temp_mask * 1/2
-        #     for i in sorted(mask):
-        #         swing_legs[i:] = 1 - swing_legs[i:]
-        #         dphi[i] += abs(self.np_random.uniform(*yaw_range)) * (1 if swing_legs[i] == 1 else -1)
-            
-        #     dy[mask] = dr[mask] * np.sin(dtheta[mask]) * np.cos(dphi[mask])
-        #     dx[mask] = dr[mask] * np.sin(dtheta[mask]) * np.sin(dphi[mask])
-        #     x[mask] += dx[mask]
-        #     y[mask] += dy[mask]
-        #     dy[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.cos(dphi[mask-1])
-        #     dx[mask-1] = dr[mask-1] * 1/3 * np.sin(dtheta[mask-1]) * np.sin(dphi[mask-1])
-        #     x[mask-1] -= dx[mask-1]
-        #     y[mask-1] -= dy[mask-1]
+        if self.allow_double_step:
+            dphi[mask-1] -= next_dphis
+            dphi_no_sum[mask - 1] -= next_dphis
+            x[mask-1] = x[mask-2] + dr[mask-1] * np.sin(dtheta[mask-1]) * np.sin(dphi_no_sum[mask-1] + dphi[mask-2])
+            y[mask-1] = y[mask-2] + dr[mask-1] * np.sin(dtheta[mask-1]) * np.cos(dphi_no_sum[mask-1] + dphi[mask-2])
             
         heading_targets = np.copy(dphi)
 
@@ -584,8 +576,6 @@ class Walker3DStepperEnv(EnvBase):
 
         x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
         y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
-
-        # heading_targets[3:] += self.path_angle
 
         if self.robot.mirrored:
             # swing_legs = 1 - swing_legs
@@ -605,9 +595,6 @@ class Walker3DStepperEnv(EnvBase):
         # heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
 
         dphi *= 0
-        # print(swing_legs)
-        # print(x)
-        # print(backward_switch_array)
 
         # assert np.all(x[swing_legs == 0] > 0), "Not all elements at indices of 0 are positive"
         # assert np.all(x[swing_legs == 1] < 0), "Not all elements at indices of 1 are negative"
@@ -1272,7 +1259,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.walk_target[0] += self.foot_sep
                 else:
                     self.walk_target[0] -= self.foot_sep
-        else:
+        elif not self.allow_double_step or self.next_step_index not in self.double_step_mask:
             self.walk_target = np.copy(targets[self.walk_target_index, 0:3])
             if int(targets[self.walk_target_index, 7]) == 1:
                 self.walk_target[0] += self.foot_sep
