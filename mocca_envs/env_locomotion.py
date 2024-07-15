@@ -584,19 +584,17 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        ratio = self.curriculum / self.max_curriculum
+        timing_counts = 25 * np.ones(N)
+        # timing_counts[self.stop_steps[1::2]] = 25 # second step to a standstill is a bit shorter
+        after_stop_indices = np.array(self.stop_steps[1::2]) + 1
+        after_stop_indices = [x for x in after_stop_indices if x < N]
+        timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
 
-        timing_counts = 25 * np.ones(N) + self.np_random.randint(-10,40, N) * ratio
+        timing_counts += self.np_random.uniform(-0.5,1.5) * self.curriculum / self.max_curriculum * timing_counts
 
         timing_counts[0] = 10
         timing_counts[1] = 10
         timing_counts[2] = 25
-        timing_counts[3] = 25
-
-        # timing_counts[self.stop_steps[1::2]] = 25 # second step to a standstill is a bit shorter
-        after_stop_indices = np.array(self.stop_steps[1::2]) + 1
-        after_stop_indices = [x for x in after_stop_indices if x < N]
-        timing_counts[after_stop_indices] = 55 + self.np_random.randint(-40,40, len(after_stop_indices)) * ratio
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_counts), axis=1)
     
