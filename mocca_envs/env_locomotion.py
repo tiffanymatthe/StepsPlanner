@@ -393,7 +393,8 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_samples = np.linspace(*self.yaw_range, num=self.yaw_sample_size) * DEG2RAD
         self.dist_samples = np.linspace(*self.dist_range, num=self.dist_sample_size)
         self.heading_variation_samples = np.linspace(*self.heading_variation_range, num=self.heading_variation_sample_size)
-        self.yaw_heading_var_prob = np.ones((self.yaw_sample_size, self.heading_variation_sample_size)) / (self.yaw_sample_size * self.heading_variation_sample_size)
+        self.yaw_heading_var_prob = np.zeros((self.yaw_sample_size, self.heading_variation_sample_size))
+        self.yaw_heading_var_prob[5,0] = 1
 
         self.step_param_dim = 7
         # Important to do this once before reset!
