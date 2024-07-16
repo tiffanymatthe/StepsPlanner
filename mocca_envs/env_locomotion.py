@@ -531,7 +531,7 @@ class Walker3DStepperEnv(EnvBase):
             dphi[mask] = 0 # don't want this to influence the path angle, later need to modify position
             dr[mask] = 0
             next_dphis = abs(self.np_random.uniform(*yaw_range, len(mask))) + 20 * DEG2RAD
-            for j, i in enumerate(sorted(mask)):
+            for i in sorted(mask):
                 swing_legs[i:] = 1 - swing_legs[i:]
             for j, i in enumerate(mask):
                 next_dphis[j] *= (1 if swing_legs[i-1] == 1 else -1)
@@ -563,6 +563,16 @@ class Walker3DStepperEnv(EnvBase):
             dphi_no_sum[mask - 1] -= next_dphis
             x[mask-1] = x[mask-2] + dr[mask-1] * np.sin(dtheta[mask-1]) * np.sin(dphi_no_sum[mask-1] + dphi[mask-2])
             y[mask-1] = y[mask-2] + dr[mask-1] * np.sin(dtheta[mask-1]) * np.cos(dphi_no_sum[mask-1] + dphi[mask-2])
+            
+            shift_x = x[mask] - x[mask-1]
+            shift_y = y[mask] - y[mask-1]
+            mag = np.sqrt(shift_x**2 + shift_y**2)
+            shift_x /= mag
+            shift_y /= mag
+            shift_mag = 0.3
+            for j, i in sorted(enumerate(mask), key=lambda x: x[1]):
+                x[i:] += shift_x[j] * shift_mag
+                y[i:] += shift_y[j] * shift_mag
             
         heading_targets = np.copy(dphi)
 
