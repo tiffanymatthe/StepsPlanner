@@ -52,6 +52,8 @@ def configs():
     vary_heading = False
     start_curriculum = 0
 
+    use_adaptive_sampling = False
+
     # Network settings
     actor_class = "SoftsignActor"
     fix_experts = False
@@ -199,6 +201,9 @@ def main(_seed, _config, _run):
         log_dir=args.experiment_dir, console_log_interval=args.log_interval
     )
 
+    if args.use_threshold_sampling:
+        evaluate_env = make_env(env_name, **env_kwargs)
+
     for iteration in range(num_updates):
 
         if args.lr_decay_type == "linear":
@@ -209,6 +214,41 @@ def main(_seed, _config, _run):
             scheduled_lr = args.lr
 
         set_optimizer_lr(agent.optimizer, scheduled_lr)
+
+        if args.use_adaptive_sampling and args.use_curriculum:
+            eval_obs = evaluate_env.reset()
+            yaw_size = dummy_env.yaw_samples.shape[0] # TODO
+            pitch_size = dummy_env.pitch_samples.shape[0]
+            total_metric = torch.zeros(1, yaw_size * pitch_size).to(args.device)
+            eval_counter = 0
+            while True:
+                with torch.no_grad():
+                    eval_obs = torch.from_numpy(eval_obs).float().unsqueeze(0)
+                    _, action, _ = actor_critic.act(eval_obs, deterministic=True)
+                cpu_action = action.squeeze().cpu().numpy()
+                eval_obs, reward, done, info = evaluate_env.step(cpu_action)
+                if done:
+                    eval_obs = evaluate_env.reset()
+                if evaluate_env.update_terrain:
+                    eval_counter += 1
+                    temp_states = evaluate_env.create_temp_states() # TODO
+                    with torch.no_grad():
+                        temp_states = torch.from_numpy(temp_states).float().to(args.device)
+                        value_samples = actor_critic.get_ensemble_values(temp_states, None, None) # TODO
+                        mean = value_samples.mean(dim=-1)
+                        metric = mean.clone()
+                        metric = metric.view(yaw_size, pitch_size)
+                        metric = metric.view(1, yaw_size * pitch_size)
+                        total_metric += metric
+                if eval_counter >= 5:
+                    # TODO: check logic
+                    total_metric /= total_metric.abs().max()
+                    sampling_probs = (-10*total_metric).softmax(dim=1).view(yaw_size, pitch_size)
+                    sample_probs = np.zeros((args.num_processes, yaw_size, pitch_size))
+                    for i in range(args.num_processes):
+                        sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
+                    envs.update_sample_prob(sample_probs) # TODO
+                    break
 
         # Disable gradient for data collection
         with torch.no_grad():

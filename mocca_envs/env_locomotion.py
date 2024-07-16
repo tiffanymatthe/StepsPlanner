@@ -353,7 +353,7 @@ class Walker3DStepperEnv(EnvBase):
         self.to_standstill = False
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
-        self.vary_heading = kwargs.pop("vary_heading", False)
+        self.vary_heading = True # kwargs.pop("vary_heading", False)
         self.tilt_bonus_weight = 1
         self.past_last_step = False
 
@@ -383,6 +383,16 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.7,0.7])
+        self.heading_variation_range = np.array([0,1])
+
+        self.yaw_sample_size = 11
+        self.dist_sample_size = 11
+        self.heading_variation_sample_size = 11
+
+        self.yaw_samples = np.linspace(*self.yaw_range, num=self.yaw_sample_size) * DEG2RAD
+        self.dist_samples = np.linspace(*self.dist_range, num=self.dist_sample_size)
+        self.heading_variation_samples = np.linspace(*self.heading_variation_range, num=self.heading_variation_sample_size)
+
         self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
@@ -459,7 +469,7 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = 0 # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
@@ -468,7 +478,7 @@ class Walker3DStepperEnv(EnvBase):
             dphi = self.np_random.uniform(*yaw_range, size=N)
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
+            dphi = self.np_random.uniform(*yaw_range, size=N) # * 0 + self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -568,13 +578,10 @@ class Walker3DStepperEnv(EnvBase):
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
 
-        # vary heading targets to be either 0 diff from prev heading, or half, or full
-        if self.vary_heading:
-            choices = np.array([0, 0.5, 1])
-            stop_mask = np.ones(N, dtype=bool)
-            stop_mask[self.stop_steps] = False
-            heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
-            heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
+        stop_mask = np.ones(N, dtype=bool)
+        stop_mask[self.stop_steps] = False
+        heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
+        heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.uniform(*self.heading_variation_range, size=N-len(self.stop_steps))
 
         dphi *= 0
         # print(swing_legs)
@@ -914,9 +921,10 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
             if (
-                self.to_standstill
-                or self.curriculum == 0
-                or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                True
+                # self.to_standstill
+                # or self.curriculum == 0
+                # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
@@ -1280,6 +1288,57 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         return deltas
+    
+    def set_next_step_location(self, pitch, yaw, heading_variation_factor, dr, x_tilt=0, y_tilt=0):
+        # TODO: check calculation
+        base_yaw = self.terrain_info[self.next_step_index - 1, 3]
+        dx = dr * np.sin(pitch) * np.sin(yaw)
+        dy = dr * np.sin(pitch) * np.cos(yaw)
+        matrix = np.array([[np.cos(base_yaw), -np.sin(base_yaw)], np.sin(base_yaw), np.cos(base_yaw)])
+        dxy = np.dot(matrix, np.concatenate(([dx], [dy])))
+        x = self.terrain_info[self.next_step_index - 1, 0] + dxy[0]
+        y = self.terrain_info[self.next_step_index - 1, 1] + dxy[1]
+        z = self.terrain_info[self.next_step_index - 1, 2] + dr * np.cos(pitch)
+        swing_leg = 1 - self.terrain_info[self.next_step_index - 1, 7]
+        step_total_yaw = base_yaw + yaw
+        if self.swing_leg == 1:
+            y += np.cos(step_total_yaw + np.pi / 2)
+            x += np.sin(step_total_yaw + np.pi / 2)
+        else:
+            y += np.cos(step_total_yaw - np.pi / 2)
+            x += np.sin(step_total_yaw - np.pi / 2)
+
+        # no stopping?
+        foot_heading = step_total_yaw + 90 * DEG2RAD
+        foot_heading = foot_heading - (self.terrain_info[self.next_step_index - 1, 6] - foot_heading) * heading_variation_factor
+
+        bounded_next_index = self.next_step_index % self.num_steps
+        self.terrain_info[bounded_next_index, 0] = x
+        self.terrain_info[bounded_next_index, 1] = y
+        self.terrain_info[bounded_next_index, 2] = z
+        self.terrain_info[bounded_next_index, 3] = step_total_yaw
+        self.terrain_info[bounded_next_index, 4] = x_tilt
+        self.terrain_info[bounded_next_index, 5] = y_tilt
+        self.terrain_info[bounded_next_index, 6] = foot_heading
+        self.terrain_info[bounded_next_index, 7] = swing_leg
+    
+    def create_temp_states(self):
+        # TODO: update
+        if self.update_terrain:
+            temp_states = []
+            for yaw in self.yaw_samples:
+                for r in self.dist_samples:
+                    for heading_variation_factor in self.heading_variation_samples:
+                        actual_pitch = np.pi / 2
+                        self.set_next_next_step_location(actual_pitch, yaw, heading_variation_factor, r)
+                        temp_state = self.get_temp_state() # TODO
+                        temp_states.append(temp_state)
+            self.set_next_next_step_location(self.next_next_pitch, self.next_next_yaw, self.next_next_dr,
+                                             self.next_next_x_tilt, self.next_next_y_tilt) # TODO
+            ret = np.stack(temp_states)
+        else:
+            ret = self.temp_states
+        return ret
 
     def get_mirror_indices(self):
 
