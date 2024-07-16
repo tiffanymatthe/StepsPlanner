@@ -11,8 +11,6 @@ import os
 import time
 from collections import deque
 
-import wandb
-
 from bottleneck import nanmean
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -21,6 +19,7 @@ os.sys.path.insert(0, parent_dir)
 
 import numpy as np
 import torch
+import pickle
 
 import mocca_envs
 from algorithms.ppo import PPO
@@ -42,6 +41,8 @@ RAD2DEG = 180 / np.pi
 @ex.config
 def configs():
     env = "Walker3DStepperEnv-v0"
+    use_wandb = True
+    use_threshold_sampling = True
 
     # Env settings
     use_mirror = True
@@ -52,7 +53,7 @@ def configs():
     vary_heading = False
     start_curriculum = 0
 
-    use_adaptive_sampling = False
+    use_adaptive_sampling = True
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -96,11 +97,13 @@ def configs():
 @ex.automain
 def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
-
-    run = wandb.init(
-        project="WalkerStepperEnv-v0 - Angled Walking",
-        config=args
-    )
+    
+    if args.use_wandb:
+        import wandb
+        run = wandb.init(
+            project="WalkerStepperEnv-v0 - Angled Walking",
+            config=args
+        )
 
     env_name = args.env
 
@@ -204,6 +207,9 @@ def main(_seed, _config, _run):
     if args.use_threshold_sampling:
         evaluate_env = make_env(env_name, **env_kwargs)
 
+    reached_adaptive_sampling = False
+    sampling_prob_list = []
+
     for iteration in range(num_updates):
 
         if args.lr_decay_type == "linear":
@@ -215,11 +221,13 @@ def main(_seed, _config, _run):
 
         set_optimizer_lr(agent.optimizer, scheduled_lr)
 
-        if args.use_adaptive_sampling and args.use_curriculum:
+        # update curriculum sampling after rollout
+        if args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
+            reached_adaptive_sampling = True
             eval_obs = evaluate_env.reset()
-            yaw_size = dummy_env.yaw_samples.shape[0] # TODO
-            pitch_size = dummy_env.pitch_samples.shape[0]
-            total_metric = torch.zeros(1, yaw_size * pitch_size).to(args.device)
+            yaw_size = dummy_env.yaw_samples.shape[0]
+            heading_variation_size = dummy_env.heading_variation_samples.shape[0]
+            total_metric = torch.zeros(1, yaw_size * heading_variation_size).to(args.device)
             eval_counter = 0
             while True:
                 with torch.no_grad():
@@ -231,23 +239,23 @@ def main(_seed, _config, _run):
                     eval_obs = evaluate_env.reset()
                 if evaluate_env.update_terrain:
                     eval_counter += 1
-                    temp_states = evaluate_env.create_temp_states() # TODO
+                    temp_states = evaluate_env.create_temp_states()
                     with torch.no_grad():
                         temp_states = torch.from_numpy(temp_states).float().to(args.device)
-                        value_samples = actor_critic.get_ensemble_values(temp_states, None, None) # TODO
+                        value_samples = actor_critic.get_ensemble_values(temp_states)
                         mean = value_samples.mean(dim=-1)
                         metric = mean.clone()
-                        metric = metric.view(yaw_size, pitch_size)
-                        metric = metric.view(1, yaw_size * pitch_size)
+                        metric = metric.view(yaw_size, heading_variation_size)
+                        metric = metric.view(1, yaw_size * heading_variation_size)
                         total_metric += metric
                 if eval_counter >= 5:
-                    # TODO: check logic
                     total_metric /= total_metric.abs().max()
-                    sampling_probs = (-10*total_metric).softmax(dim=1).view(yaw_size, pitch_size)
-                    sample_probs = np.zeros((args.num_processes, yaw_size, pitch_size))
+                    sampling_probs = (-10*total_metric).softmax(dim=1).view(yaw_size, heading_variation_size)
+                    sampling_prob_list.append(sampling_probs.cpu().numpy())
+                    sample_probs = np.zeros((args.num_processes, yaw_size, heading_variation_size))
                     for i in range(args.num_processes):
                         sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
-                    envs.update_sample_prob(sample_probs) # TODO
+                    envs.update_sample_prob(sample_probs)
                     break
 
         # Disable gradient for data collection
@@ -286,26 +294,28 @@ def main(_seed, _config, _run):
 
             next_value = actor_critic.get_value(rollouts.observations[-1]).detach()
 
-            # Update curriculum after roll-out
-            if (
-                args.use_curriculum
-                and len(curriculum_metrics) > 0
-                and nanmean(curriculum_metrics)
-                > advance_threshold
-                and nanmean(avg_heading_errs) < 7 * DEG2RAD
-                and current_curriculum < max_curriculum
-            ):
-                model_name = f"{save_name}_curr_{current_curriculum}.pt"
-                torch.save(actor_critic, os.path.join(args.save_dir, model_name))
-                current_curriculum += 1
-                envs.set_env_params({"curriculum": current_curriculum})
-
+            # # Update curriculum after roll-out
+            # if (
+            #     args.use_curriculum
+            #     and len(curriculum_metrics) > 0
+            #     and nanmean(curriculum_metrics)
+            #     > advance_threshold
+            #     and nanmean(avg_heading_errs) < 7 * DEG2RAD
+            #     and current_curriculum < max_curriculum
+            # ):
+            #     model_name = f"{save_name}_curr_{current_curriculum}.pt"
+            #     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+            #     current_curriculum += 1
+            #     envs.set_env_params({"curriculum": current_curriculum})
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
         value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
         rollouts.after_update()
+
+        with open(os.path.join(args.save_dir, '{}_sampling_prob85.pkl'.format(env_name)), 'wb') as fp:
+            pickle.dump(sampling_prob_list, fp)
 
         frame_count = (iteration + 1) * args.num_steps * args.num_processes
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
@@ -339,5 +349,5 @@ def main(_seed, _config, _run):
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
                 },
-                wandb
+                wandb if args.use_wandb else None
             )

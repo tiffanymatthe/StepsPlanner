@@ -120,6 +120,9 @@ class Policy(nn.Module):
         dist_entropy = dist.entropy().mean()
 
         return value, action_log_probs, dist_entropy
+    
+    def get_ensemble_values(self, inputs):
+        return self.critic(inputs)
 
 
 class SoftsignPolicy(Policy):

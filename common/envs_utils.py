@@ -526,6 +526,10 @@ class ShmemVecEnv(VecEnv):
         for pipe in self.parent_pipes:
             pipe.send(("set_env_params", params_dict))
 
+    def update_sample_prob(self, probs):
+        for pipe, prob in zip(self.parent_pipes, probs):
+            pipe.send(("update_sample_prob", prob))
+
     def set_robot_params(self, params_dict):
         for pipe in self.parent_pipes:
             pipe.send(("set_robot_params", params_dict))
@@ -581,6 +585,8 @@ def _subproc_worker(pipe, parent_pipe, env_fn_wrapper, obs_buf, obs_shape, obs_d
                 pipe.send((None, reward, done, info))
             elif cmd == "set_env_params":
                 env.set_env_params(data)
+            elif cmd == "update_sample_prob":
+                env.update_sample_prob(data)
             elif cmd == "set_robot_params":
                 env.set_robot_params(data)
             elif cmd == "get_env_param":
