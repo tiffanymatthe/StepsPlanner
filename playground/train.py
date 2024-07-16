@@ -101,7 +101,7 @@ def main(_seed, _config, _run):
     if args.use_wandb:
         import wandb
         run = wandb.init(
-            project="WalkerStepperEnv-v0 - Angled Walking",
+            project="WalkerStepperEnv-v0 - Adaptive Sampling",
             config=args
         )
 
