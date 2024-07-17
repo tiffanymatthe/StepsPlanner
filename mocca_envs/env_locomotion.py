@@ -347,7 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.timing_count_errors = []
         self.match_feet = False
-        self.allow_swing_leg_switch = True
+        self.allow_swing_leg_switch = kwargs.pop("allow_swing_leg_switch", True)
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False

@@ -52,6 +52,7 @@ def configs():
     gauss_width = 0.5
     timing_width = 0.005
     start_curriculum = 0
+    allow_swing_leg_switch = True
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -113,6 +114,7 @@ def main(_seed, _config, _run):
         "timing_bonus_weight": args.timing_bonus_weight,
         "timing_width": args.timing_width,
         "start_curriculum": args.start_curriculum,
+        "allow_swing_leg_switch": args.allow_swing_leg_switch,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)
