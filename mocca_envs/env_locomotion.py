@@ -569,7 +569,7 @@ class Walker3DStepperEnv(EnvBase):
             mag = np.sqrt(shift_x**2 + shift_y**2)
             shift_x /= mag
             shift_y /= mag
-            shift_mag = 0.3
+            shift_mag = 0.15
             for j, i in sorted(enumerate(mask), key=lambda x: x[1]):
                 x[i:] += shift_x[j] * shift_mag
                 y[i:] += shift_y[j] * shift_mag
