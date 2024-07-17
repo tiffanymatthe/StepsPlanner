@@ -349,7 +349,8 @@ def main(_seed, _config, _run):
                     "action_loss": action_loss,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
-                    "straight_line_prob": sampling_probs[5,0] if sampling_probs is not None else 0
+                    "straight_line_prob": sampling_probs[5,0] if sampling_probs is not None else 0,
+                    "reached_adaptive_sampling": reached_adaptive_sampling,
                 },
                 wandb if args.use_wandb else None
             )
