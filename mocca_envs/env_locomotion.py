@@ -1342,7 +1342,7 @@ class Walker3DStepperEnv(EnvBase):
         return concatenate((self.robot.calc_state(), targets.flatten()))
     
     def update_sample_prob(self, sample_prob):
-        self.yaw_heading_var_prob = sample_prob
+        self.yaw_heading_var_prob = sample_prob / sample_prob.sum()
     
     def create_temp_states(self):
         if self.update_terrain:

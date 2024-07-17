@@ -6,7 +6,7 @@ fig = plt.figure()
 plt.show(block=False)
 ax1 = fig.add_subplot(111)
 
-with open("models/Walker3DStepperEnv-v0_sampling_prob85.pkl", "rb") as fp:
+with open("runs/dream/jul_16/adaptive_sampling/models/Walker3DStepperEnv-v0_sampling_prob85.pkl", "rb") as fp:
 	sampling_prob_list = pickle.load(fp)
 
 sampling_prob_list = np.stack(sampling_prob_list)

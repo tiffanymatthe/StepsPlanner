@@ -42,7 +42,6 @@ RAD2DEG = 180 / np.pi
 def configs():
     env = "Walker3DStepperEnv-v0"
     use_wandb = True
-    use_threshold_sampling = True
 
     # Env settings
     use_mirror = True
@@ -204,11 +203,12 @@ def main(_seed, _config, _run):
         log_dir=args.experiment_dir, console_log_interval=args.log_interval
     )
 
-    if args.use_threshold_sampling:
+    if args.use_adaptive_sampling:
         evaluate_env = make_env(env_name, **env_kwargs)
 
     reached_adaptive_sampling = False
     sampling_prob_list = []
+    sampling_probs = None
 
     for iteration in range(num_updates):
 
@@ -314,8 +314,9 @@ def main(_seed, _config, _run):
 
         rollouts.after_update()
 
-        with open(os.path.join(args.save_dir, '{}_sampling_prob85.pkl'.format(env_name)), 'wb') as fp:
-            pickle.dump(sampling_prob_list, fp)
+        if len(sampling_prob_list) > 0:
+            with open(os.path.join(args.save_dir, '{}_sampling_prob85.pkl'.format(env_name)), 'wb') as fp:
+                pickle.dump(sampling_prob_list, fp)
 
         frame_count = (iteration + 1) * args.num_steps * args.num_processes
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
@@ -348,6 +349,7 @@ def main(_seed, _config, _run):
                     "action_loss": action_loss,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
+                    "straight_line_prob": sampling_probs[5,0] if sampling_probs is not None else 0
                 },
                 wandb if args.use_wandb else None
             )
