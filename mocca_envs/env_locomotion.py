@@ -353,7 +353,7 @@ class Walker3DStepperEnv(EnvBase):
         self.to_standstill = False
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
-        self.vary_heading = True # kwargs.pop("vary_heading", False)
+        self.vary_heading = kwargs.pop("vary_heading", False)
         self.tilt_bonus_weight = 1
         self.past_last_step = False
 
@@ -481,7 +481,6 @@ class Walker3DStepperEnv(EnvBase):
             dphi = self.np_random.uniform(*yaw_range, size=N)
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
-            # dphi = self.np_random.uniform(*yaw_range, size=N) # * 0 + self.path_angle * self.np_random.choice([-1, 1])
             pairs = np.indices(dimensions=(self.yaw_sample_size, self.heading_variation_sample_size))
             inds = self.np_random.choice(np.arange(self.yaw_sample_size * self.heading_variation_sample_size),
                                      p=self.yaw_heading_var_prob.reshape(-1), size=N, replace=True)
