@@ -1303,7 +1303,7 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         if self.timing_contact:
-            timing_counts_to_targets = self.frozen_time_to_targets if self.frozen_time_to_targets is not None else 
+            timing_counts_to_targets = self.frozen_time_to_targets if self.frozen_time_to_targets is not None else np.array([0])
         elif not self.waiting_for_next_target:
             timing_counts_to_targets = np.array([targets[1, 8] - self.in_air_count])
             self.frozen_time_to_targets = timing_counts_to_targets
