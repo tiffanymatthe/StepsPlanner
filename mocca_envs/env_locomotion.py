@@ -322,7 +322,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 3
+    rendered_step_count = 20
     init_step_separation = 0.70
 
     lookahead = 2
@@ -340,12 +340,12 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
-        self.curriculum = kwargs.pop("start_curriculum", 0)
+        self.curriculum = kwargs.pop("start_curriculum", 9)
         self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
         self.heading_errors = []
-        self.match_feet = False
+        self.match_feet = True
         self.allow_swing_leg_switch = True
         self.allow_backward_switch = False
         self.allow_double_step = False
@@ -700,30 +700,26 @@ class Walker3DStepperEnv(EnvBase):
         x[1::2] = x_temp + right_shifts[0]
         y[1::2] = y_temp + right_shifts[1]
 
-        # weights = np.linspace(1,10,self.curriculum+1)
-        # weights /= sum(weights)
-        # self.path_angle = self.angle_curriculum[0] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        indices = np.arange(4, len(x), 2)
+        max_horizontal_shift = self.foot_sep * 4
+        max_vertical_shift = max(dist_range)
+        extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
+        extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
-        # indices = np.arange(4, len(x), 2)
-        # max_horizontal_shift = self.foot_sep * 4
-        # max_vertical_shift = max(dist_range)
-        # extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
-        # extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
+        base_hor = 0 if self.curriculum == 0 else max_horizontal_shift / 4 # max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
+        horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
+        x[indices] += horizontal_shifts
+        x[indices + 1] += horizontal_shifts
+        y[indices] += extra_vertical_shifts
+        y[indices + 1] += extra_vertical_shifts
 
-        # base_hor = 0 if self.curriculum == 0 else max_horizontal_shift / 4 # max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
-        # horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
-        # x[indices] += horizontal_shifts
-        # x[indices + 1] += horizontal_shifts
-        # y[indices] += extra_vertical_shifts
-        # y[indices + 1] += extra_vertical_shifts
+        if self.path_angle > np.pi / 4:
+            base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
+            horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
+            y[indices] -= horizontal_shifts
+            y[indices + 1] -= horizontal_shifts
 
-        # if self.path_angle > np.pi / 4:
-        #     base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
-        #     horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
-        #     y[indices] -= horizontal_shifts
-        #     y[indices + 1] -= horizontal_shifts
-
-        heading_targets[3:] += self.path_angle
+        # heading_targets[3:] += self.path_angle
 
         self.flip_swing_legs(swing_legs, x, y, flip_decision)
 
@@ -833,7 +829,7 @@ class Walker3DStepperEnv(EnvBase):
             pos=self.robot_init_position[self.walk_forward],
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=robot_doing_well
+            mirror=True, # robot_doing_well
         )
         # self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
         self.prev_leg = self.swing_leg
