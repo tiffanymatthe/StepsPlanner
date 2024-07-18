@@ -347,7 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.timing_count_errors = []
         self.match_feet = False
-        self.allow_swing_leg_switch = kwargs.pop("allow_swing_leg_switch", True)
+        self.allow_swing_leg_switch = False # kwargs.pop("allow_swing_leg_switch", True)
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False
@@ -1049,7 +1049,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        if self.timing_contact:
+        if self.timing_contact and self.next_step_index > 1:
             self.timing_bonus = np.exp(-self.timing_width * abs(self.timing_count_error) **2)
         else:
             self.timing_bonus = 0
@@ -1158,7 +1158,7 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.reached_last_step # and self.next_step_index > 2
         if self.timing_contact:
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.in_air_count
-            # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.in_air_count}")
+            print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.in_air_count}")
             self.timing_count_errors.append(abs(self.timing_count_error))
             self.waiting_for_next_target = True
         else:
