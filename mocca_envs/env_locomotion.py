@@ -340,7 +340,7 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
-        self.curriculum = kwargs.pop("start_curriculum", 9)
+        self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
@@ -404,7 +404,7 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def flip_swing_legs(self, swing_legs, x, y, flip_array=None):
-        pair_indices = np.arange(0, len(swing_legs), 2) if len(flip_array) > len(swing_legs) else np.arange(0, len(swing_legs))
+        pair_indices = np.arange(0, len(swing_legs), 2) if len(flip_array) < len(swing_legs) else np.arange(0, len(swing_legs))
         if flip_array is None:
             flip_decision = np.random.rand(len(pair_indices)) < 0.5
             # do not do 01 and 23 and 45
@@ -659,10 +659,6 @@ class Walker3DStepperEnv(EnvBase):
         if not self.walk_forward:
             dy *= -1
 
-        # # Fix overlapping steps
-        # dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
-        # dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
-
         x = np.cumsum(dx)
         y = np.cumsum(dy)
         z = np.cumsum(dz)
@@ -682,23 +678,11 @@ class Walker3DStepperEnv(EnvBase):
         # Update x and y arrays
         swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
 
-        # y[3] = y[1] + 0.2
-        # x[3] /= 3
-        # y[4] = y[0] + 0.2
-        # x[4] = x[0]
-        # x[5], y[5] = 0, -0.4
-
-        x_temp = np.copy(x)
-        y_temp = np.copy(y)
-
         x = np.repeat(x, 2)
         y = np.repeat(y, 2)
 
-        x[::2] = x_temp + left_shifts[0]
-        y[::2] = y_temp + left_shifts[1]
-
-        x[1::2] = x_temp + right_shifts[0]
-        y[1::2] = y_temp + right_shifts[1]
+        x += np.where(swing_legs == 0, np.repeat(left_shifts[0],2), np.repeat(right_shifts[0], 2))
+        y += np.where(swing_legs == 0, np.repeat(left_shifts[1],2), np.repeat(right_shifts[1], 2))
 
         indices = np.arange(4, len(x), 2)
         max_horizontal_shift = self.foot_sep * 4
