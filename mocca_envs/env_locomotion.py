@@ -1309,7 +1309,7 @@ class Walker3DStepperEnv(EnvBase):
     
     def set_next_next_step_location(self, pitch, yaw, heading_variation_factor, dr, x_tilt=0, y_tilt=0):
         prev_step = np.copy(self.terrain_info[self.next_step_index])
-        prev_centered_step = self.centered_steps
+        prev_centered_step = np.copy(self.centered_steps[self.next_step_index])
 
         base_yaw = prev_step[3]
         dx = dr * np.sin(pitch) * np.sin(yaw)
@@ -1342,7 +1342,7 @@ class Walker3DStepperEnv(EnvBase):
         self.terrain_info[bounded_next_index, 6] = foot_heading
         self.terrain_info[bounded_next_index, 7] = swing_leg
 
-        if np.abs(yaw * RAD2DEG) < 20:
+        if np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.2:
             print(dxy)
             print(f"Terrain info for {pitch * RAD2DEG}, {yaw * RAD2DEG}, {heading_variation_factor}, {dr}: {self.terrain_info[bounded_next_index]} vs prev {self.terrain_info[self.next_step_index]}")
 
