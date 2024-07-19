@@ -222,7 +222,7 @@ def main(_seed, _config, _run):
 
         set_optimizer_lr(agent.optimizer, scheduled_lr)
 
-
+        max_termination_count = 10
 
         # update curriculum sampling after rollout
         if args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
@@ -232,6 +232,7 @@ def main(_seed, _config, _run):
             heading_variation_size = dummy_env.heading_variation_samples.shape[0]
             total_metric = torch.zeros(1, yaw_size * heading_variation_size).to(args.device)
             eval_counter = 0
+            terminate_count = 0
             while True:
                 with torch.no_grad():
                     eval_obs = torch.from_numpy(eval_obs).float().unsqueeze(0).to(args.device)
@@ -239,6 +240,7 @@ def main(_seed, _config, _run):
                 cpu_action = action.squeeze().cpu().numpy()
                 eval_obs, reward, done, info = evaluate_env.step(cpu_action)
                 if done:
+                    terminate_count += 1
                     eval_obs = evaluate_env.reset()
                 if evaluate_env.update_terrain:
                     eval_counter += 1
@@ -259,6 +261,10 @@ def main(_seed, _config, _run):
                     for i in range(args.num_processes):
                         sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
                     envs.update_sample_prob(sample_probs)
+                    print(f"Successfully updated.")
+                    break
+                if terminate_count > max_termination_count:
+                    print(f"Must terminate. Failed too many times")
                     break
 
         # Disable gradient for data collection
@@ -359,7 +365,7 @@ def main(_seed, _config, _run):
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
                     "straight_line_prob": sampling_prob_list[-1] if len(sampling_prob_list) != 0 else None, # sampling_probs[5,0] if sampling_probs is not None else 0,
-                    "reached_adaptive_sampling": reached_adaptive_sampling,
+                    "reached_adaptive_sampling": int(reached_adaptive_sampling),
                 },
                 wandb if args.use_wandb else None
             )
