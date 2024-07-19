@@ -1371,7 +1371,6 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_heading_var_prob = sample_prob / sample_prob.sum()
     
     def create_temp_states(self):
-        self.update_terrain = True
         if self.update_terrain:
             temp_states = []
             self.frozen_terrain_info = np.copy(self.terrain_info)
@@ -1389,7 +1388,6 @@ class Walker3DStepperEnv(EnvBase):
         else:
             raise NotImplementedError()
             # ret = self.temp_states
-        self.next_step_index += 1
         return ret
 
     def get_mirror_indices(self):
