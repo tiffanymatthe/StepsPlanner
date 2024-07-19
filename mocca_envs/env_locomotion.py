@@ -1311,7 +1311,7 @@ class Walker3DStepperEnv(EnvBase):
         prev_step = np.copy(self.terrain_info[self.next_step_index])
         prev_centered_step = np.copy(self.centered_steps[self.next_step_index])
 
-        print_condition = 10 < np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.05:
+        print_condition = 10 < np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.05
 
         base_yaw = prev_step[3]
         dx = dr * np.sin(pitch) * np.sin(yaw)
