@@ -358,6 +358,11 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_bonus_weight = 1
         self.past_last_step = False
 
+        self.remove_stop_steps = kwargs.pop("remove_stop_steps", False)
+
+        if self.remove_stop_steps:
+            self.stop_steps = [18,19]
+
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
@@ -1311,9 +1316,9 @@ class Walker3DStepperEnv(EnvBase):
         prev_step = np.copy(self.terrain_info[self.next_step_index])
         prev_centered_step = np.copy(self.centered_steps[self.next_step_index])
 
-        print_condition = 10 < np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.05
+        print_condition = -40 > yaw * RAD2DEG > -43 and heading_variation_factor < 0.05
 
-        base_yaw = prev_step[3]
+        base_yaw = prev_step[3] + np.pi / 2
         dx = dr * np.sin(pitch) * np.cos(yaw)
         dy = dr * np.sin(pitch) * np.sin(yaw)
         matrix = np.array([[np.cos(base_yaw), -np.sin(base_yaw)], [np.sin(base_yaw), np.cos(base_yaw)]])
@@ -1322,27 +1327,30 @@ class Walker3DStepperEnv(EnvBase):
         y = prev_centered_step[1] + dxy[1]
         z = prev_centered_step[2] + dr * np.cos(pitch)
         if print_condition:
-            print(f"Centered x y is {x}, {y}")
+            print(f"Index: {self.next_step_index} Centered x y is {x}, {y}")
         swing_leg = 1 - prev_step[7]
         step_total_yaw = base_yaw + yaw
-        if prev_step[7] == 1:
+        if swing_leg == 1:
             # print(f"Prev swing leg is 1, so adding to x: {np.sin(step_total_yaw + np.pi / 2) * self.foot_sep}")
-            y += np.cos(step_total_yaw + np.pi / 2) * self.foot_sep
-            x += np.sin(step_total_yaw + np.pi / 2) * self.foot_sep
+            y += np.sin(step_total_yaw + np.pi / 2) * self.foot_sep
+            x += np.cos(step_total_yaw + np.pi / 2) * self.foot_sep
         else:
             # print(f"Prev swing leg is 0, so adding to x: {np.sin(step_total_yaw - np.pi / 2) * self.foot_sep}")
-            y += np.cos(step_total_yaw - np.pi / 2) * self.foot_sep
-            x += np.sin(step_total_yaw - np.pi / 2) * self.foot_sep
+            y += np.sin(step_total_yaw - np.pi / 2) * self.foot_sep
+            x += np.cos(step_total_yaw - np.pi / 2) * self.foot_sep
         
         # no stopping?
-        foot_heading = step_total_yaw + 90 * DEG2RAD
-        foot_heading = foot_heading - (prev_centered_step[3] - foot_heading) * heading_variation_factor
+        foot_heading = step_total_yaw
+        # if print_condition:
+        #     print(f"Changed foot heading from {step_total_yaw} to {foot_heading + (prev_centered_step[3] - foot_heading) * heading_variation_factor} since prev foot heading is {prev_centered_step[3]}")
+        foot_heading = foot_heading + (prev_centered_step[3] - foot_heading) * heading_variation_factor
+
 
         bounded_next_index = (self.next_step_index + 1) % self.num_steps
         self.terrain_info[bounded_next_index, 0] = x
         self.terrain_info[bounded_next_index, 1] = y
         self.terrain_info[bounded_next_index, 2] = z
-        self.terrain_info[bounded_next_index, 3] = step_total_yaw
+        self.terrain_info[bounded_next_index, 3] = step_total_yaw - np.pi / 2
         self.terrain_info[bounded_next_index, 4] = x_tilt
         self.terrain_info[bounded_next_index, 5] = y_tilt
         self.terrain_info[bounded_next_index, 6] = foot_heading
@@ -1350,8 +1358,8 @@ class Walker3DStepperEnv(EnvBase):
 
         if print_condition:
             print(f"Index: {self.next_step_index} for {yaw} and {heading_variation_factor} and {dr}")
-            print(self.terrain_info[self.next_step_index])
-            print(self.terrain_info[self.next_step_index + 1])
+            print(repr(self.terrain_info[self.next_step_index]))
+            print(repr(self.terrain_info[self.next_step_index + 1]))
         #     print(dxy)
         #     print(f"Terrain info for {pitch * RAD2DEG}, {yaw * RAD2DEG}, {heading_variation_factor}, {dr}: {self.terrain_info[bounded_next_index]} vs prev {self.terrain_info[self.next_step_index]}")
 
@@ -1363,8 +1371,10 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_heading_var_prob = sample_prob / sample_prob.sum()
     
     def create_temp_states(self):
+        self.update_terrain = True
         if self.update_terrain:
             temp_states = []
+            self.frozen_terrain_info = np.copy(self.terrain_info)
             for yaw in self.yaw_samples:
                 # for r in self.dist_samples:
                 for heading_variation_factor in self.heading_variation_samples:
@@ -1372,12 +1382,14 @@ class Walker3DStepperEnv(EnvBase):
                     self.set_next_next_step_location(actual_pitch, yaw, heading_variation_factor, 0.65)
                     temp_state = self.get_temp_state()
                     temp_states.append(temp_state)
-            self.set_next_next_step_location(self.next_next_pitch, self.next_next_yaw, self.next_next_heading_variation_factor, self.next_next_dr,
-                                             self.next_next_x_tilt, self.next_next_y_tilt)
+            self.terrain_info = self.frozen_terrain_info
+            # self.set_next_next_step_location(self.next_next_pitch, self.next_next_yaw, self.next_next_heading_variation_factor, self.next_next_dr,
+                                            #  self.next_next_x_tilt, self.next_next_y_tilt)
             ret = np.stack(temp_states)
         else:
             raise NotImplementedError()
             # ret = self.temp_states
+        self.next_step_index += 1
         return ret
 
     def get_mirror_indices(self):

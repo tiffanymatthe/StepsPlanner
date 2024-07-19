@@ -204,7 +204,7 @@ def main(_seed, _config, _run):
     )
 
     if args.use_adaptive_sampling:
-        evaluate_env = make_env(env_name, **env_kwargs)
+        evaluate_env = make_env(env_name, **env_kwargs, remove_stop_steps=True)
 
     reached_adaptive_sampling = False
     sampling_prob_list = []
@@ -222,7 +222,7 @@ def main(_seed, _config, _run):
         set_optimizer_lr(agent.optimizer, scheduled_lr)
 
         # update curriculum sampling after rollout
-        if args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
+        if True: # args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
             reached_adaptive_sampling = True
             eval_obs = evaluate_env.reset()
             yaw_size = dummy_env.yaw_samples.shape[0]
@@ -237,25 +237,27 @@ def main(_seed, _config, _run):
                 eval_obs, reward, done, info = evaluate_env.step(cpu_action)
                 if done:
                     eval_obs = evaluate_env.reset()
-                if evaluate_env.update_terrain:
+                # if evaluate_env.update_terrain:
+                for i in range(5):
                     eval_counter += 1
+                    print(f"Creating temp states for {evaluate_env.next_step_index}")
                     temp_states = evaluate_env.create_temp_states()
-                    with torch.no_grad():
-                        temp_states = torch.from_numpy(temp_states).float().to(args.device)
-                        value_samples = actor_critic.get_ensemble_values(temp_states)
-                        mean = value_samples.mean(dim=-1)
-                        metric = mean.clone()
-                        metric = metric.view(yaw_size, heading_variation_size)
-                        metric = metric.view(1, yaw_size * heading_variation_size)
-                        total_metric += metric
-                if eval_counter >= 5:
-                    total_metric /= total_metric.abs().max()
-                    sampling_probs = (-10*total_metric).softmax(dim=1).view(yaw_size, heading_variation_size)
-                    sampling_prob_list.append(sampling_probs.cpu().numpy())
-                    sample_probs = np.zeros((args.num_processes, yaw_size, heading_variation_size))
-                    for i in range(args.num_processes):
-                        sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
-                    envs.update_sample_prob(sample_probs)
+                    # with torch.no_grad():
+                    #     temp_states = torch.from_numpy(temp_states).float().to(args.device)
+                    #     value_samples = actor_critic.get_ensemble_values(temp_states)
+                    #     mean = value_samples.mean(dim=-1)
+                    #     metric = mean.clone()
+                    #     metric = metric.view(yaw_size, heading_variation_size)
+                    #     metric = metric.view(1, yaw_size * heading_variation_size)
+                    #     total_metric += metric
+                if evaluate_env.next_step_index >= 5:
+                    # total_metric /= total_metric.abs().max()
+                    # sampling_probs = (-10*total_metric).softmax(dim=1).view(yaw_size, heading_variation_size)
+                    # sampling_prob_list.append(sampling_probs.cpu().numpy())
+                    # sample_probs = np.zeros((args.num_processes, yaw_size, heading_variation_size))
+                    # for i in range(args.num_processes):
+                    #     sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
+                    # envs.update_sample_prob(sample_probs)
                     break
 
         # Disable gradient for data collection
