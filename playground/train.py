@@ -51,6 +51,7 @@ def configs():
     gauss_width = 0.5
     vary_heading = False
     start_curriculum = 0
+    curriculum_threshold = 0.9
 
     use_adaptive_sampling = True
 
@@ -249,7 +250,7 @@ def main(_seed, _config, _run):
                         total_metric += metric
                 if eval_counter >= 5:
                     total_metric /= total_metric.abs().max()
-                    sampling_probs = (-10*total_metric).softmax(dim=1).view(yaw_size, heading_variation_size)
+                    sampling_probs = (-10*(total_metric-args.curriculum_threshold).abs()).softmax(dim=1).view(yaw_size, heading_variation_size)
                     sampling_prob_list.append(sampling_probs.cpu().numpy())
                     sample_probs = np.zeros((args.num_processes, yaw_size, heading_variation_size))
                     for i in range(args.num_processes):
