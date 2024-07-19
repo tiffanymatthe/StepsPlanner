@@ -226,6 +226,7 @@ def main(_seed, _config, _run):
 
         # update curriculum sampling after rollout
         if args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
+            print(f"Adaptive sampling on!")
             reached_adaptive_sampling = True
             eval_obs = evaluate_env.reset()
             yaw_size = dummy_env.yaw_samples.shape[0]
