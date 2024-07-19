@@ -401,7 +401,7 @@ class Walker3DStepperEnv(EnvBase):
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
-        self.terrain_info = self.generate_step_placements()
+        self.terrain_info, self.centered_steps = self.generate_step_placements()
 
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
@@ -561,6 +561,8 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
+        centered_steps = np.stack((np.copy(x), np.copy(y), np.copy(z), np.copy(heading_targets) + 90 * DEG2RAD), axis=1)
+
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
         right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
@@ -597,7 +599,7 @@ class Walker3DStepperEnv(EnvBase):
         # assert np.all(x[swing_legs == 0] > 0), "Not all elements at indices of 0 are positive"
         # assert np.all(x[swing_legs == 1] < 0), "Not all elements at indices of 1 are negative"
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1), centered_steps
     
 
     def generate_step_placements(self):
@@ -801,7 +803,7 @@ class Walker3DStepperEnv(EnvBase):
 
     def randomize_terrain(self, replace=True):
         if replace:
-            self.terrain_info = self.generate_step_placements()
+            self.terrain_info, self.centered_steps = self.generate_step_placements()
         if self.is_rendered or self.use_egl:
             for index in range(self.rendered_step_count):
                 self.set_step_state(index, index)
@@ -1306,26 +1308,29 @@ class Walker3DStepperEnv(EnvBase):
         return deltas
     
     def set_next_next_step_location(self, pitch, yaw, heading_variation_factor, dr, x_tilt=0, y_tilt=0):
-        base_yaw = self.terrain_info[self.next_step_index, 3]
+        prev_step = np.copy(self.terrain_info[self.next_step_index])
+        prev_centered_step = self.centered_steps
+
+        base_yaw = prev_step[3]
         dx = dr * np.sin(pitch) * np.sin(yaw)
         dy = dr * np.sin(pitch) * np.cos(yaw)
         matrix = np.array([[np.cos(base_yaw), -np.sin(base_yaw)], [np.sin(base_yaw), np.cos(base_yaw)]])
         dxy = np.dot(matrix, np.concatenate(([dx], [dy])))
-        x = self.terrain_info[self.next_step_index, 0] + dxy[0]
-        y = self.terrain_info[self.next_step_index, 1] + dxy[1]
-        z = self.terrain_info[self.next_step_index, 2] + dr * np.cos(pitch)
-        swing_leg = 1 - self.terrain_info[self.next_step_index, 7]
+        x = prev_centered_step[0] + dxy[0]
+        y = prev_centered_step[1] + dxy[1]
+        z = prev_centered_step[2] + dr * np.cos(pitch)
+        swing_leg = 1 - prev_step[7]
         step_total_yaw = base_yaw + yaw
         if self.swing_leg == 1:
-            y += np.cos(step_total_yaw + np.pi / 2)
-            x += np.sin(step_total_yaw + np.pi / 2)
+            y += np.cos(step_total_yaw + np.pi / 2) * self.foot_sep
+            x += np.sin(step_total_yaw + np.pi / 2) * self.foot_sep
         else:
-            y += np.cos(step_total_yaw - np.pi / 2)
-            x += np.sin(step_total_yaw - np.pi / 2)
+            y += np.cos(step_total_yaw - np.pi / 2) * self.foot_sep
+            x += np.sin(step_total_yaw - np.pi / 2) * self.foot_sep
         
         # no stopping?
         foot_heading = step_total_yaw + 90 * DEG2RAD
-        foot_heading = foot_heading - (self.terrain_info[self.next_step_index, 6] - foot_heading) * heading_variation_factor
+        foot_heading = foot_heading - (prev_centered_step[3] - foot_heading) * heading_variation_factor
 
         bounded_next_index = (self.next_step_index + 1) % self.num_steps
         self.terrain_info[bounded_next_index, 0] = x
