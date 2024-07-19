@@ -1314,8 +1314,8 @@ class Walker3DStepperEnv(EnvBase):
         print_condition = 10 < np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.05
 
         base_yaw = prev_step[3]
-        dx = dr * np.sin(pitch) * np.sin(yaw)
-        dy = dr * np.sin(pitch) * np.cos(yaw)
+        dx = dr * np.sin(pitch) * np.cos(yaw)
+        dy = dr * np.sin(pitch) * np.sin(yaw)
         matrix = np.array([[np.cos(base_yaw), -np.sin(base_yaw)], [np.sin(base_yaw), np.cos(base_yaw)]])
         dxy = np.dot(matrix, np.concatenate(([dx], [dy])))
         x = prev_centered_step[0] + dxy[0]
