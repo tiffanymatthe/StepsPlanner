@@ -222,6 +222,8 @@ def main(_seed, _config, _run):
 
         set_optimizer_lr(agent.optimizer, scheduled_lr)
 
+
+
         # update curriculum sampling after rollout
         if args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
             reached_adaptive_sampling = True
@@ -239,6 +241,7 @@ def main(_seed, _config, _run):
                 if done:
                     eval_obs = evaluate_env.reset()
                 if evaluate_env.update_terrain:
+                    eval_counter += 1
                     temp_states = evaluate_env.create_temp_states()
                     with torch.no_grad():
                         temp_states = torch.from_numpy(temp_states).float().to(args.device)
