@@ -323,6 +323,9 @@ def main(_seed, _config, _run):
             model_name = f"{save_name}_{int(next_checkpoint)}.pt"
             next_checkpoint += args.save_every
             torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+            if len(sampling_prob_list) > 0:
+                with open(os.path.join(args.save_dir, f'sampling_prob85_{save_name}_{int(next_checkpoint)}.pkl'), 'wb') as fp:
+                    pickle.dump(sampling_prob_list[-1], fp)
 
         mean_ep_reward = sum(episode_rewards) / len(episode_rewards)
         if len(episode_rewards) > 1 and mean_ep_reward > max_ep_reward:
@@ -331,6 +334,9 @@ def main(_seed, _config, _run):
             optim_name = f"{save_name}_best.optim"
             torch.save(actor_critic, os.path.join(args.save_dir, model_name))
             torch.save(agent.optimizer, os.path.join(args.save_dir, optim_name))
+            if len(sampling_prob_list) > 0:
+                with open(os.path.join(args.save_dir, f'sampling_prob85_{save_name}_best.pkl'), 'wb') as fp:
+                    pickle.dump(sampling_prob_list[-1], fp)
 
         if len(episode_rewards) > 1:
             end = time.time()
@@ -349,7 +355,7 @@ def main(_seed, _config, _run):
                     "action_loss": action_loss,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
-                    "straight_line_prob": sampling_probs[5,0] if sampling_probs is not None else 0,
+                    "straight_line_prob": sampling_prob_list[-1] if len(sampling_prob_list) != 0 else None, # sampling_probs[5,0] if sampling_probs is not None else 0,
                     "reached_adaptive_sampling": reached_adaptive_sampling,
                 },
                 wandb if args.use_wandb else None

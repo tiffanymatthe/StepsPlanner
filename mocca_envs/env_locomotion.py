@@ -1337,6 +1337,8 @@ class Walker3DStepperEnv(EnvBase):
         self.terrain_info[bounded_next_index, 6] = foot_heading
         self.terrain_info[bounded_next_index, 7] = swing_leg
 
+        print(f"Terrain info for {pitch}, {yaw}, {heading_variation_factor}, {dr}: {self.terrain_info[bounded_next_index]} vs prev {self.terrain_info[self.next_step_index]}")
+
     def get_temp_state(self):
         targets = self.delta_to_k_targets()
         return concatenate((self.robot.calc_state(), targets.flatten()))
