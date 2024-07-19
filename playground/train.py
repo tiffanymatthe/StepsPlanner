@@ -93,6 +93,27 @@ def configs():
         "max_grad_norm": 2.0,
     }
 
+def create_heatmap(matrix, timestep, yaws, factors):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    fig = plt.figure(figsize=(8, 6))
+    ax = sns.heatmap(matrix, annot=False, fmt=".2f", cmap='viridis')
+    # Set the ticks and labels
+    ax.set_xticks(np.arange(len(factors)) + 0.5)
+    ax.set_xticklabels([f'{factor:.2f}' for factor in factors])
+    ax.set_yticks(np.arange(len(yaws)) + 0.5)
+    ax.set_yticklabels([f'{yaw:.1f}' for yaw in yaws])
+    
+    plt.xlabel('Heading Variation Factor')
+    plt.ylabel('Yaw Angle')
+    plt.title(f'Timestep {timestep}')
+    plt.title(f'Timestep {timestep}')
+    plt.close()  # Close the plot to avoid display during logging
+
+    # Save the plot to a file or directly to wandb
+    import wandb
+    heatmap_image = wandb.Image(fig)
+    return heatmap_image
 
 @ex.automain
 def main(_seed, _config, _run):
@@ -227,8 +248,7 @@ def main(_seed, _config, _run):
         successful_adaptive_update = False
 
         # update curriculum sampling after rollout
-        if args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
-            # print(f"Adaptive sampling on!")
+        if True: # args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
             reached_adaptive_sampling = True
             eval_obs = evaluate_env.reset()
             yaw_size = dummy_env.yaw_samples.shape[0]
@@ -265,10 +285,8 @@ def main(_seed, _config, _run):
                         sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
                     envs.update_sample_prob(sample_probs)
                     successful_adaptive_update = True
-                    # print(f"Successfully updated.")
                     break
                 if terminate_count > max_termination_count:
-                    # print(f"Must terminate. Failed too many times")
                     break
 
         # Disable gradient for data collection
@@ -368,7 +386,7 @@ def main(_seed, _config, _run):
                     "action_loss": action_loss,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
-                    "straight_line_prob": sampling_prob_list[-1] if len(sampling_prob_list) != 0 else None, # sampling_probs[5,0] if sampling_probs is not None else 0,
+                    "straight_line_prob": create_heatmap(sampling_prob_list[-1], frame_count, dummy_env.yaw_samples * RAD2DEG, dummy_env.heading_variation_samples) if (len(sampling_prob_list) != 0) else None, # sampling_probs[5,0] if sampling_probs is not None else 0,
                     "reached_adaptive_sampling": int(reached_adaptive_sampling),
                     "successful_update": int(successful_adaptive_update),
                 },
