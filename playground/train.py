@@ -266,7 +266,7 @@ def main(_seed, _config, _run):
                 if done:
                     terminate_count += 1
                     eval_obs = evaluate_env.reset()
-                if evaluate_env.update_terrain:
+                if evaluate_env.update_terrain and evaluate_env.next_step_index > 2:
                     eval_counter += 1
                     temp_states = evaluate_env.create_temp_states(acc_next_step=args.acc_next_step)
                     with torch.no_grad():
