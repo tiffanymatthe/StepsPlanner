@@ -1346,6 +1346,9 @@ class Walker3DStepperEnv(EnvBase):
             print(f"Index: {self.next_step_index} for {yaw} and {heading_variation_factor} and {dr}")
             print(self.terrain_info[self.next_step_index])
             print(self.terrain_info[self.next_step_index + 1])
+            if self.next_step_index == 5:
+                print(dxy)
+                print(prev_centered_step)
         #     print(dxy)
         #     print(f"Terrain info for {pitch * RAD2DEG}, {yaw * RAD2DEG}, {heading_variation_factor}, {dr}: {self.terrain_info[bounded_next_index]} vs prev {self.terrain_info[self.next_step_index]}")
 
