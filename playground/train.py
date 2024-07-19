@@ -224,9 +224,11 @@ def main(_seed, _config, _run):
 
         max_termination_count = 10
 
+        successful_adaptive_update = False
+
         # update curriculum sampling after rollout
         if args.use_adaptive_sampling and args.use_curriculum and (reached_adaptive_sampling or (len(curriculum_metrics) > 0 and nanmean(curriculum_metrics) > advance_threshold)):
-            print(f"Adaptive sampling on!")
+            # print(f"Adaptive sampling on!")
             reached_adaptive_sampling = True
             eval_obs = evaluate_env.reset()
             yaw_size = dummy_env.yaw_samples.shape[0]
@@ -262,10 +264,11 @@ def main(_seed, _config, _run):
                     for i in range(args.num_processes):
                         sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
                     envs.update_sample_prob(sample_probs)
-                    print(f"Successfully updated.")
+                    successful_adaptive_update = True
+                    # print(f"Successfully updated.")
                     break
                 if terminate_count > max_termination_count:
-                    print(f"Must terminate. Failed too many times")
+                    # print(f"Must terminate. Failed too many times")
                     break
 
         # Disable gradient for data collection
@@ -367,6 +370,7 @@ def main(_seed, _config, _run):
                     "lr": scheduled_lr,
                     "straight_line_prob": sampling_prob_list[-1] if len(sampling_prob_list) != 0 else None, # sampling_probs[5,0] if sampling_probs is not None else 0,
                     "reached_adaptive_sampling": int(reached_adaptive_sampling),
+                    "successful_update": int(successful_adaptive_update),
                 },
                 wandb if args.use_wandb else None
             )
