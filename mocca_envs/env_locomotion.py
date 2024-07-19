@@ -409,7 +409,7 @@ class Walker3DStepperEnv(EnvBase):
         if flip_array is None:
             flip_decision = np.random.rand(len(pair_indices)) < 0.5
             # do not do 01 and 23 and 45
-            flip_decision[:3] = False
+            flip_decision[:2] = False
         else: 
             flip_decision = flip_array
         for idx, flip in zip(pair_indices, flip_decision):
