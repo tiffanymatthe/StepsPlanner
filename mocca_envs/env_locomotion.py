@@ -1311,9 +1311,13 @@ class Walker3DStepperEnv(EnvBase):
         prev_step = np.copy(self.terrain_info[self.next_step_index])
         prev_centered_step = np.copy(self.centered_steps[self.next_step_index])
 
+        print_condition = 10 < np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.05:
+
         base_yaw = prev_step[3]
         dx = dr * np.sin(pitch) * np.sin(yaw)
         dy = dr * np.sin(pitch) * np.cos(yaw)
+        if print_condition:
+            print(f"{dx}, {dy}")
         matrix = np.array([[np.cos(base_yaw), -np.sin(base_yaw)], [np.sin(base_yaw), np.cos(base_yaw)]])
         dxy = np.dot(matrix, np.concatenate(([dx], [dy])))
         x = prev_centered_step[0] + dxy[0]
@@ -1321,6 +1325,8 @@ class Walker3DStepperEnv(EnvBase):
         z = prev_centered_step[2] + dr * np.cos(pitch)
         swing_leg = 1 - prev_step[7]
         step_total_yaw = base_yaw + yaw
+        if print_condition:
+            print(f"Centered x y {x}, {y}")
         if self.swing_leg == 1:
             y += np.cos(step_total_yaw + np.pi / 2) * self.foot_sep
             x += np.sin(step_total_yaw + np.pi / 2) * self.foot_sep
@@ -1342,13 +1348,11 @@ class Walker3DStepperEnv(EnvBase):
         self.terrain_info[bounded_next_index, 6] = foot_heading
         self.terrain_info[bounded_next_index, 7] = swing_leg
 
-        if np.abs(yaw * RAD2DEG) < 10 and heading_variation_factor < 0.05:
+        if print_condition:
             print(f"Index: {self.next_step_index} for {yaw} and {heading_variation_factor} and {dr}")
             print(self.terrain_info[self.next_step_index])
             print(self.terrain_info[self.next_step_index + 1])
-            if self.next_step_index == 5:
-                print(dxy)
-                print(prev_centered_step)
+            print(dxy)
         #     print(dxy)
         #     print(f"Terrain info for {pitch * RAD2DEG}, {yaw * RAD2DEG}, {heading_variation_factor}, {dr}: {self.terrain_info[bounded_next_index]} vs prev {self.terrain_info[self.next_step_index]}")
 
