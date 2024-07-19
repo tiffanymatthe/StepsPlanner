@@ -1342,9 +1342,12 @@ class Walker3DStepperEnv(EnvBase):
         self.terrain_info[bounded_next_index, 6] = foot_heading
         self.terrain_info[bounded_next_index, 7] = swing_leg
 
-        if np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.2:
-            print(dxy)
-            print(f"Terrain info for {pitch * RAD2DEG}, {yaw * RAD2DEG}, {heading_variation_factor}, {dr}: {self.terrain_info[bounded_next_index]} vs prev {self.terrain_info[self.next_step_index]}")
+        if 10 < np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.05:
+            print(f"Index: {self.next_step_index}")
+            print(self.terrain_info[self.terrain_info[self.next_step_index]])
+            print(self.terrain_info[self.terrain_info[self.next_step_index + 1]])
+        #     print(dxy)
+        #     print(f"Terrain info for {pitch * RAD2DEG}, {yaw * RAD2DEG}, {heading_variation_factor}, {dr}: {self.terrain_info[bounded_next_index]} vs prev {self.terrain_info[self.next_step_index]}")
 
     def get_temp_state(self):
         targets = self.delta_to_k_targets()
