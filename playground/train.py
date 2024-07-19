@@ -231,7 +231,7 @@ def main(_seed, _config, _run):
             eval_counter = 0
             while True:
                 with torch.no_grad():
-                    eval_obs = torch.from_numpy(eval_obs).float().unsqueeze(0)
+                    eval_obs = torch.from_numpy(eval_obs).float().unsqueeze(0).to(args.device)
                     _, action, _ = actor_critic.act(eval_obs, deterministic=True)
                 cpu_action = action.squeeze().cpu().numpy()
                 eval_obs, reward, done, info = evaluate_env.step(cpu_action)
