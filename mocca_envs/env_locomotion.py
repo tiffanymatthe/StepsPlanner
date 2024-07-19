@@ -1326,11 +1326,11 @@ class Walker3DStepperEnv(EnvBase):
         swing_leg = 1 - prev_step[7]
         step_total_yaw = base_yaw + yaw
         if prev_step[7] == 1:
-            print(f"Prev swing leg is 1, so adding to x: {np.sin(step_total_yaw + np.pi / 2) * self.foot_sep}")
+            # print(f"Prev swing leg is 1, so adding to x: {np.sin(step_total_yaw + np.pi / 2) * self.foot_sep}")
             y += np.cos(step_total_yaw + np.pi / 2) * self.foot_sep
             x += np.sin(step_total_yaw + np.pi / 2) * self.foot_sep
         else:
-            print(f"Prev swing leg is 0, so adding to x: {np.sin(step_total_yaw - np.pi / 2) * self.foot_sep}")
+            # print(f"Prev swing leg is 0, so adding to x: {np.sin(step_total_yaw - np.pi / 2) * self.foot_sep}")
             y += np.cos(step_total_yaw - np.pi / 2) * self.foot_sep
             x += np.sin(step_total_yaw - np.pi / 2) * self.foot_sep
         
