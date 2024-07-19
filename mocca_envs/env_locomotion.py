@@ -1342,7 +1342,7 @@ class Walker3DStepperEnv(EnvBase):
         self.terrain_info[bounded_next_index, 6] = foot_heading
         self.terrain_info[bounded_next_index, 7] = swing_leg
 
-        if 10 < np.abs(yaw * RAD2DEG) < 20 and heading_variation_factor < 0.05:
+        if np.abs(yaw * RAD2DEG) < 10 and heading_variation_factor < 0.05:
             print(f"Index: {self.next_step_index} for {yaw} and {heading_variation_factor} and {dr}")
             print(self.terrain_info[self.next_step_index])
             print(self.terrain_info[self.next_step_index + 1])
