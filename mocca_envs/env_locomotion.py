@@ -349,6 +349,8 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_count_errors = []
         self.match_feet = False
         self.allow_swing_leg_switch = kwargs.pop("allow_swing_leg_switch", True)
+        # 0 = set to 0 at stops, 1 = at first contact use frozen, else 0 at stops, 2 = use frozen for entire stop
+        self.frozen_timing_mode = kwargs.pop("frozen_timing_mode", 0)
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False
@@ -1298,17 +1300,16 @@ class Walker3DStepperEnv(EnvBase):
         # should angles be per feet? yes so it doesn't change too much
         feet_heading = np.array([self.robot.feet_rpy[int(i), 2] for i in targets[:, 7]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
-        # heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         if self.timing_contact:
-            timing_counts_to_targets = self.frozen_time_to_targets if self.frozen_time_to_targets is not None else np.array([0])
+            timing_counts_to_targets = self.frozen_time_to_targets if (self.frozen_time_to_targets is not None and self.frozen_timing_mode >= 1) else np.array([0])
         elif not self.waiting_for_next_target:
             timing_counts_to_targets = np.array([targets[1, 8] - self.in_air_count])
             self.frozen_time_to_targets = timing_counts_to_targets
         else:
-            timing_counts_to_targets = np.array([0]) # self.frozen_time_to_targets if self.frozen_time_to_targets is not None else 
+            timing_counts_to_targets = self.frozen_time_to_targets if (self.frozen_time_to_targets is not None and self.frozen_timing_mode >= 2) else np.array([0])
 
         deltas = concatenate(
             (
