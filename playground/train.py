@@ -52,6 +52,7 @@ def configs():
     vary_heading = False
     start_curriculum = 0
     curriculum_threshold = 0.9
+    acc_next_step = False
 
     use_adaptive_sampling = True
 
@@ -267,7 +268,7 @@ def main(_seed, _config, _run):
                     eval_obs = evaluate_env.reset()
                 if evaluate_env.update_terrain:
                     eval_counter += 1
-                    temp_states = evaluate_env.create_temp_states()
+                    temp_states = evaluate_env.create_temp_states(acc_next_step=args.acc_next_step)
                     with torch.no_grad():
                         temp_states = torch.from_numpy(temp_states).float().to(args.device)
                         value_samples = actor_critic.get_ensemble_values(temp_states)
