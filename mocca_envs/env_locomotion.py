@@ -1327,7 +1327,7 @@ class Walker3DStepperEnv(EnvBase):
         step_total_yaw = base_yaw + yaw
         if print_condition:
             print(f"Centered x y {x}, {y}")
-        if self.swing_leg == 1:
+        if swing_leg == 1:
             y += np.cos(step_total_yaw + np.pi / 2) * self.foot_sep
             x += np.sin(step_total_yaw + np.pi / 2) * self.foot_sep
         else:
