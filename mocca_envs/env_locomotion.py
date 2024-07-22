@@ -594,7 +594,9 @@ class Walker3DStepperEnv(EnvBase):
         timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
 
         # factor = 2
-        timing_counts += self.np_random.choice([-0.5,0,0.5,1.0,1.5]) * timing_counts # * (self.curriculum + factor) / (self.max_curriculum + factor) * timing_counts
+        # timing_counts += self.np_random.choice([-0.5,0,0.5,1.0,1.5]) * timing_counts
+        if self.curriculum > 0:
+            timing_counts += -timing_counts * 0.5
 
         timing_counts[0] = 10
         timing_counts[1] = 10
@@ -1325,7 +1327,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas, timing_counts_to_targets
+        return deltas, timing_counts_to_targets * np.ones(10)
 
     def get_mirror_indices(self):
 
