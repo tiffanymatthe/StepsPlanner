@@ -827,7 +827,7 @@ class Walker3DStepperEnv(EnvBase):
         # Randomize platforms
         replace = robot_doing_well or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
         if replace:
-            self.heading_mask_on = self.np_random.choice([True, False], [0.3, 0.7])
+            self.heading_mask_on = True # self.np_random.choice([True, False], [0.3, 0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
