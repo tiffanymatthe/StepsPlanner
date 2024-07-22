@@ -826,8 +826,9 @@ class Walker3DStepperEnv(EnvBase):
 
         # Randomize platforms
         replace = robot_doing_well or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
-        if replace:
-            self.heading_mask_on = False # self.np_random.choice([True, False], [0.3, 0.7])
+        self.heading_mask_on = False
+        # if replace:
+        #     self.heading_mask_on = False # self.np_random.choice([True, False], [0.3, 0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1255,7 +1256,7 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         if self.heading_mask_on:
-            heading_angle_to_targets *= 0
+            heading_angle_to_targets = np.zeros(j + k)
 
         deltas = concatenate(
             (
