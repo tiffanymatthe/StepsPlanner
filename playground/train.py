@@ -53,7 +53,7 @@ def configs():
     timing_width = 0.005
     start_curriculum = 0
     allow_swing_leg_switch = True
-    frozen_timing_mode = 0
+    frozen_timing_mode = 1
 
     # Network settings
     actor_class = "SoftsignActor"

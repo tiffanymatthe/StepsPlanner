@@ -912,6 +912,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # targets is calculated by calc_env_state()
         state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
+        # print(f"{self.next_step_index}: timing observation {self.extra_param} with timing bonus {self.timing_bonus}")
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard(callback=self.handle_keyboard)
