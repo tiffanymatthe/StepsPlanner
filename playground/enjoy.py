@@ -8,7 +8,7 @@ python enjoy.py --env <ENV> --net <PATH/TO/NET> --len <STEPS>
 ```
 """
 import argparse
-import os
+import os, pickle
 import matplotlib.pyplot as plt
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -72,6 +72,12 @@ def main():
     env.seed(1093)
 
     model_path = args.net or os.path.join(args.save_dir, f"{args.env}_latest.pt")
+
+    sampling_prob_path = os.path.dirname(model_path) + "/sampling_prob85_" + os.path.splitext(os.path.basename(model_path))[0] + ".pkl"
+
+    with open(sampling_prob_path, "rb") as fp:
+        sampling_prob = pickle.load(fp)
+    env.update_sample_prob(sampling_prob)
 
     print("Env: {}".format(args.env))
     print("Model: {}".format(os.path.basename(model_path)))

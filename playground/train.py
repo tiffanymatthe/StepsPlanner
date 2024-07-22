@@ -160,6 +160,10 @@ def main(_seed, _config, _run):
     if args.net is not None:
         print(f"Loading model {args.net}")
         actor_critic = torch.load(args.net)
+        sampling_prob_path = os.path.dirname(args.net) + "/sampling_prob85_" + os.path.splitext(os.path.basename(args.net))[0] + ".pkl"
+        with open(sampling_prob_path, "rb") as fp:
+            sampling_prob = pickle.load(fp)
+        envs.update_sample_prob(sampling_prob)
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
