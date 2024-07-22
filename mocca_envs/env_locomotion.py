@@ -345,6 +345,8 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
+        self.heading_mask_on = False
+
         self.heading_errors = []
         self.match_feet = True
         self.allow_swing_leg_switch = True
@@ -824,6 +826,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # Randomize platforms
         replace = robot_doing_well or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
+        if replace:
+            self.heading_mask_on = self.np_random.choice([True, False], [0.3, 0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1006,7 +1010,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if self.target_reached:
+        if self.target_reached and not self.heading_mask_on:
             self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) **2)
         else:
             self.heading_bonus = 0
@@ -1111,7 +1115,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
 
-        if self.target_reached and not self.past_last_step:
+        if self.target_reached and not self.past_last_step and not self.heading_mask_on:
             self.heading_errors.append(abs(self.heading_rad_to_target))
 
         if self.target_reached:
@@ -1249,6 +1253,9 @@ class Walker3DStepperEnv(EnvBase):
         # heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
+
+        if self.heading_mask_on:
+            heading_angle_to_targets *= 0
 
         deltas = concatenate(
             (
