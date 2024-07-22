@@ -468,7 +468,7 @@ class Walker3DStepperEnv(EnvBase):
             dphi = self.np_random.uniform(*yaw_range, size=N)
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -556,7 +556,7 @@ class Walker3DStepperEnv(EnvBase):
         x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
         y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
 
-        # heading_targets[3:] += self.path_angle
+        heading_targets[3:] += self.path_angle * self.np_random.choice([-1,1])
 
         if self.robot.mirrored:
             # swing_legs = 1 - swing_legs
