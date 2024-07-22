@@ -8,8 +8,11 @@ fig = plt.figure()
 plt.show(block=False)
 ax1 = fig.add_subplot(111)
 
-with open("runs/cedar/2024_07_18__21_20_59__adaptive_net/1/models/Walker3DStepperEnv-v0_sampling_prob85.pkl", "rb") as fp:
+with open("runs/dream/jul_19/adaptive_sampling_fixed/models/sampling_prob85_Walker3DStepperEnv-v0_best.pkl", "rb") as fp:
 	sampling_prob_list = pickle.load(fp)
+	inds = np.random.choice(np.arange(11 * 11),
+								p=sampling_prob_list.reshape(-1), size=20, replace=True)
+	print(inds)
 
 sampling_prob_list = np.stack(sampling_prob_list)
 print(sampling_prob_list.shape)

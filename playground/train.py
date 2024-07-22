@@ -162,8 +162,13 @@ def main(_seed, _config, _run):
         actor_critic = torch.load(args.net)
         sampling_prob_path = os.path.dirname(args.net) + "/sampling_prob85_" + os.path.splitext(os.path.basename(args.net))[0] + ".pkl"
         with open(sampling_prob_path, "rb") as fp:
-            sampling_prob = pickle.load(fp)
-        envs.update_sample_prob(sampling_prob)
+            sampling_probs = pickle.load(fp)
+        yaw_size = dummy_env.yaw_samples.shape[0]
+        heading_variation_size = dummy_env.heading_variation_samples.shape[0]
+        sample_probs = np.zeros((args.num_processes, yaw_size, heading_variation_size))
+        for i in range(args.num_processes):
+            sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
+        envs.update_sample_prob(sample_probs)
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
