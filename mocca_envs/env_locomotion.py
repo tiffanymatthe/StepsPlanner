@@ -610,7 +610,7 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = self.angle_curriculum[self.curriculum] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
         N = self.num_steps
         assert N % 2 == 0
@@ -622,10 +622,10 @@ class Walker3DStepperEnv(EnvBase):
         y_tilt = self.np_random.uniform(*tilt_range, size=M)
         shifts = self.np_random.uniform(*shift_range, size=M) * 0
 
-        # randomly make negative for path angle (after 2 index)
-        flip_decision = np.random.rand(M) < 0.5
-        flip_decision[:3] = False
-        dphi[flip_decision] *= -1
+        # # randomly make negative for path angle (after 2 index)
+        # flip_decision = np.random.rand(M) < 0.5
+        # flip_decision[:3] = False
+        # dphi[flip_decision] *= -1
 
 
         # make first step below feet
@@ -691,7 +691,9 @@ class Walker3DStepperEnv(EnvBase):
         extra_vertical_shift = 0.3 * (1 - min(self.path_angle, np.pi / 4) / (np.pi / 4))
         extra_vertical_shifts = extra_vertical_shift * (np.arange(len(indices)) + 1)
 
-        base_hor = 0 if self.curriculum == 0 else max_horizontal_shift / 4 # max_horizontal_shift * min(self.path_angle, np.pi / 4) / (np.pi / 4)
+        # max_horizontal_shift / 4
+
+        base_hor = 0 if self.curriculum == 0 else max_horizontal_shift * min(self.path_angle, np.pi / 3) / (np.pi / 3)
         horizontal_shifts = base_hor * (np.arange(len(indices)) + 1)
         x[indices] += horizontal_shifts
         x[indices + 1] += horizontal_shifts
@@ -700,13 +702,13 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.path_angle > np.pi / 4:
             base_ver = max_vertical_shift * (self.path_angle - np.pi / 4) / (np.pi / 4)
-            horizontal_shifts = base_ver * (np.arange(len(indices)) + 1)
-            y[indices] -= horizontal_shifts
-            y[indices + 1] -= horizontal_shifts
+            vertical_shifts = base_ver * (np.arange(len(indices)) + 1)
+            y[indices] -= vertical_shifts
+            y[indices + 1] -= vertical_shifts
 
         # heading_targets[3:] += self.path_angle
 
-        self.flip_swing_legs(swing_legs, x, y, flip_decision)
+        # self.flip_swing_legs(swing_legs, x, y, flip_decision)
 
         if self.robot.mirrored:
             swing_legs = 1 - swing_legs
