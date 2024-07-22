@@ -167,7 +167,7 @@ def main(_seed, _config, _run):
         heading_variation_size = dummy_env.heading_variation_samples.shape[0]
         sample_probs = np.zeros((args.num_processes, yaw_size, heading_variation_size))
         for i in range(args.num_processes):
-            sample_probs[i, :, :] = np.copy(sampling_probs.cpu().numpy().astype(np.float64))
+            sample_probs[i, :, :] = np.copy(sampling_probs)
         envs.update_sample_prob(sample_probs)
     else:
         actor_class = globals().get(args.actor_class)
