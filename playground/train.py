@@ -98,7 +98,7 @@ def main(_seed, _config, _run):
     run = wandb.init(
         project="WalkerStepperEnv-v0 - Masking",
         config=args,
-        name=os.path.basename(args.experiment_dir),
+        # name=os.path.basename(args.experiment_dir),
     )
 
     env_name = args.env
