@@ -96,7 +96,7 @@ def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
 
     run = wandb.init(
-        project="WalkerStepperEnv-v0 - Side Stepping",
+        project="WalkerStepperEnv-v0 - Masking",
         config=args
     )
 
