@@ -612,7 +612,7 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = np.pi / 4 # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = np.pi / 4 * 4/5 # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
 
         N = self.num_steps
         assert N % 2 == 0
