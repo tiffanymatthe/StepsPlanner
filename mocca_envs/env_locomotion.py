@@ -386,7 +386,7 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.7,0.7])
-        self.step_param_dim = 7
+        self.step_param_dim = 8
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
@@ -1269,6 +1269,8 @@ class Walker3DStepperEnv(EnvBase):
         if self.heading_mask_on:
             heading_angle_to_targets = np.zeros(j + k)
 
+        heading_mask = np.ones(j + k) * self.heading_mask_on
+
         deltas = concatenate(
             (
                 (np.sin(angle_to_targets) * distance_to_targets)[:, None],  # x
@@ -1278,6 +1280,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
+                (heading_mask)[:, None], # heading_mask
             ),
             axis=1,
         )
