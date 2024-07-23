@@ -595,10 +595,12 @@ class Walker3DStepperEnv(EnvBase):
 
         # # factor = 2
         # timing_counts += self.np_random.choice([-0.5,-0.3,0,0.5,1.0]) * timing_counts
+        self.timing_factor = 0
         if self.curriculum == 1:
-            timing_counts += -timing_counts * self.np_random.choice([0,0.3])
+            self.timing_factor = self.np_random.choice([0,0.3])
         if self.curriculum > 1:
-            timing_counts += -timing_counts * self.np_random.choice([0,0.3,0.5])
+            self.timing_factor = self.np_random.choice([0,0.3,0.5])
+        timing_counts += -timing_counts * self.timing_factor
 
         timing_counts[0] = 10
         timing_counts[1] = 10
@@ -940,10 +942,13 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
             if (
-                True
-                # self.to_standstill
-                # or self.curriculum == 0
-                # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                # True
+                # # self.to_standstill
+                # # or self.curriculum == 0
+                # # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                self.curriculum == 0
+                or (self.timing_factor == 0.3 and self.curriculum == 1)
+                or (self.timing_factor == 0.5 and self.curriculum > 1)
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
