@@ -472,7 +472,7 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = self.angle_curriculum[2] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = 0 if self.curriculum == 0 else self.angle_curriculum[1] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
@@ -579,7 +579,7 @@ class Walker3DStepperEnv(EnvBase):
             heading_targets *= -1
 
         # switched dy and dx before, so need to rectify
-        heading_targets += 90 * DEG2RAD
+        heading_targets = heading_targets * 0 + 90 * DEG2RAD
 
         # vary heading targets to be either 0 diff from prev heading, or half, or full
         if self.vary_heading:
@@ -913,9 +913,10 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
             if (
-                self.to_standstill
-                or self.curriculum == 0
-                or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                True
+                # self.to_standstill
+                # or self.curriculum == 0
+                # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
