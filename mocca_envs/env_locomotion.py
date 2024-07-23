@@ -354,7 +354,7 @@ class Walker3DStepperEnv(EnvBase):
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False
-        self.to_standstill = False
+        self.to_standstill = True
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -593,10 +593,10 @@ class Walker3DStepperEnv(EnvBase):
         after_stop_indices = [x for x in after_stop_indices if x < N]
         timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
 
-        # factor = 2
-        timing_counts += self.np_random.choice([-0.5,-0.3,0,0.5,1.0]) * timing_counts
-        # if self.curriculum > 0:
-        #     timing_counts += -timing_counts * 0.5
+        # # factor = 2
+        # timing_counts += self.np_random.choice([-0.5,-0.3,0,0.5,1.0]) * timing_counts
+        # # if self.curriculum > 0:
+        # #     timing_counts += -timing_counts * 0.5
 
         timing_counts[0] = 10
         timing_counts[1] = 10
