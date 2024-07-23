@@ -594,9 +594,9 @@ class Walker3DStepperEnv(EnvBase):
         timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
 
         # factor = 2
-        # timing_counts += self.np_random.choice([-0.5,0,0.5,1.0,1.5]) * timing_counts
-        if self.curriculum > 0:
-            timing_counts += -timing_counts * 0.5
+        timing_counts += self.np_random.choice([-0.5,-0.3,0,0.5,1.0]) * timing_counts
+        # if self.curriculum > 0:
+        #     timing_counts += -timing_counts * 0.5
 
         timing_counts[0] = 10
         timing_counts[1] = 10
