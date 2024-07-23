@@ -345,7 +345,7 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)  # steps_reached
 
-        self.heading_mask_on = True
+        self.heading_mask_on = kwargs.pop("heading_mask", False)
 
         self.heading_errors = []
         self.match_feet = True
@@ -826,7 +826,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Randomize platforms
         replace = robot_doing_well or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
-        self.heading_mask_on = True
+        # self.heading_mask_on = True
         # if replace:
         #     self.heading_mask_on = False # self.np_random.choice([True, False], [0.3, 0.7])
         self.next_step_index = self.lookbehind

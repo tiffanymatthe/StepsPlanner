@@ -52,6 +52,8 @@ def configs():
     vary_heading = False
     start_curriculum = 0
 
+    heading_mask = False
+
     # Network settings
     actor_class = "SoftsignActor"
     fix_experts = False
@@ -111,6 +113,7 @@ def main(_seed, _config, _run):
         "gauss_width": args.gauss_width,
         "vary_heading": args.vary_heading,
         "start_curriculum": args.start_curriculum,
+        "heading_mask": args.heading_mask,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)
