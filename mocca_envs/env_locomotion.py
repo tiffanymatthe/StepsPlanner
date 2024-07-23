@@ -348,7 +348,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_mask_on = kwargs.pop("heading_mask", False)
 
         self.heading_errors = []
-        self.match_feet = True
+        self.match_feet = False
         self.allow_swing_leg_switch = True
         self.allow_backward_switch = False
         self.allow_double_step = False
@@ -446,23 +446,33 @@ class Walker3DStepperEnv(EnvBase):
         flip_array[toggle_cumsum % 2 == 1] = 1
         flip_array[toggle_cumsum % 2 == 0] = 0
         return flip_array
+    
+    def get_random_flip_array_every_5(self, N):
+        flip_array = np.zeros(N + 1, dtype=np.int8)
+        flip_array[0::5] = 1
+        toggle_cumsum = np.cumsum(flip_array)
+        toggle_cumsum = toggle_cumsum[:-1]
+        flip_array = flip_array[:-1]
+        flip_array[toggle_cumsum % 2 == 1] = 1
+        flip_array[toggle_cumsum % 2 == 0] = 0
+        return flip_array
 
 
     def generate_step_placements_normal(self):
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
-        ratio = self.curriculum / self.max_curriculum
+        ratio = 0 # self.curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
         dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        dist_range = np.array([self.dist_range[0], dist_upper[0]])
         yaw_range = self.yaw_range * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD * 0
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = self.angle_curriculum[2] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
@@ -507,7 +517,7 @@ class Walker3DStepperEnv(EnvBase):
         # dphi[swing_legs == 1] = np.abs(dphi[swing_legs == 1])
         # dphi[swing_legs == 0] = -np.abs(dphi[swing_legs == 0])
 
-        dphi_flip = self.get_random_flip_array(N)
+        dphi_flip = self.get_random_flip_array_every_5(N)
         dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
         dphi = np.cumsum(dphi)
