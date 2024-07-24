@@ -1102,6 +1102,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.timing_bonus = 2 * int(self.robot.feet_contact[0]) - 1 + 2 * int(self.robot.feet_contact[1]) - 1
 
+        self.timing_count_errors.append(self.timing_bonus)
+
         # if self.timing_contact:
         #     self.timing_bonus = np.exp(-self.timing_width * abs(self.timing_count_error) **2)
         # else:
@@ -1212,7 +1214,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.timing_contact:
             self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.in_air_count
             # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.in_air_count}")
-            self.timing_count_errors.append(abs(self.timing_count_error))
+            # self.timing_count_errors.append(abs(self.timing_count_error))
             self.waiting_for_next_target = True
         else:
             self.timing_count_error = 0
