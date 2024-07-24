@@ -1397,6 +1397,8 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
+        if self.starting_leg == 0:
+            clock_signal = np.flip(clock_signal)
 
         deltas = concatenate(
             (
@@ -1428,6 +1430,9 @@ class Walker3DStepperEnv(EnvBase):
                     6 + 2 * action_dim + 2 * i
                     for i in range(len(self.robot.foot_names) // 2)
                 ],
+                [
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim
+                ],
             )
         )
 
@@ -1439,6 +1444,9 @@ class Walker3DStepperEnv(EnvBase):
                 [
                     6 + 2 * action_dim + 2 * i + 1
                     for i in range(len(self.robot.foot_names) // 2)
+                ],
+                [
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim
                 ],
             )
         )
