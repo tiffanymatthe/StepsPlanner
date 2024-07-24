@@ -354,7 +354,7 @@ class Walker3DStepperEnv(EnvBase):
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False
-        self.to_standstill = False
+        self.to_standstill = True
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
         self.tilt_bonus_weight = 1
@@ -388,6 +388,7 @@ class Walker3DStepperEnv(EnvBase):
             self.dist_range = np.array([0.65, 0.0])
         else:
             self.dist_range = np.array([0.65, 0.75])
+        self.dr_curriculum = np.linspace(*self.dist_range, N)
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
@@ -474,7 +475,10 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         if self.to_standstill:
-            dr = np.zeros(N) + dist_upper[self.curriculum]
+            weights = np.linspace(1,10,self.curriculum+1)
+            weights /= sum(weights)
+            self.dr_spacing = self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
+            dr = np.zeros(N) + self.dr_spacing
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
@@ -947,8 +951,19 @@ class Walker3DStepperEnv(EnvBase):
                 # # or self.curriculum == 0
                 # # or isclose(self.path_angle, self.angle_curriculum[self.curriculum])
                 self.curriculum == 0
-                or (self.timing_factor == 0.3 and self.curriculum == 1)
-                or (self.timing_factor == 0.5 and self.curriculum > 1)
+                or (
+                    not self.to_standstill
+                    and (
+                        (self.timing_factor == 0.3 and self.curriculum == 1)
+                        or (self.timing_factor == 0.5 and self.curriculum > 1)
+                    )
+                )
+                or (
+                    self.to_standstill
+                    and (
+                        isclose(self.dr_spacing, self.dr_curriculum[self.curriculum])
+                    )
+                )
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
