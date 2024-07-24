@@ -610,6 +610,8 @@ class Walker3DStepperEnv(EnvBase):
         timing_counts[1] = 10
         timing_counts[2] = 25
 
+        timing_counts = np.floor(timing_counts)
+
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_counts), axis=1)
     
 
