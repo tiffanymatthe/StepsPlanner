@@ -397,6 +397,7 @@ class Walker3DStepperEnv(EnvBase):
         # Important to do this once before reset!
         self.swing_leg = 0
         self.starting_leg = self.swing_leg
+        self.cycle_time = 50
         self.walk_forward = True
         self.terrain_info = self.generate_step_placements()
 
@@ -592,28 +593,28 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        timing_counts = 25 * np.ones(N)
-        # timing_counts[self.stop_steps[1::2]] = 25 # second step to a standstill is a bit shorter
-        after_stop_indices = np.array(self.stop_steps[1::2]) + 1
-        after_stop_indices = [x for x in after_stop_indices if x < N]
-        timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
+        # timing_counts = 25 * np.ones(N)
+        # # timing_counts[self.stop_steps[1::2]] = 25 # second step to a standstill is a bit shorter
+        # after_stop_indices = np.array(self.stop_steps[1::2]) + 1
+        # after_stop_indices = [x for x in after_stop_indices if x < N]
+        # timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
 
-        # # factor = 2
-        # timing_counts += self.np_random.choice([-0.5,-0.3,0,0.5,1.0]) * timing_counts
-        self.timing_factor = 0
-        if self.curriculum == 1:
-            self.timing_factor = self.np_random.choice([-0.4,0,0.4])
-        if self.curriculum > 1:
-            self.timing_factor = self.np_random.choice([-0.7,-0.4,0,0.4,0.7])
-        timing_counts += timing_counts * self.timing_factor
+        # # # factor = 2
+        # # timing_counts += self.np_random.choice([-0.5,-0.3,0,0.5,1.0]) * timing_counts
+        # self.timing_factor = 0
+        # if self.curriculum == 1:
+        #     self.timing_factor = self.np_random.choice([-0.4,0,0.4])
+        # if self.curriculum > 1:
+        #     self.timing_factor = self.np_random.choice([-0.7,-0.4,0,0.4,0.7])
+        # timing_counts += timing_counts * self.timing_factor
 
-        timing_counts[0] = 10
-        timing_counts[1] = 10
-        timing_counts[2] = 25
+        # timing_counts[0] = 10
+        # timing_counts[1] = 10
+        # timing_counts[2] = 25
 
-        timing_counts = np.floor(timing_counts)
+        # timing_counts = np.floor(timing_counts)
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_counts), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
     
 
     def generate_step_placements(self):
@@ -1083,10 +1084,20 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        expected_leg_in_air = self.starting_leg if (self.timestep % 25) < (25 / 2) else 1 - self.starting_leg # if in first part of cycle, start leg should be in air
-        is_leg_in_air = self.robot.feet_contact[expected_leg_in_air] == 0
-        is_other_leg_on_ground = self.robot.feet_contact[1-expected_leg_in_air] == 1
-        self.timing_bonus = 2 * int(is_leg_in_air) - 1 + 2 * int(is_other_leg_on_ground) - 1
+        half_stand_time = 3
+        both_legs_on_ground = False
+        if self.timestep % self.cycle_time <= self.cycle_time / 2 - half_stand_time:
+            expected_leg_in_air = self.starting_leg
+        elif self.timestep % self.cycle_time >= self.cycle_time / 2 + half_stand_time:
+            expected_leg_in_air = 1 - self.starting_leg
+        else:
+            both_legs_on_ground = True
+        if not both_legs_on_ground:
+            is_leg_in_air = self.robot.feet_contact[expected_leg_in_air] == 0
+            is_other_leg_on_ground = self.robot.feet_contact[1-expected_leg_in_air] == 1
+            self.timing_bonus = 2 * int(is_leg_in_air) - 1 + 2 * int(is_other_leg_on_ground) - 1
+        else:
+            self.timing_bonus = 2 * int(self.robot.feet_contact[0]) - 1 + 2 * int(self.robot.feet_contact[1]) - 1
 
         # if self.timing_contact:
         #     self.timing_bonus = np.exp(-self.timing_width * abs(self.timing_count_error) **2)
@@ -1340,7 +1351,7 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        clock_signal = np.array([np.sin(2*np.pi*self.timestep / 25), np.cos(2*np.pi*self.timestep / 25)])
+        clock_signal = np.array([np.sin(2*np.pi*self.timestep / self.cycle_time), np.cos(2*np.pi*self.timestep / self.cycle_time)])
 
         deltas = concatenate(
             (
