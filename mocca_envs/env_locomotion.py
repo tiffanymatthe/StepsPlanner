@@ -366,7 +366,7 @@ class Walker3DStepperEnv(EnvBase):
         self.frozen_time_to_targets = None
         self.past_last_step = False
 
-        self.time_offset = 15
+        self.time_offset = 10
         self.cycle_time = 50
         half_stand_time = 4
         uncertainty_range = 5
@@ -395,21 +395,21 @@ class Walker3DStepperEnv(EnvBase):
             offset = (width - 1) // 2
             return (middle_index - offset, middle_index + offset)
 
-        self.start_leg_expected_contacts = np.zeros(self.cycle_time)
-        self.start_leg_expected_contacts[self.cycle_time//2-half_stand_time:] = 1
-        self.start_leg_expected_contacts[0] = 0.5
-        self.start_leg_expected_contacts[-1] = 0.5
-        self.start_leg_expected_contacts = interpolate_between_indices(self.start_leg_expected_contacts, 0, (uncertainty_range//2+1)-1)
-        self.start_leg_expected_contacts = interpolate_between_indices(self.start_leg_expected_contacts, *get_left_right_indices(self.cycle_time // 2 - half_stand_time, uncertainty_range))
-        self.start_leg_expected_contacts = interpolate_between_indices(self.start_leg_expected_contacts, self.cycle_time - (uncertainty_range//2+1), self.cycle_time-1)
+        self.start_leg_expected_contact_probabilities = np.zeros(self.cycle_time)
+        self.start_leg_expected_contact_probabilities[self.cycle_time//2-half_stand_time:] = 1
+        self.start_leg_expected_contact_probabilities[0] = 0.5
+        self.start_leg_expected_contact_probabilities[-1] = 0.5
+        self.start_leg_expected_contact_probabilities = interpolate_between_indices(self.start_leg_expected_contact_probabilities, 0, (uncertainty_range//2+1)-1)
+        self.start_leg_expected_contact_probabilities = interpolate_between_indices(self.start_leg_expected_contact_probabilities, *get_left_right_indices(self.cycle_time // 2 - half_stand_time, uncertainty_range))
+        self.start_leg_expected_contact_probabilities = interpolate_between_indices(self.start_leg_expected_contact_probabilities, self.cycle_time - (uncertainty_range//2+1), self.cycle_time-1)
 
-        self.other_leg_expected_contacts = np.zeros(self.cycle_time)
-        self.other_leg_expected_contacts[:self.cycle_time//2 + half_stand_time] = 1
-        self.other_leg_expected_contacts[0] = 0.5
-        self.other_leg_expected_contacts[-1] = 0.5
-        self.other_leg_expected_contacts = interpolate_between_indices(self.other_leg_expected_contacts, 0, (uncertainty_range//2+1)-1)
-        self.other_leg_expected_contacts = interpolate_between_indices(self.other_leg_expected_contacts, *get_left_right_indices(self.cycle_time // 2 + half_stand_time, uncertainty_range))
-        self.other_leg_expected_contacts = interpolate_between_indices(self.other_leg_expected_contacts, self.cycle_time - (uncertainty_range // 2+1), self.cycle_time-1)
+        self.other_leg_expected_contact_probabilities = np.zeros(self.cycle_time)
+        self.other_leg_expected_contact_probabilities[:self.cycle_time//2 + half_stand_time] = 1
+        self.other_leg_expected_contact_probabilities[0] = 0.5
+        self.other_leg_expected_contact_probabilities[-1] = 0.5
+        self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, 0, (uncertainty_range//2+1)-1)
+        self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(self.cycle_time // 2 + half_stand_time, uncertainty_range))
+        self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, self.cycle_time - (uncertainty_range // 2+1), self.cycle_time-1)
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -1130,9 +1130,16 @@ class Walker3DStepperEnv(EnvBase):
 
         cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
 
-        start_foot_state = self.start_leg_expected_contacts[cycle_time_elapsed] == self.robot.feet_contact[self.starting_leg]
-        other_foot_state = self.other_leg_expected_contacts[cycle_time_elapsed] == self.robot.feet_contact[1-self.starting_leg]
-        # print(f"{cycle_time_elapsed}: {self.starting_leg}: {self.start_leg_expected_contacts[cycle_time_elapsed]} and {self.other_leg_expected_contacts[cycle_time_elapsed]}")
+
+        if self.np_random.rand() < self.start_leg_expected_contact_probabilities[cycle_time_elapsed]:
+            start_foot_state = self.robot.feet_contact[self.starting_leg] == 1 # contact
+        else:
+            start_foot_state = self.robot.feet_contact[self.starting_leg] == 0 # no contact
+        if self.np_random.rand() < self.other_leg_expected_contact_probabilities[cycle_time_elapsed]:
+            other_foot_state = self.robot.feet_contact[1-self.starting_leg] == 1 # contact
+        else:
+            other_foot_state = self.robot.feet_contact[1-self.starting_leg] == 0 # no contact
+        # print(f"{cycle_time_elapsed}: {self.starting_leg}: {self.start_leg_expected_contact_probabilities[cycle_time_elapsed]} with satisfied {start_foot_state} and {self.other_leg_expected_contact_probabilities[cycle_time_elapsed]} satisfied {other_foot_state}")
         self.timing_bonus = 2 * int(start_foot_state) - 1 + 2 * int(other_foot_state) - 1
 
         self.timing_count_errors.append(self.timing_bonus)
