@@ -1085,8 +1085,8 @@ class Walker3DStepperEnv(EnvBase):
             self.heading_bonus = 0
 
         expected_leg_in_air = self.starting_leg if (self.timestep % 25) < (25 / 2) else 1 - self.starting_leg # if in first part of cycle, start leg should be in air
-        is_leg_in_air = self.feet_contact[expected_leg_in_air] == 0
-        is_other_leg_on_ground = self.feet_contact[1-expected_leg_in_air] == 1
+        is_leg_in_air = self.robot.feet_contact[expected_leg_in_air] == 0
+        is_other_leg_on_ground = self.robot.feet_contact[1-expected_leg_in_air] == 1
         self.timing_bonus = 2 * int(is_leg_in_air) - 1 + 2 * int(is_other_leg_on_ground) - 1
 
         # if self.timing_contact:
