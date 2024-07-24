@@ -867,9 +867,7 @@ class Walker3DStepperEnv(EnvBase):
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
             mirror=True
         )
-        self.swing_leg = 0 if self.robot.mirrored else 1
         self.prev_leg = self.swing_leg
-        self.starting_leg = self.swing_leg
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
@@ -877,6 +875,7 @@ class Walker3DStepperEnv(EnvBase):
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
+        self.starting_leg = self.swing_leg
         self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
         self.calc_feet_state()
 
