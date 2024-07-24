@@ -262,7 +262,7 @@ def main(_seed, _config, _run):
                 and nanmean(curriculum_metrics)
                 > advance_threshold
                 and nanmean(avg_heading_errs) < 10 * DEG2RAD
-                and nanmean(avg_timing_errs) < 3
+                and nanmean(avg_timing_errs) < 5
                 and current_curriculum < max_curriculum
             ):
                 model_name = f"{save_name}_curr_{current_curriculum}.pt"
