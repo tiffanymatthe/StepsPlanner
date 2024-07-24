@@ -1280,7 +1280,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
-                (heading_mask)[:, None], # heading_mask
+                # (heading_mask)[:, None], # heading_mask
             ),
             axis=1,
         )
