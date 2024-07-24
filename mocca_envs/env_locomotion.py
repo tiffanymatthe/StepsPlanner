@@ -1212,7 +1212,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.reached_last_step # and self.next_step_index > 2
         if self.timing_contact:
-            self.timing_count_error = self.terrain_info[self.next_step_index, 8] - self.in_air_count
+            self.timing_count_error = 0 # self.terrain_info[self.next_step_index, 8] - self.in_air_count
             # print(f"{self.next_step_index}: Timing error: {self.timing_count_error}, wanted {self.terrain_info[self.next_step_index, 8]} but got {self.in_air_count}")
             # self.timing_count_errors.append(abs(self.timing_count_error))
             self.waiting_for_next_target = True
