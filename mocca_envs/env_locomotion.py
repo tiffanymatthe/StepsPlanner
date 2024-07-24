@@ -366,6 +366,8 @@ class Walker3DStepperEnv(EnvBase):
         self.frozen_time_to_targets = None
         self.past_last_step = False
 
+        self.time_offset = 15
+
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
@@ -1086,9 +1088,10 @@ class Walker3DStepperEnv(EnvBase):
 
         half_stand_time = 3
         both_legs_on_ground = False
-        if self.timestep % self.cycle_time <= self.cycle_time / 2 - half_stand_time:
+        cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
+        if cycle_time_elapsed <= self.cycle_time / 2 - half_stand_time:
             expected_leg_in_air = self.starting_leg
-        elif self.timestep % self.cycle_time >= self.cycle_time / 2 + half_stand_time:
+        elif cycle_time_elapsed >= self.cycle_time / 2 + half_stand_time:
             expected_leg_in_air = 1 - self.starting_leg
         else:
             both_legs_on_ground = True
@@ -1351,7 +1354,7 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        clock_signal = np.array([np.sin(2*np.pi*self.timestep / self.cycle_time), np.cos(2*np.pi*self.timestep / self.cycle_time)])
+        clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
 
         deltas = concatenate(
             (
