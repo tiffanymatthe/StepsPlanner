@@ -402,7 +402,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 20
+        self.extra_step_dim = 10
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
