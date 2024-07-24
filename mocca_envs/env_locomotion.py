@@ -396,13 +396,14 @@ class Walker3DStepperEnv(EnvBase):
         self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
+        self.starting_leg = self.swing_leg
         self.walk_forward = True
         self.terrain_info = self.generate_step_placements()
 
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 10
+        self.extra_step_dim = 2
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -866,8 +867,9 @@ class Walker3DStepperEnv(EnvBase):
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
             mirror=True
         )
-        # self.swing_leg = 1 if self.robot.mirrored else 0 # for backwards
+        self.swing_leg = 0 if self.robot.mirrored else 1
         self.prev_leg = self.swing_leg
+        self.starting_leg = self.swing_leg
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
@@ -1082,10 +1084,15 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        if self.timing_contact:
-            self.timing_bonus = np.exp(-self.timing_width * abs(self.timing_count_error) **2)
-        else:
-            self.timing_bonus = 0
+        expected_leg_in_air = self.starting_leg if (self.timestep % 25) < (25 / 2) else 1 - self.starting_leg # if in first part of cycle, start leg should be in air
+        is_leg_in_air = self.feet_contact[expected_leg_in_air] == 0
+        is_other_leg_on_ground = self.feet_contact[1-expected_leg_in_air] == 1
+        self.timing_bonus = 2 * int(is_leg_in_air) - 1 + 2 * int(is_other_leg_on_ground) - 1
+
+        # if self.timing_contact:
+        #     self.timing_bonus = np.exp(-self.timing_width * abs(self.timing_count_error) **2)
+        # else:
+        #     self.timing_bonus = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
@@ -1334,13 +1341,7 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        if self.timing_contact:
-            timing_counts_to_targets = self.frozen_time_to_targets if (self.frozen_time_to_targets is not None and self.frozen_timing_mode >= 1) else np.array([0])
-        elif not self.waiting_for_next_target:
-            timing_counts_to_targets = np.array([targets[1, 8] - self.in_air_count])
-            self.frozen_time_to_targets = timing_counts_to_targets
-        else:
-            timing_counts_to_targets = self.frozen_time_to_targets if (self.frozen_time_to_targets is not None and self.frozen_timing_mode >= 2) else np.array([0])
+        clock_signal = np.array([np.sin(2*np.pi*self.timestep / 25), np.cos(2*np.pi*self.timestep / 25)])
 
         deltas = concatenate(
             (
@@ -1355,7 +1356,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas, timing_counts_to_targets * np.ones(self.extra_step_dim)
+        return deltas, clock_signal
 
     def get_mirror_indices(self):
 
