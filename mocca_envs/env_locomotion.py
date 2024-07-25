@@ -366,7 +366,7 @@ class Walker3DStepperEnv(EnvBase):
         self.frozen_time_to_targets = None
         self.past_last_step = False
 
-        self.time_offset = 5
+        self.time_offset = 0
         self.cycle_time = 50
         half_stand_time = 4
         uncertainty_range = 5
