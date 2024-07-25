@@ -1123,26 +1123,37 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if self.target_reached:
+        if self.target_reached and not self.past_last_step:
             self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) **2)
         else:
             self.heading_bonus = 0
-
+        
+        
         cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
 
+        if self.timestep <= 2:
+            self.start_expected_contact = 0
+            self.other_expected_contact = 0
+        elif not self.past_last_step:
+            self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
+            self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
+        else:
+            self.start_expected_contact = 1
+            self.other_expected_contact = 1
 
-        if self.np_random.rand() < self.start_leg_expected_contact_probabilities[cycle_time_elapsed]:
+        if self.np_random.rand() < self.start_expected_contact:
             start_foot_state = self.robot.feet_contact[self.starting_leg] == 1 # contact
         else:
             start_foot_state = self.robot.feet_contact[self.starting_leg] == 0 # no contact
-        if self.np_random.rand() < self.other_leg_expected_contact_probabilities[cycle_time_elapsed]:
+        if self.np_random.rand() < self.other_expected_contact:
             other_foot_state = self.robot.feet_contact[1-self.starting_leg] == 1 # contact
         else:
             other_foot_state = self.robot.feet_contact[1-self.starting_leg] == 0 # no contact
         # print(f"{cycle_time_elapsed}: {self.starting_leg}: {self.start_leg_expected_contact_probabilities[cycle_time_elapsed]} with satisfied {start_foot_state} and {self.other_leg_expected_contact_probabilities[cycle_time_elapsed]} satisfied {other_foot_state}")
         self.timing_bonus = 2 * int(start_foot_state) - 1 + 2 * int(other_foot_state) - 1
 
-        self.timing_count_errors.append(self.timing_bonus)
+        if not self.past_last_step:
+            self.timing_count_errors.append(self.timing_bonus)
 
         # if self.timing_contact:
         #     self.timing_bonus = np.exp(-self.timing_width * abs(self.timing_count_error) **2)
@@ -1248,7 +1259,7 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
-        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
+        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
         self.timing_contact = self.target_reached and self.target_reached_count == 0 and not self.reached_last_step # and self.next_step_index > 2
         if self.timing_contact:
@@ -1292,7 +1303,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
-                self.reached_last_step = self.reached_last_step or self.next_step_index >= len(self.terrain_info)
+                self.reached_last_step = self.reached_last_step or self.next_step_index >= len(self.terrain_info) - 1
 
             # Prevent out of bound
             if self.next_step_index >= len(self.terrain_info):

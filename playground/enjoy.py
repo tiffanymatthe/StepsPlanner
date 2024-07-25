@@ -50,6 +50,7 @@ def main():
     parser.add_argument("--render", type=int, default=1)
     parser.add_argument("--save", type=int, default=0)
     parser.add_argument("--heading", default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--timing", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--ffmpeg", type=int, default=0)
     parser.add_argument("--csv", type=str, default=None)
     args = parser.parse_args()
@@ -124,6 +125,11 @@ def main():
         right_foot_positions = []
         target_indices = []
 
+        expected_start_foot = []
+        expected_other_foot = []
+        actual_start_foot = []
+        actual_other_foot = []
+
         foot_heading_targets = env.terrain_info[:, 6]
         foot_position_targets = env.terrain_info[:, 0:2]
         swing_targets = env.terrain_info[:, 7]
@@ -155,6 +161,12 @@ def main():
             obs, reward, done, _ = env.step(cpu_actions)
             env.camera.lookat(env.robot.body_xyz)
             ep_reward += reward
+
+            if args.timing:
+                expected_start_foot.append(env.start_expected_contact)
+                expected_other_foot.append(env.other_expected_contact)
+                actual_start_foot.append(env.robot.feet_contact[env.starting_leg])
+                actual_other_foot.append(env.robot.feet_contact[1-env.starting_leg])
 
             if done:
                 if args.heading:
@@ -195,6 +207,18 @@ def main():
                     left_foot_positions = []
                     right_foot_positions = []
                     target_indices = []
+                if args.timing:
+                    fig, axs = plt.subplots(2)
+                    fig.suptitle('Timing')
+                    axs[0].plot(expected_start_foot)
+                    axs[1].plot(expected_other_foot)
+                    axs[0].plot(actual_start_foot)
+                    axs[1].plot(actual_other_foot)
+                    plt.show()
+                    expected_start_foot = []
+                    expected_other_foot = []
+                    actual_start_foot = []
+                    actual_other_foot = []
                 print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg")
                 obs = env.reset(reset_runner=False)
                 if args.heading:
