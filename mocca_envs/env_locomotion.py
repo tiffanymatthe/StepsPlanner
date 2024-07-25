@@ -1006,7 +1006,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if self.target_reached:
+        if self.target_reached and not self.past_last_step:
             self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) **2)
         else:
             self.heading_bonus = 0
@@ -1109,7 +1109,7 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
-        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
+        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
         if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
@@ -1143,7 +1143,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
 
-                self.reached_last_step = self.reached_last_step or self.next_step_index >= len(self.terrain_info)
+                self.reached_last_step = self.reached_last_step or self.next_step_index >= len(self.terrain_info) - 1
 
             # Prevent out of bound
             if self.next_step_index >= len(self.terrain_info):
