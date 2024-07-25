@@ -868,7 +868,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus
-        reward += self.heading_bonus * self.heading_bonus_weight
+        reward -= (1-self.heading_bonus) * self.heading_bonus_weight
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
@@ -1244,8 +1244,8 @@ class Walker3DStepperEnv(EnvBase):
         # should angles be per feet? yes so it doesn't change too much
         feet_heading = np.array([self.robot.feet_rpy[int(i), 2] for i in targets[:, 7]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
-        heading_angle_to_targets[0] = heading_angle_to_targets[1]
-        heading_angle_to_targets[2] = heading_angle_to_targets[1]
+        heading_angle_to_targets[0] = 0# heading_angle_to_targets[1]
+        heading_angle_to_targets[2] = 0# heading_angle_to_targets[1]
         # heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
