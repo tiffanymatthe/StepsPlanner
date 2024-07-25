@@ -366,7 +366,7 @@ class Walker3DStepperEnv(EnvBase):
         self.frozen_time_to_targets = None
         self.past_last_step = False
 
-        self.time_offset = 10
+        self.time_offset = 5
         self.cycle_time = 50
         half_stand_time = 4
         uncertainty_range = 5
@@ -1141,8 +1141,6 @@ class Walker3DStepperEnv(EnvBase):
             other_foot_state = self.robot.feet_contact[1-self.starting_leg] == 0 # no contact
         # print(f"{cycle_time_elapsed}: {self.starting_leg}: {self.start_leg_expected_contact_probabilities[cycle_time_elapsed]} with satisfied {start_foot_state} and {self.other_leg_expected_contact_probabilities[cycle_time_elapsed]} satisfied {other_foot_state}")
         self.timing_bonus = 2 * int(start_foot_state) - 1 + 2 * int(other_foot_state) - 1
-        if self.next_step_index <= 2:
-            self.timing_bonus = 0
 
         self.timing_count_errors.append(self.timing_bonus)
 
