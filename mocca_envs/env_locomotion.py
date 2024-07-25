@@ -967,7 +967,7 @@ class Walker3DStepperEnv(EnvBase):
 
         feet_angle_delta = abs(self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6]))
 
-        self.linear_potential += - feet_angle_delta * 0.5 / self.scene.dt
+        self.linear_potential += - feet_angle_delta * 0.1 / self.scene.dt
 
     def calc_base_reward(self, action):
 
