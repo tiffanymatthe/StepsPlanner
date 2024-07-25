@@ -1142,13 +1142,13 @@ class Walker3DStepperEnv(EnvBase):
             self.other_expected_contact = 1
 
         if self.np_random.rand() < self.start_expected_contact:
-            start_foot_state = self.robot.feet_contact[self.starting_leg] == 1 # contact
+            start_foot_state = self._foot_target_contacts[self.starting_leg, 0] == 1 # contact
         else:
-            start_foot_state = self.robot.feet_contact[self.starting_leg] == 0 # no contact
+            start_foot_state = self._foot_target_contacts[self.starting_leg, 0] == 0 # no contact
         if self.np_random.rand() < self.other_expected_contact:
-            other_foot_state = self.robot.feet_contact[1-self.starting_leg] == 1 # contact
+            other_foot_state = self._foot_target_contacts[1-self.starting_leg, 0] == 1 # contact
         else:
-            other_foot_state = self.robot.feet_contact[1-self.starting_leg] == 0 # no contact
+            other_foot_state = self._foot_target_contacts[1-self.starting_leg, 0] == 0 # no contact
         # print(f"{cycle_time_elapsed}: {self.starting_leg}: {self.start_leg_expected_contact_probabilities[cycle_time_elapsed]} with satisfied {start_foot_state} and {self.other_leg_expected_contact_probabilities[cycle_time_elapsed]} satisfied {other_foot_state}")
         self.timing_bonus = 2 * int(start_foot_state) - 1 + 2 * int(other_foot_state) - 1
 
