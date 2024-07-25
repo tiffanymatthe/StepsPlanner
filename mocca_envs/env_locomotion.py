@@ -367,7 +367,7 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
 
         self.time_offset = 0
-        self.cycle_time = 50
+        self.cycle_time = 80
         half_stand_time = 4
         uncertainty_range = 5
 
@@ -1283,7 +1283,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 # 10 if self.next_step_index > 4 else 2
+            delay = self.cycle_time // 2 - 1
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
