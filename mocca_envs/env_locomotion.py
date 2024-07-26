@@ -475,7 +475,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.curriculum == 0:
             self.path_angle = 0
         else:
-            self.path_angle = self.angle_curriculum[min(self.curriculum, 2)]
+            self.path_angle = self.angle_curriculum[min(self.curriculum, 3)]
         # self.path_angle = 0 if self.curriculum == 0 else self.angle_curriculum[1] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
@@ -485,7 +485,7 @@ class Walker3DStepperEnv(EnvBase):
             dphi = self.np_random.uniform(*yaw_range, size=N)
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -584,6 +584,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets = heading_targets * 0 + 90 * DEG2RAD
+        heading_targets[2:] += self.path_angle * self.np_random.choice([-1, 1])
 
         # vary heading targets to be either 0 diff from prev heading, or half, or full
         if self.vary_heading:
@@ -965,9 +966,10 @@ class Walker3DStepperEnv(EnvBase):
             self.linear_potential = -(body_distance_to_target) / self.scene.dt
             self.distance_to_target = body_distance_to_target
 
-        feet_angle_delta = abs(self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6]))
-
-        self.linear_potential += - feet_angle_delta * 0.2 / self.scene.dt
+        if self._foot_target_contacts[self.swing_leg, 0] == 0:
+            # only include potential when foot is lifted
+            feet_angle_delta = abs(self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6]))
+            self.linear_potential += - feet_angle_delta * 0.1 / self.scene.dt
 
     def calc_base_reward(self, action):
 
@@ -1147,7 +1149,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 # 10 if self.next_step_index > 4 else 2
+            delay = 4 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
