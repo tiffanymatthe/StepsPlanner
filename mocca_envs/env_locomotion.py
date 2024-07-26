@@ -1224,11 +1224,11 @@ class Walker3DStepperEnv(EnvBase):
             targets = self._targets
 
         if self.match_feet:
-            if True: # (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle <= 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
+            if (self.path_angle >= 0 and self.swing_leg == 0) or (self.path_angle <= 0 and self.swing_leg == 1) or not hasattr(self, 'walk_target'):
                 # only change when moving leg in direction
                 match_walk_target_index = self.next_step_index
                 if self.next_step_index + 2 < self.num_steps and not self.next_step_index in self.stop_steps and not self.next_step_index + 1 in self.stop_steps:
-                    match_walk_target_index = self.next_step_index
+                    match_walk_target_index = self.next_step_index + 2
                 self.walk_target = np.copy(self.terrain_info[match_walk_target_index, 0:3])
                 if int(self.terrain_info[match_walk_target_index, 7]) == 1:
                     self.walk_target[0] += self.foot_sep
