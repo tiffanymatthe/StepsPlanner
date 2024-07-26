@@ -1128,7 +1128,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 # 10 if self.next_step_index > 4 else 2
+            delay = 4 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
