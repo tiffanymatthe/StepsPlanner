@@ -940,12 +940,13 @@ class Walker3DStepperEnv(EnvBase):
         if self.match_feet:
             foot_target_delta = self.terrain_info[self.next_step_index, 0:3] - self.robot.feet_xyz[self.swing_leg, 0:3]
             foot_distance_to_target = sqrt(ss(foot_target_delta[0:2]))
-            self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.3) / self.scene.dt
+            self.linear_potential = -(body_distance_to_target + foot_distance_to_target * 0.5) / self.scene.dt
             self.distance_to_target = foot_distance_to_target
         else:
             self.linear_potential = -(body_distance_to_target) / self.scene.dt
             self.distance_to_target = body_distance_to_target
-
+        
+        # this adds a jump in potential
         if self._foot_target_contacts[self.swing_leg, 0] == 0:
             foot_angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
             self.linear_potential += - foot_angle_delta * 0.1 / self.scene.dt
@@ -1128,7 +1129,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 4 # 10 if self.next_step_index > 4 else 2
+            delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 # print(f"{self.next_step_index}: Reached target after {self.current_target_count}, {self.both_feet_hit_ground}!")
                 if not self.stop_on_next_step:
