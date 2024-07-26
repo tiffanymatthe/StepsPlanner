@@ -347,7 +347,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.match_feet = True
-        self.allow_swing_leg_switch = True
+        self.allow_swing_leg_switch = False
         self.allow_backward_switch = False
         self.allow_double_step = False
         self.for_and_back = False
