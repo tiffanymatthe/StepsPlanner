@@ -411,7 +411,7 @@ class Walker3DStepperEnv(EnvBase):
         self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(self.cycle_time // 2 + half_stand_time, uncertainty_range))
         self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, self.cycle_time - (uncertainty_range // 2+1), self.cycle_time-1)
 
-        self.start_leg_expected_contact_probabilities, self.other_leg_expected_contact_probabilities = np.frombuffer(self.other_leg_expected_contact_probabilities), np.frombuffer(self.start_leg_expected_contact_probabilities)
+        # self.start_leg_expected_contact_probabilities, self.other_leg_expected_contact_probabilities = np.frombuffer(self.other_leg_expected_contact_probabilities), np.frombuffer(self.start_leg_expected_contact_probabilities)
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -896,6 +896,8 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_count_errors = []
         self.past_last_step = False
 
+        self.time_offset = 0
+
         self.reached_last_step = False
         self.waiting_for_next_target = False
         self.frozen_time_to_targets = None
@@ -1140,7 +1142,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.next_step_index <= 1:
             self.start_expected_contact = 0.5
             self.other_expected_contact = 0.5
-        if not self.past_last_step:
+        elif not self.past_last_step:
             self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
             self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
         else:
@@ -1148,17 +1150,17 @@ class Walker3DStepperEnv(EnvBase):
             self.other_expected_contact = 1
 
         if self._foot_target_contacts[self.starting_leg, 0] == 1:
-            start_bonus = 2 * int(self.start_expected_contact) - 1
+            start_bonus = 2 * self.start_expected_contact - 1
         else:
-            start_bonus = - (2 * int(self.start_expected_contact) - 1)
+            start_bonus = - (2 * self.start_expected_contact - 1)
 
         if self._foot_target_contacts[1-self.starting_leg, 0] == 1:
-            other_bonus = 2 * int(self.other_expected_contact) - 1
+            other_bonus = 2 * self.other_expected_contact - 1
         else:
-            other_bonus = - (2 * int(self.other_expected_contact) - 1)
+            other_bonus = - (2 * self.other_expected_contact - 1)
 
-
-        # print(f"{cycle_time_elapsed}: {self.starting_leg}: {self.start_leg_expected_contact_probabilities[cycle_time_elapsed]} with satisfied {start_foot_state} and {self.other_leg_expected_contact_probabilities[cycle_time_elapsed]} satisfied {other_foot_state}")
+        # print(f"{self.starting_leg} has probs {self.start_leg_expected_contact_probabilities}")
+        # print(f"{cycle_time_elapsed} with offset {self.time_offset}: {self.starting_leg}: {self.start_expected_contact} with bonus {start_bonus} and \n {1-self.starting_leg}: {self.other_expected_contact} with bonus {other_bonus}")
         self.timing_bonus = start_bonus + other_bonus
 
         if not self.past_last_step:
