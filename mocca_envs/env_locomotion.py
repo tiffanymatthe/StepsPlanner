@@ -1135,26 +1135,26 @@ class Walker3DStepperEnv(EnvBase):
         
         cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
 
-        if self.timestep <= 2:
-            self.start_expected_contact = 0
-            self.other_expected_contact = 0
-        elif not self.past_last_step:
+        if not self.past_last_step:
             self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
             self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
         else:
             self.start_expected_contact = 1
             self.other_expected_contact = 1
 
-        if self.np_random.rand() < self.start_expected_contact:
-            start_foot_state = self._foot_target_contacts[self.starting_leg, 0] == 1 # contact
+        if self._foot_target_contacts[self.starting_leg, 0] == 1:
+            start_bonus = 2 * int(self.start_expected_contact) - 1
         else:
-            start_foot_state = self._foot_target_contacts[self.starting_leg, 0] == 0 # no contact
-        if self.np_random.rand() < self.other_expected_contact:
-            other_foot_state = self._foot_target_contacts[1-self.starting_leg, 0] == 1 # contact
+            start_bonus = - (2 * int(self.start_expected_contact) - 1)
+
+        if self._foot_target_contacts[1-self.starting_leg, 0] == 1:
+            other_bonus = 2 * int(self.other_expected_contact) - 1
         else:
-            other_foot_state = self._foot_target_contacts[1-self.starting_leg, 0] == 0 # no contact
+            other_bonus = - (2 * int(self.other_expected_contact) - 1)
+
+
         # print(f"{cycle_time_elapsed}: {self.starting_leg}: {self.start_leg_expected_contact_probabilities[cycle_time_elapsed]} with satisfied {start_foot_state} and {self.other_leg_expected_contact_probabilities[cycle_time_elapsed]} satisfied {other_foot_state}")
-        self.timing_bonus = 2 * int(start_foot_state) - 1 + 2 * int(other_foot_state) - 1
+        self.timing_bonus = start_bonus + other_bonus
 
         if not self.past_last_step:
             self.timing_count_errors.append(self.timing_bonus)
