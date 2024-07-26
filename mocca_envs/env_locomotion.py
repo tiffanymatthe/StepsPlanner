@@ -367,7 +367,7 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
 
         self.time_offset = 0
-        self.cycle_time = 60
+        self.cycle_time = kwargs.pop("cycle_time", 80)
         half_stand_time = 4
         uncertainty_range = 5
 

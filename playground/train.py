@@ -54,6 +54,7 @@ def configs():
     start_curriculum = 0
     allow_swing_leg_switch = True
     frozen_timing_mode = 1
+    cycle_time = 80
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -117,6 +118,7 @@ def main(_seed, _config, _run):
         "start_curriculum": args.start_curriculum,
         "allow_swing_leg_switch": args.allow_swing_leg_switch,
         "frozen_timing_mode": args.frozen_timing_mode,
+        "cycle_time": args.cycle_time,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)
