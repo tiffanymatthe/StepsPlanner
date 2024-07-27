@@ -1159,7 +1159,7 @@ class Walker3DStepperEnv(EnvBase):
                 or (
                     self.to_standstill
                     and (
-                        isclose(self.dr_spacing, self.dr_curriculum[self.curriculum])
+                        # isclose(self.dr_spacing, self.dr_curriculum[self.curriculum])
                         and isclose(self.path_angle, self.angle_curriculum[self.curriculum])
                         # and (
                         #     (abs(self.timing_factor) == 0.4 and self.curriculum == 1)
