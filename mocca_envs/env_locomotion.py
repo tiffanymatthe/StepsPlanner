@@ -1131,16 +1131,6 @@ class Walker3DStepperEnv(EnvBase):
             self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) **2)
         else:
             self.heading_bonus = 0
-        
-        
-        cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
-
-        if not self.past_last_step:
-            self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
-            self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
-        else:
-            self.start_expected_contact = 1
-            self.other_expected_contact = 1
 
         if self._foot_target_contacts[self.starting_leg, 0] == 1:
             start_bonus = 2 * int(self.start_expected_contact) - 1
@@ -1260,8 +1250,36 @@ class Walker3DStepperEnv(EnvBase):
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
+
+        cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
+
+        if not self.past_last_step:
+            self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
+            self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
+            prev_start_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed-1]
+            prev_other_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed-1]
+        else:
+            self.start_expected_contact = 1
+            self.other_expected_contact = 1
+
+        if self.past_last_step or self.reached_last_step:
+            self.target_reached = True
+        else:
+            # reached at a TD (touchdown) event, so when 0 turns to 1 (actually 0.5), so 0.25 to 0.5
+            if self.swing_leg == self.starting_leg:
+                self.target_reached = (
+                    (prev_start_contact == 0.25 and self.start_expected_contact == 0.5)
+                    or
+                    (prev_start_contact == 0.5 and self.start_expected_contact == 0.75)
+                )
+            else:
+                self.target_reached = (
+                    (prev_other_contact == 0.25 and self.other_expected_contact == 0.5)
+                    or
+                    (prev_other_contact == 0.5 and self.other_expected_contact == 0.75)
+                )
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
+        # self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
