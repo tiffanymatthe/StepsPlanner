@@ -525,10 +525,7 @@ class Walker3DStepperEnv(EnvBase):
             weights /= sum(weights)
             self.dr_spacing = 0 # self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
             dr = np.zeros(N) + self.dr_spacing
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle
-            # if not self.robot.mirrored:
-            #     dphi *= -1
-            #     print("mirrored")
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 # + self.path_angle
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
@@ -590,6 +587,7 @@ class Walker3DStepperEnv(EnvBase):
 
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dx[2:] += self.path_angle * 0.6/(np.pi/2)
         dz = dr * np.cos(dtheta)
 
         dy[self.stop_steps[1::2]] = 0
@@ -605,7 +603,7 @@ class Walker3DStepperEnv(EnvBase):
             dy[backward_switch_array.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
         # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-        x = np.roll(np.repeat(dx[:N//2], 2),-1) # np.cumsum(dx)
+        x = np.roll(np.repeat(np.cumsum(dx[:N//2]), 2),-1) # np.cumsum(dx)
         y = np.roll(np.repeat(dy[:N//2], 2),-1)  # np.cumsum(dy)
         z = np.roll(np.repeat(dz[:N//2], 2),-1) #  np.cumsum(dz)
         heading_targets = np.roll(np.repeat(heading_targets[:N//2], 2),-1)
