@@ -46,6 +46,7 @@ def main():
     parser.add_argument("--len", type=int, default=float("inf"))
     parser.add_argument("--plank_class", type=str, default="VeryLargePlank")
     parser.add_argument("--heading_bonus_weight", type=float, default=1.0)
+    parser.add_argument("--cycle_time", type=int, default=60)
     parser.add_argument("--plot", type=int, default=1)
     parser.add_argument("--render", type=int, default=1)
     parser.add_argument("--save", type=int, default=0)
@@ -68,6 +69,7 @@ def main():
         heading_bonus_weight=args.heading_bonus_weight,
         use_egl=use_egl,
         use_ffmpeg=use_ffmpeg,
+        cycle_time=args.cycle_time,
     )
     env._max_episode_steps = float("inf")
     env.seed(1093)
