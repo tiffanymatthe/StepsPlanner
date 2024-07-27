@@ -516,16 +516,16 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = 0 # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = self.angle_curriculum[self.curriculum] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
         if self.to_standstill:
             weights = np.linspace(1,10,self.curriculum+1)
             weights /= sum(weights)
-            self.dr_spacing = self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
+            self.dr_spacing = self.dr_curriculum[3] # self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
             dr = np.zeros(N) + self.dr_spacing
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
             dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
@@ -1010,6 +1010,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.to_standstill
                     and (
                         isclose(self.dr_spacing, self.dr_curriculum[self.curriculum])
+                        and isclose(self.path_angle, self.angle_curriculum[self.curriculum])
                         # and (
                         #     (abs(self.timing_factor) == 0.4 and self.curriculum == 1)
                         #     or (abs(self.timing_factor == 0.7) and self.curriculum > 1)
