@@ -13,7 +13,7 @@ from collections import deque
 
 import wandb
 
-from bottleneck import nanmean
+from bottleneck import nanmean, nanmax
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -255,7 +255,7 @@ def main(_seed, _config, _run):
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
                 > advance_threshold
-                and (nanmean(avg_heading_errs) < 5 * DEG2RAD if not args.heading_mask else True)
+                and (nanmax(avg_heading_errs) <= 5 * DEG2RAD if not args.heading_mask else True)
                 and current_curriculum < max_curriculum
             ):
                 model_name = f"{save_name}_curr_{current_curriculum}.pt"
@@ -299,7 +299,7 @@ def main(_seed, _config, _run):
                     "entropy": dist_entropy,
                     "value_loss": value_loss,
                     "action_loss": action_loss,
-                    "stats": {"rew": episode_rewards},
+                    "stats": {"rew": episode_rewards, "heading_err": avg_heading_errs},
                     "lr": scheduled_lr,
                 },
                 wandb
