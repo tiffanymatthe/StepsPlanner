@@ -541,7 +541,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        dr[1:] = np.linspace(self.init_step_separation, 0.3, self.max_curriculum +  1)[self.curriculum]
+        dr[1:] = np.linspace(self.init_step_separation, 0.2, self.max_curriculum +  1)[self.curriculum]
         dphi[1] = 0.0
         dtheta[1] = np.pi / 2
 
