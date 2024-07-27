@@ -411,8 +411,6 @@ class Walker3DStepperEnv(EnvBase):
         self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(self.cycle_time // 2 + half_stand_time, uncertainty_range))
         self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, self.cycle_time - (uncertainty_range // 2+1), self.cycle_time-1)
 
-        self.start_leg_expected_contact_probabilities, self.other_leg_expected_contact_probabilities = np.frombuffer(self.other_leg_expected_contact_probabilities), np.frombuffer(self.start_leg_expected_contact_probabilities)
-
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
@@ -443,7 +441,7 @@ class Walker3DStepperEnv(EnvBase):
         self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
-        self.starting_leg = 1-self.swing_leg
+        self.starting_leg = self.swing_leg
         self.walk_forward = True
         self.terrain_info = self.generate_step_placements()
 
@@ -922,7 +920,7 @@ class Walker3DStepperEnv(EnvBase):
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
-        self.starting_leg = 1-self.swing_leg
+        self.starting_leg = self.swing_leg
         self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
         self.calc_feet_state()
 
@@ -1137,9 +1135,6 @@ class Walker3DStepperEnv(EnvBase):
         
         cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
 
-        if self.next_step_index <= 1:
-            self.start_expected_contact = 0.5
-            self.other_expected_contact = 0.5
         if not self.past_last_step:
             self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
             self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
@@ -1294,8 +1289,6 @@ class Walker3DStepperEnv(EnvBase):
             # Needed for not over counting step bonus
             delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
-                if self.next_step_index == 1:
-                    self.time_offset = -self.timestep
                 if not self.stop_on_next_step:
                     self.current_target_count = 0
                     self.in_air_count = 0
