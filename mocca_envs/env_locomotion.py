@@ -1114,9 +1114,9 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt <= 5 * DEG2RAD:
+        if self.target_reached and swing_foot_tilt >= 5 * DEG2RAD:
             # allow negative tilt since on heels
-            self.legs_bonus += 1 * self.tilt_bonus_weight
+            self.legs_bonus -= abs(swing_foot_tilt) * self.tilt_bonus_weight
             # self.legs_bonus -= abs(swing_foot_tilt) * 2
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
