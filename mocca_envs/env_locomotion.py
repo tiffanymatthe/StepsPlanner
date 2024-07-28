@@ -1062,7 +1062,7 @@ class Walker3DStepperEnv(EnvBase):
             pos=self.robot_init_position[self.walk_forward],
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=True
+            mirror=False # True
         )
         self.prev_leg = self.swing_leg
 
