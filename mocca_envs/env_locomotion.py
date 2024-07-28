@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 20
+    rendered_step_count = 3
     init_step_separation = 0.70
 
     lookahead = 2
@@ -430,7 +430,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Terrain info
         if self.to_standstill:
-            self.dist_range = np.array([0.65, 0.0])
+            self.dist_range = np.array([0.3, 0.0])
         else:
             self.dist_range = np.array([0.65, 0.75])
         self.dr_curriculum = np.linspace(*self.dist_range, N)
@@ -516,7 +516,7 @@ class Walker3DStepperEnv(EnvBase):
 
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        self.path_angle = self.angle_curriculum[self.curriculum] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
+        self.path_angle = np.pi / 2 # self.angle_curriculum[self.curriculum] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
         N = self.num_steps
@@ -541,7 +541,10 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        dr[1:] = np.linspace(self.init_step_separation, 0.3, self.max_curriculum +  1)[self.curriculum]
+        dr[1] = 0.3
+        weights = np.linspace(1,10,self.curriculum+1)
+        weights /= sum(weights)
+        dr[2:] = self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
         dphi[1] = 0.0
         dtheta[1] = np.pi / 2
 
@@ -608,6 +611,7 @@ class Walker3DStepperEnv(EnvBase):
         x = np.roll(np.repeat(dx[:N//2], 2),-1) # np.cumsum(dx)
         y = np.roll(np.repeat(dy[:N//2], 2),-1)  # np.cumsum(dy)
         z = np.roll(np.repeat(dz[:N//2], 2),-1) #  np.cumsum(dz)
+        y[3:] += y[2]
         heading_targets = np.roll(np.repeat(heading_targets[:N//2], 2),-1)
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
@@ -1161,8 +1165,8 @@ class Walker3DStepperEnv(EnvBase):
                 or (
                     self.to_standstill
                     and (
-                        # isclose(self.dr_spacing, self.dr_curriculum[self.curriculum])
-                        isclose(self.path_angle, self.angle_curriculum[self.curriculum])
+                        isclose(self.dr_spacing, self.dr_curriculum[self.curriculum])
+                        # isclose(self.path_angle, self.angle_curriculum[self.curriculum])
                         # and (
                         #     (abs(self.timing_factor) == 0.4 and self.curriculum == 1)
                         #     or (abs(self.timing_factor == 0.7) and self.curriculum > 1)
