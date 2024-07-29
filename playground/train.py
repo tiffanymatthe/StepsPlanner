@@ -255,7 +255,7 @@ def main(_seed, _config, _run):
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
                 > advance_threshold
-                and (nanmax(avg_heading_errs) <= 5 * DEG2RAD if not args.heading_mask else True)
+                and (nanmax(avg_heading_errs) <= 12 * DEG2RAD if not args.heading_mask else True)
                 and current_curriculum < max_curriculum
             ):
                 model_name = f"{save_name}_curr_{current_curriculum}.pt"
