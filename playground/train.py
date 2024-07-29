@@ -99,7 +99,7 @@ def main(_seed, _config, _run):
 
     if args.use_wandb:
         run = wandb.init(
-            project="WalkerStepperEnv-v0 - Masking",
+            project="WalkerStepperEnv-v0 - No Feet",
             config=args
         )
 
