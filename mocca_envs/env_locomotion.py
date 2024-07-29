@@ -927,10 +927,11 @@ class Walker3DStepperEnv(EnvBase):
                 else:
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
-                info["max_heading_err"] = nanmax(self.heading_errors)
+                info["max_heading_err"] = nanmax(self.heading_errors) if len(self.heading_errors) > 0 else np.nan
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
+                info["max_heading_err"] = np.nan
 
         return state, reward, self.done, info
 

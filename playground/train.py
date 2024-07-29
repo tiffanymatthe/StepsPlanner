@@ -298,7 +298,7 @@ def main(_seed, _config, _run):
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,
                     "avg_heading_err": heading_metric,
-                    "max_heading_err": nanmean(max_heading_errs),
+                    "max_heading_err_manual": nanmean(max_heading_errs),
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,
