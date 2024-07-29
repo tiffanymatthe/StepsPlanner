@@ -544,7 +544,8 @@ class Walker3DStepperEnv(EnvBase):
         dr[1] = 0.3
         weights = np.linspace(1,10,self.curriculum+1)
         weights /= sum(weights)
-        dr[2:] = self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
+        self.dr_spacing = self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
+        dr[2:] = self.dr_spacing
         dphi[1] = 0.0
         dtheta[1] = np.pi / 2
 
