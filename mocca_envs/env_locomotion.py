@@ -1268,8 +1268,8 @@ class Walker3DStepperEnv(EnvBase):
         # should angles be per feet? yes so it doesn't change too much
         feet_heading = np.array([self.robot.feet_rpy[int(i), 2] for i in targets[:, 7]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
-        # heading_angle_to_targets[0] = 0
-        # heading_angle_to_targets[2] = 0
+        heading_angle_to_targets[0] = 0
+        heading_angle_to_targets[2] = 0
         # heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
@@ -1288,7 +1288,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
-                # (heading_mask)[:, None], # heading_mask
+                (heading_mask)[:, None], # heading_mask
             ),
             axis=1,
         )
