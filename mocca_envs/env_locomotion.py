@@ -1,7 +1,7 @@
 from math import sin, cos, atan2, sqrt, isclose
 import os
 
-from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin, nanmean, nansum
+from bottleneck import ss, anynan, nanargmax, nanargmin, nanmin, nanmean, nansum, nanmax
 import gym
 import numpy as np
 from numpy import concatenate
@@ -927,6 +927,7 @@ class Walker3DStepperEnv(EnvBase):
                 else:
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
+                info["max_heading_err"] = nanmax(self.heading_errors)
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan

@@ -192,6 +192,7 @@ def main(_seed, _config, _run):
     episode_rewards = deque(maxlen=args.num_processes)
     curriculum_metrics = deque(maxlen=args.num_processes)
     avg_heading_errs = deque(maxlen=args.num_processes)
+    max_heading_errs = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -236,6 +237,9 @@ def main(_seed, _config, _run):
                         curriculum_metrics.append(info["curriculum_metric"])
                     if "avg_heading_err" in info:
                         avg_heading_errs.append(info["avg_heading_err"])
+                    if "max_heading_err" in info:
+                        max_heading_errs.append(info["max_heading_err"])
+
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -255,7 +259,7 @@ def main(_seed, _config, _run):
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
                 > advance_threshold
-                and (nanmax(avg_heading_errs) <= 12 * DEG2RAD if not args.heading_mask else True)
+                and (nanmean(max_heading_errs) <= 12 * DEG2RAD if not args.heading_mask else True)
                 and current_curriculum < max_curriculum
             ):
                 model_name = f"{save_name}_curr_{current_curriculum}.pt"
@@ -294,6 +298,7 @@ def main(_seed, _config, _run):
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,
                     "avg_heading_err": heading_metric,
+                    "max_heading_err": nanmean(max_heading_errs),
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,
