@@ -315,7 +315,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_random_start = True
     robot_init_position = [
             [0, -0.3, 1.32], #backward
-            [0, 0.3, 1.32]
+            [0.3, 0, 1.32]
         ]
     robot_init_velocity = None
 
@@ -350,7 +350,6 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_errors = []
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 1)
         self.gauss_width = kwargs.pop("gauss_width", 0.5)
-        self.vary_heading = kwargs.pop("vary_heading", False)
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -371,10 +370,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus = 0
 
         # Terrain info
-        if self.to_standstill:
-            self.dist_range = np.array([0.65, 0.0])
-        else:
-            self.dist_range = np.array([0.65, 1])
+        self.dist_range = np.array([0.65, 1])
         self.pitch_range = np.array([-30, +30])  # degrees
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
@@ -520,9 +516,8 @@ class Walker3DStepperEnv(EnvBase):
         robot_doing_well = self.next_step_index >= self.num_steps / 2
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
-            pos=self.robot_init_position[self.walk_forward],
+            pos=self.robot_init_position[True],
             vel=self.robot_init_velocity,
-            quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
             mirror=True,
         )
 
@@ -703,7 +698,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.body_stationary_count > count
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
@@ -747,24 +742,15 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_rad_to_target = self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6])
 
-        self.foot_dist_to_target = min(
-            np.sqrt(
-                ss(
-                    self.robot.feet_xyz[0, 0:2]
-                    - self.terrain_info[self.next_step_index, 0:2],
-                    axis=1,
-                )
-            ),
-            np.sqrt(
-                ss(
-                    self.robot.feet_xyz[1, 0:2]
-                    - self.terrain_info[self.next_step_index, 0:2],
-                    axis=1,
-                )
+        self.foot_dist_to_target = np.sqrt(
+            ss(
+                self.robot.feet_xyz[:, 0:2]
+                - self.terrain_info[self.next_step_index, 0:2],
+                axis=0,
             )
         )
         
-        self.target_reached = self.foot_dist_to_target[self.swing_leg] < self.step_radius
+        self.target_reached = nanmin(self.foot_dist_to_target) < self.step_radius
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
 

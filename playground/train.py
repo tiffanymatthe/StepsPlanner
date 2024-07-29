@@ -49,8 +49,8 @@ def configs():
     plank_class = "VeryLargePlank"
     heading_bonus_weight = 1
     gauss_width = 0.5
-    vary_heading = False
     start_curriculum = 0
+    use_wandb = True
 
     heading_mask = False
 
@@ -97,10 +97,11 @@ def configs():
 def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
 
-    run = wandb.init(
-        project="WalkerStepperEnv-v0 - Masking",
-        config=args
-    )
+    if args.use_wandb:
+        run = wandb.init(
+            project="WalkerStepperEnv-v0 - Masking",
+            config=args
+        )
 
     env_name = args.env
 
@@ -111,7 +112,6 @@ def main(_seed, _config, _run):
         "plank_class": args.plank_class,
         "heading_bonus_weight": args.heading_bonus_weight,
         "gauss_width": args.gauss_width,
-        "vary_heading": args.vary_heading,
         "start_curriculum": args.start_curriculum,
         "heading_mask": args.heading_mask,
     }
@@ -302,5 +302,5 @@ def main(_seed, _config, _run):
                     "stats": {"rew": episode_rewards, "heading_err": avg_heading_errs},
                     "lr": scheduled_lr,
                 },
-                wandb
+                wandb if args.use_wandb else None
             )

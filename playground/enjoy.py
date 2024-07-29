@@ -117,7 +117,7 @@ def main():
         env.set_env_params({"curriculum": int(curriculum)})
 
         obs = env.reset()
-        env.camera._cam_yaw = 90
+        env.camera._cam_yaw = 0
         ep_reward = 0
 
         left_foot_headings = []
@@ -126,9 +126,10 @@ def main():
         right_foot_positions = []
         target_indices = []
 
-        foot_heading_targets = env.terrain_info[:, 6]
-        foot_position_targets = env.terrain_info[:, 0:2]
-        swing_targets = env.terrain_info[:, 7]
+        if args.heading:
+            foot_heading_targets = env.terrain_info[:, 6]
+            foot_position_targets = env.terrain_info[:, 0:2]
+            swing_targets = env.terrain_info[:, 7]
 
         controller = actor_critic.actor
 
