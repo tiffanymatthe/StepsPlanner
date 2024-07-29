@@ -629,20 +629,14 @@ class Walker3DStepperEnv(EnvBase):
 
     def calc_potential(self):
 
-        # walk_target_theta = atan2(
-        #     self.walk_target[1] - self.robot.body_xyz[1],
-        #     self.walk_target[0] - self.robot.body_xyz[0],
-        # )
-        # self.angle_to_target = walk_target_theta - self.robot.body_rpy[2]
-
         walk_target_delta = self.walk_target - self.robot.body_xyz
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
 
         self.linear_potential = -(body_distance_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
-        body_angle_delta = abs(self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6]))
-        self.linear_potential += - body_angle_delta * 0.2 / self.scene.dt
+        # body_angle_delta = abs(self.smallest_angle_between(self.robot.body_rpy[2], self.terrain_info[self.next_step_index, 6]))
+        # self.linear_potential += - body_angle_delta * 0.1 / self.scene.dt
 
     def calc_base_reward(self, action):
 
@@ -746,7 +740,7 @@ class Walker3DStepperEnv(EnvBase):
             ss(
                 self.robot.feet_xyz[:, 0:2]
                 - self.terrain_info[self.next_step_index, 0:2],
-                axis=0,
+                axis=1,
             )
         )
         
