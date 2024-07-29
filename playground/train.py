@@ -192,6 +192,7 @@ def main(_seed, _config, _run):
     episode_rewards = deque(maxlen=args.num_processes)
     curriculum_metrics = deque(maxlen=args.num_processes)
     avg_heading_errs = deque(maxlen=args.num_processes)
+    avg_timing_syncs = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -236,6 +237,8 @@ def main(_seed, _config, _run):
                         curriculum_metrics.append(info["curriculum_metric"])
                     if "avg_heading_err" in info:
                         avg_heading_errs.append(info["avg_heading_err"])
+                    if "avg_timing_sync" in info:
+                        avg_timing_syncs.append(info["avg_timing_sync"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -288,12 +291,14 @@ def main(_seed, _config, _run):
             end = time.time()
             mean_metric = nanmean(curriculum_metrics)
             heading_metric = nanmean(avg_heading_errs)
+            timing_metric = nanmean(avg_timing_syncs)
             logger.log_epoch(
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,
                     "avg_heading_err": heading_metric,
+                    "avg_timing_sync": timing_metric,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,
