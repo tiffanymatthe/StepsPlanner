@@ -364,7 +364,7 @@ class Walker3DStepperEnv(EnvBase):
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
         self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
-        self.angle_curriculum = np.linspace(0, np.pi / 2, N)
+        self.angle_curriculum = np.linspace(0, np.pi / 8, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
@@ -475,7 +475,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.curriculum == 0:
             self.path_angle = 0
         else:
-            self.path_angle = self.angle_curriculum[min(self.curriculum, 2)]
+            self.path_angle = self.angle_curriculum[self.curriculum]
         # self.path_angle = 0 if self.curriculum == 0 else self.angle_curriculum[1] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
         # self.path_angle = self.angle_curriculum[0]
 
@@ -485,7 +485,8 @@ class Walker3DStepperEnv(EnvBase):
             dphi = self.np_random.uniform(*yaw_range, size=N)
         else:
             dr = self.np_random.uniform(*dist_range, size=N) 
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
+            dphi = self.np_random.uniform(*yaw_range, size=N) * 0
+            dphi[:8] += self.path_angle * self.np_random.choice([-1, 1])
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -521,8 +522,8 @@ class Walker3DStepperEnv(EnvBase):
         # dphi[swing_legs == 1] = np.abs(dphi[swing_legs == 1])
         # dphi[swing_legs == 0] = -np.abs(dphi[swing_legs == 0])
 
-        dphi_flip = self.get_random_flip_array_every_5(N)
-        dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
+        # dphi_flip = self.get_random_flip_array_every_5(N)
+        # dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
 
         dphi = np.cumsum(dphi)
         
@@ -967,7 +968,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # if self._foot_target_contacts[self.swing_leg, 0] == 0:
         feet_angle_delta = abs(self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6]))
-        self.linear_potential += - feet_angle_delta * 0.4 / self.scene.dt
+        self.linear_potential += - feet_angle_delta * 0.2 / self.scene.dt
 
     def calc_base_reward(self, action):
 
