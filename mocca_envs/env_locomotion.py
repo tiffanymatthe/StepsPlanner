@@ -827,7 +827,7 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = nanmin(self.foot_dist_to_target) < self.step_radius
 
-        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 120)
+        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
         if self.target_reached and not self.past_last_step and not self.heading_mask_on:
             self.heading_errors.append(abs(self.heading_rad_to_target))
