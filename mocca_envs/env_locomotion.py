@@ -945,9 +945,13 @@ class Walker3DStepperEnv(EnvBase):
 
         # heading_mask = np.ones(j + k) * self.heading_mask_on
 
-        clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
-        if self.starting_leg == 0:
-            clock_signal = np.flip(clock_signal)
+        if self.past_last_step:
+            clock_signal = self.frozen_clock_signal
+        else:
+            clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
+            if self.starting_leg == 0:
+                clock_signal = np.flip(clock_signal)
+            self.frozen_clock_signal = np.copy(clock_signal)
 
         deltas = concatenate(
             (
