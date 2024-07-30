@@ -67,6 +67,16 @@ class WalkerBase:
         self.joints_at_limit = np.count_nonzero(
             abs(self.normalized_joint_angles) > 0.99
         )
+        if self.upper_arm_and_head_ids is not None:
+            upper_arm_and_head_link_states = pybullet.getLinkStates(
+                self.id,
+                self.upper_arm_and_head_ids,
+                computeLinkVelocity=0,
+                physicsClientId=self._p._client,
+            )
+            self.upper_arm_and_head_xyz = np.array(
+                [state[0] for state in upper_arm_and_head_link_states], dtype=np.float32
+            )
 
         if self.root_and_foot_ids is not None:
             link_states = pybullet.getLinkStates(
@@ -160,6 +170,8 @@ class WalkerBase:
         self.feet = [self.parts[f] for f in self.foot_names]
         self.feet_contact = np.zeros(len(self.foot_names), dtype=np.float32)
         self.feet_xyz = np.zeros((len(self.foot_names), 3))
+
+        self.upper_arm_and_head_ids = [self.parts["right_upper_arm"].bodyPartIndex, self.parts["left_upper_arm"].bodyPartIndex, self.parts["head"].bodyPartIndex]
 
         self.foot_ids = [f.bodyPartIndex for f in self.feet]
         if self.root_link_name is not None:
