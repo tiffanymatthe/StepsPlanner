@@ -792,13 +792,11 @@ class Walker3DStepperEnv(EnvBase):
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        weights = np.linspace(1,10,self.curriculum+1)
-        weights /= sum(weights)
         self.path_angle = 0
 
         N = self.num_steps
 
-        self.dr_spacing = self.np_random.choice(self.dr_curriculum[behavior_index][0:self.curriculum+1], p=weights)
+        self.dr_spacing = self.np_random.choice(self.dr_curriculum[behavior_index][0:self.curriculum+1])
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
