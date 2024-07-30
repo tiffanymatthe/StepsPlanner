@@ -841,8 +841,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # Randomize platforms
         replace = robot_doing_well or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
-        # if replace:
-        #     self.heading_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
+        if replace:
+            self.heading_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1270,8 +1270,8 @@ class Walker3DStepperEnv(EnvBase):
         # should angles be per feet? yes so it doesn't change too much
         feet_heading = np.array([self.robot.feet_rpy[int(i), 2] for i in targets[:, 7]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
-        # heading_angle_to_targets[0] = 0
-        # heading_angle_to_targets[2] = 0
+        heading_angle_to_targets[0] = 0
+        heading_angle_to_targets[2] = 0
         # heading_angle_to_targets = targets[:, 6] - self.robot.body_rpy[2]
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
@@ -1290,7 +1290,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
-                # (heading_mask)[:, None], # heading_mask
+                (heading_mask)[:, None], # heading_mask
             ),
             axis=1,
         )
