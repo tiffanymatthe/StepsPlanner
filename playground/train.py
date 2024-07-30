@@ -184,8 +184,10 @@ def main(_seed, _config, _run):
     if args.use_curriculum:
         current_curriculum = dummy_env.unwrapped.curriculum
         max_curriculum = dummy_env.unwrapped.max_curriculum
+        current_behavior_curriculum = dummy_env.unwrapped.behavior_curriculum
+        max_behavior_curriculum = dummy_env.unwrapped.max_behavior_curriculum
         advance_threshold = dummy_env.unwrapped.advance_threshold
-        envs.set_env_params({"curriculum": current_curriculum})
+        envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
@@ -261,12 +263,20 @@ def main(_seed, _config, _run):
                 > advance_threshold
                 and nanmean(avg_heading_errs) < 15 * DEG2RAD
                 and nanmean(avg_timing_errs) > 1.2
-                and current_curriculum < max_curriculum
             ):
-                model_name = f"{save_name}_curr_{current_curriculum}.pt"
-                torch.save(actor_critic, os.path.join(args.save_dir, model_name))
-                current_curriculum += 1
-                envs.set_env_params({"curriculum": current_curriculum})
+                if current_curriculum < max_curriculum:
+                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
+                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                    current_curriculum += 1
+                    envs.set_env_params({"curriculum": current_curriculum})
+                elif current_behavior_curriculum < max_behavior_curriculum:
+                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
+                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                    current_curriculum = 0
+                    current_behavior_curriculum += 1
+                    envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+                else:
+                    pass
 
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
@@ -298,6 +308,7 @@ def main(_seed, _config, _run):
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
+                    "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,
                     "avg_heading_err": heading_metric,
                     "avg_timing_err": timing_metric,
