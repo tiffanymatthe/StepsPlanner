@@ -418,9 +418,9 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_bonus = 0
 
         # Terrain info
-        self.dist_range = np.array([0.65, 1])
+        self.dist_range = np.array([2,10])
         self.pitch_range = np.array([-30, +30])  # degrees
-        self.yaw_range = np.array([-70, 70])
+        self.yaw_range = np.array([-120,120])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.7,0.7])
         self.step_param_dim = 6
