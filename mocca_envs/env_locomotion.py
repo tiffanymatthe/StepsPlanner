@@ -386,7 +386,7 @@ class Walker3DStepperEnv(EnvBase):
         self.yaw_range = np.array([-70, 70])
         self.tilt_range = np.array([-15, 15])
         self.shift_range = np.array([-0.7,0.7])
-        self.step_param_dim = 7
+        self.step_param_dim = 8
         # Important to do this once before reset!
         self.swing_leg = 0
         self.walk_forward = True
@@ -841,8 +841,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # Randomize platforms
         replace = robot_doing_well or prev_robot_mirrored != self.robot.mirrored or prev_forward != self.walk_forward
-        # if replace:
-        #     self.heading_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
+        if replace:
+            self.heading_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1290,7 +1290,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
-                # (heading_mask)[:, None], # heading_mask
+                (heading_mask)[:, None], # heading_mask
             ),
             axis=1,
         )
