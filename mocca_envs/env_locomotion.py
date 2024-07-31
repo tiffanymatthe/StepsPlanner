@@ -418,6 +418,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         self.elbow_penalty = 0
+        self.elbow_weight = 2
 
         self.selected_behavior = "to_standstill"
 
@@ -1004,7 +1005,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        reward += self.legs_bonus - self.elbow_penalty
+        reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
         reward += self.timing_bonus * self.timing_bonus_weight
 
