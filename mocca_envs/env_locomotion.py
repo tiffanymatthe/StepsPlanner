@@ -790,6 +790,8 @@ class Walker3DStepperEnv(EnvBase):
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dx[2:] += self.dr_spacing
+        dx_flip = self.get_random_flip_array_every_5(N)
+        dx[dx_flip.astype(bool)] *= -1
         dz = dr * np.cos(dtheta)
 
         dy[self.stop_steps[1::2]] = 0
