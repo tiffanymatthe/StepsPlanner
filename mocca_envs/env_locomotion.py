@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0, 1.32]
+    robot_init_position = [0, 0.3, 1.32]
     robot_init_velocity = None
 
     def __init__(self, **kwargs):
@@ -322,9 +322,11 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=False, **kwargs)
-        self.robot.set_base_pose(pose="stand")
+        self.robot.set_base_pose(pose="running_start")
 
         self.curriculum = 0
+
+        self.walk_target = [0, 10, 0]
 
         # Robot settings
         N = self.curriculum + 1 # hardcoding
@@ -357,7 +359,6 @@ class Walker3DStepperEnv(EnvBase):
         self.done = False
 
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
-        prev_robot_mirrored = self.robot.mirrored
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
@@ -369,6 +370,8 @@ class Walker3DStepperEnv(EnvBase):
         # Reset camera
         if self.is_rendered or self.use_egl:
             self.camera.lookat(self.robot.body_xyz)
+
+        self.calc_potential()
 
         state = self.robot_state
 
@@ -389,6 +392,8 @@ class Walker3DStepperEnv(EnvBase):
 
         reward = - self.energy_penalty - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
+        # rewards for walking
+        reward += self.progress
 
         state = self.robot_state
 
@@ -399,8 +404,18 @@ class Walker3DStepperEnv(EnvBase):
         info = {}
 
         return state, reward, self.done, info
+    
+    def calc_potential(self):
+        walk_target_delta = self.walk_target - self.robot.body_xyz
+        self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+        self.linear_potential = -(self.distance_to_target) / self.scene.dt
 
     def calc_base_reward(self, action):
+        old_linear_potential = self.linear_potential
+        self.calc_potential()
+        linear_progress = self.linear_potential - old_linear_potential
+        self.progress = linear_progress
+
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
             self.posture_penalty = abs(self.robot.body_rpy[1])
@@ -431,6 +446,8 @@ class Walker3DStepperEnv(EnvBase):
             self.done = True
 
         self.calc_base_reward(action)
+
+        self.calc_potential()
 
     def get_mirror_indices(self):
 
