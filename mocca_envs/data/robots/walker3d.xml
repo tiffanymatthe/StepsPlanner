@@ -40,9 +40,8 @@
                             <geom fromto="0 0 0 0 0 -.34" name="right_shin1" size="0.055" type="capsule"/>
                             <body name="right_foot" pos="0 0 -0.49">
                                 <joint axis="0 1 0" name="right_ankle" pos="0 0 0.07" range="-20 40" stiffness="0" type="hinge"/>
-                                <geom type="box" size="0.29 0.15 0.055" pos="0.07 0 0.07" name="right_foot_1" />
-                                <!-- <geom fromto="-0.04 0.02 0.07 0.18 0.03 0.07" name="right_foot_1" type="capsule" size="0.045"/>
-                                <geom fromto="-0.04 -0.02 0.07 0.18 -0.03 0.07" name="right_foot_2" type="capsule" size="0.045"/> -->
+                                <geom fromto="-0.04 0.02 0.07 0.18 0.03 0.07" name="right_foot_1" type="capsule" size="0.045"/>
+                                <geom fromto="-0.04 -0.02 0.07 0.18 -0.03 0.07" name="right_foot_2" type="capsule" size="0.045"/>
                             </body>
                         </body>
                     </body>
@@ -57,9 +56,8 @@
                             <geom fromto="0 0 0 0 0 -.34" name="left_shin1" size="0.055" type="capsule"/>
                             <body name="left_foot" pos="0 0 -0.49">
                                 <joint axis="0 1 0" name="left_ankle" pos="0 0 0.07" range="-20 40" stiffness="0" type="hinge"/>
-                                <geom type="box" size="0.29 0.1 0.055" pos="0.07 0 0.07" name="left_foot_1" />
-                                <!-- <geom fromto="-0.04 0.02 0.07 0.18 0.03 0.07" name="left_foot_1" type="capsule" size="0.045"/>
-                                <geom fromto="-0.04 -0.02 0.07 0.18 -0.03 0.07" name="left_foot_2" type="capsule" size="0.045"/> -->
+                                <geom fromto="-0.04 0.02 0.07 0.18 0.03 0.07" name="left_foot_1" type="capsule" size="0.045"/>
+                                <geom fromto="-0.04 -0.02 0.07 0.18 -0.03 0.07" name="left_foot_2" type="capsule" size="0.045"/>
                             </body>
                         </body>
                     </body>
