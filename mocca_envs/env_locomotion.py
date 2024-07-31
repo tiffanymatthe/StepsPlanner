@@ -949,6 +949,18 @@ class Walker3DStepperEnv(EnvBase):
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
+    def get_random_flip_array_every_5(self, N):
+        flip_array = np.zeros(N + 1, dtype=np.int8)
+        toggle_indices = np.arange(0, N + 1, 5)
+        random_choices = self.np_random.choice([True, False], size=len(toggle_indices), p=[0.3,0.7])
+        flip_array[toggle_indices[random_choices]] = 1
+        toggle_cumsum = np.cumsum(flip_array)
+        toggle_cumsum = toggle_cumsum[:-1]
+        flip_array = flip_array[:-1]
+        flip_array[toggle_cumsum % 2 == 1] = 1
+        flip_array[toggle_cumsum % 2 == 0] = 0
+        return flip_array
+
     def generate_turn_in_place_step_placements(self, curriculum):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
@@ -969,6 +981,8 @@ class Walker3DStepperEnv(EnvBase):
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
+        dphi_flip = self.get_random_flip_array_every_5(N)
+        dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -1032,15 +1046,15 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        x[-1] = x[-3]
-        y[-1] = y[-3]
-        z[-1] = z[-3]
-        heading_targets[-1] = heading_targets[-3]
+        # x[-1] = x[-3]
+        # y[-1] = y[-3]
+        # z[-1] = z[-3]
+        # heading_targets[-1] = heading_targets[-3]
 
-        x[-2] = x[-4]
-        y[-2] = y[-4]
-        z[-2] = z[-4]
-        heading_targets[-2] = heading_targets[-4]
+        # x[-2] = x[-4]
+        # y[-2] = y[-4]
+        # z[-2] = z[-4]
+        # heading_targets[-2] = heading_targets[-4]
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
