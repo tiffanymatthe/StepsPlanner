@@ -418,7 +418,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         self.elbow_penalty = 0
-        self.elbow_weight = 2
+        self.elbow_weight = 1
 
         self.selected_behavior = "to_standstill"
 
@@ -1137,7 +1137,7 @@ class Walker3DStepperEnv(EnvBase):
 
         elbow_angles = self.robot.joint_angles[[16, 20]]
         elbow_angle_diffs = elbow_angles - 60 * DEG2RAD
-        elbow_angle_tolerance = 15 * DEG2RAD
+        elbow_angle_tolerance = 20 * DEG2RAD
         self.elbow_penalty = 0
         if not -elbow_angle_tolerance < elbow_angle_diffs[0] < elbow_angle_tolerance:
             self.elbow_penalty += abs(elbow_angle_diffs[0])
@@ -1145,7 +1145,7 @@ class Walker3DStepperEnv(EnvBase):
             self.elbow_penalty += abs(elbow_angle_diffs[1])
 
         heights = self.robot.upper_arm_and_head_xyz[:,2]
-        min_height_diff = 0.3
+        min_height_diff = 0.25
         if heights[2] - heights[0] < min_height_diff:
             self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
         if heights[2] - heights[1] < min_height_diff:
@@ -1160,9 +1160,9 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt <= 5 * DEG2RAD:
+        if self.target_reached and swing_foot_tilt > 10 * DEG2RAD:
             # allow negative tilt since on heels
-            self.legs_bonus += 1 * self.tilt_bonus_weight
+            self.legs_bonus -= self.tilt_bonus_weight * abs(swing_foot_tilt - 10 * DEG2RAD)
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
