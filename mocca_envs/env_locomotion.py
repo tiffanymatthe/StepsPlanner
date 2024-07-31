@@ -946,7 +946,89 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
-    
+
+    def generate_turn_in_place_step_placements(self, curriculum):
+        # Check just in case
+        curriculum = min(curriculum, self.max_curriculum)
+        ratio = curriculum / self.max_curriculum
+
+        behavior_index = "turn_in_place"
+
+        # {self.max_curriculum + 1} levels in total
+        yaw_range = self.yaw_range[behavior_index] * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD
+
+        self.path_angle = 0
+
+        N = self.num_steps
+
+        self.dr_spacing = self.np_random.choice(self.dr_curriculum[behavior_index][0:curriculum+1])
+        dr = np.zeros(N) + self.dr_spacing
+
+        dphi = self.np_random.uniform(*yaw_range, size=N)
+        dtheta = self.np_random.uniform(*pitch_range, size=N)
+        x_tilt = self.np_random.uniform(*tilt_range, size=N)
+        y_tilt = self.np_random.uniform(*tilt_range, size=N)
+
+        # make first step below feet
+        dr[0] = 0.0
+        dphi[0] = 0.0
+        dtheta[0] = np.pi / 2
+
+        dr[1] = self.init_step_separation
+        dphi[1] = 0.0
+        dtheta[1] = np.pi / 2
+
+        dphi[2] = 0.0
+
+        x_tilt[0:2] = 0
+        y_tilt[0:2] = 0
+
+        swing_legs = np.ones(N, dtype=np.int8)
+
+        # Update x and y arrays
+        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
+
+        dphi[self.stop_steps[1::2]] = 0
+        dphi = np.cumsum(dphi)
+
+        dy = dr * np.sin(dtheta) * np.cos(dphi)
+        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dz = dr * np.cos(dtheta)
+
+        dy[self.stop_steps[1::2]] = 0
+        dx[self.stop_steps[1::2]] = 0
+
+        heading_targets = np.copy(dphi)
+
+        x = np.cumsum(dx)
+        y = np.cumsum(dy)
+        z = np.cumsum(dz)
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
+        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
+        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
+
+        if self.robot.mirrored:
+            x *= -1
+        else:
+            swing_legs = 1 - swing_legs
+            heading_targets *= -1
+
+        # switched dy and dx before, so need to rectify
+        heading_targets += 90 * DEG2RAD
+
+        dphi *= 0
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
     def generate_step_placements(self):
         self.curriculum = min(self.curriculum, self.max_curriculum)
@@ -1149,6 +1231,10 @@ class Walker3DStepperEnv(EnvBase):
                     and (
                         isclose(self.dr_spacing, self.dr_curriculum[behavior_str_index][self.curriculum])
                     )
+                )
+                or (
+                    # TODO: sometimes we do not select this behavior, need to include somewhere
+                    behavior_str_index == "random_walks"
                 )
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
