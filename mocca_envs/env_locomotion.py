@@ -1045,29 +1045,28 @@ class Walker3DStepperEnv(EnvBase):
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
     def generate_step_placements(self):
-        return self.generate_turn_in_place_step_placements(self.curriculum)
-        # self.curriculum = min(self.curriculum, self.max_curriculum)
-        # self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
+        self.curriculum = min(self.curriculum, self.max_curriculum)
+        self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        # if self.behaviors[self.behavior_curriculum] == "to_standstill":
-        #     return self.generate_to_standstill_step_placements(self.curriculum)
-        # elif self.behaviors[self.behavior_curriculum] == "random_walks":
-        #     if self.np_random.rand() < 0.3:
-        #         return self.generate_to_standstill_step_placements(self.max_curriculum)
-        #     else:
-        #         return self.generate_random_walks_step_placements(self.curriculum)
-        # elif self.behaviors[self.behavior_curriculum] == "turn_in_place":
-        #     if self.np_random.rand() < 0.3:
-        #         return self.np_random.choice([
-        #             self.generate_to_standstill_step_placements(self.max_curriculum),
-        #             self.generate_random_walks_step_placements(self.max_curriculum)
-        #         ])
-        #     else:
-        #         return self.generate_turn_in_place_step_placements(self.curriculum)
-        # elif self.behaviors[self.behavior_curriculum] == "side_step":
-        #     return self.generate_side_step_step_placements()
-        # else:
-        #     raise NotImplementedError(f"Behavior {self.behaviors[self.behavior_curriculum]} is not implemented")
+        if self.behaviors[self.behavior_curriculum] == "to_standstill":
+            return self.generate_to_standstill_step_placements(self.curriculum)
+        elif self.behaviors[self.behavior_curriculum] == "random_walks":
+            if self.np_random.rand() < 0.3:
+                return self.generate_to_standstill_step_placements(self.max_curriculum)
+            else:
+                return self.generate_random_walks_step_placements(self.curriculum)
+        elif self.behaviors[self.behavior_curriculum] == "turn_in_place":
+            if self.np_random.rand() < 0.3:
+                return self.np_random.choice([
+                    self.generate_to_standstill_step_placements(self.max_curriculum),
+                    self.generate_random_walks_step_placements(self.max_curriculum)
+                ])
+            else:
+                return self.generate_turn_in_place_step_placements(self.curriculum)
+        elif self.behaviors[self.behavior_curriculum] == "side_step":
+            return self.generate_side_step_step_placements()
+        else:
+            raise NotImplementedError(f"Behavior {self.behaviors[self.behavior_curriculum]} is not implemented")
 
     def create_terrain(self):
 
