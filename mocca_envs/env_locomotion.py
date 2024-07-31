@@ -428,11 +428,11 @@ class Walker3DStepperEnv(EnvBase):
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
         }
-        self.dist_range = { # TODO: check
+        self.dist_range = {
             "to_standstill": np.array([0.65, 0.0]),
             "random_walks": np.array([0.65, 0.85]),
             "turn_in_place": np.array([0.7, 0.1]),
-            "side_step": np.array([0.2, 0.4]),
+            "side_step": np.array([0.2, 0.5]),
         }
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
         self.pitch_range = np.array([0, 0])  # degrees
@@ -441,8 +441,8 @@ class Walker3DStepperEnv(EnvBase):
             "to_standstill": np.array([0.0, 0.0]),
             "random_walks": np.array([-70.0, 70.0]),
             "turn_in_place": np.array([0.0, 0.0]),
-            "side_step": None,
-        } # np.array([-70, 70])
+            "side_step": np.array([0.0, 0.0]),
+        }
 
         self.step_param_dim = 7
         # Important to do this once before reset!
@@ -464,323 +464,7 @@ class Walker3DStepperEnv(EnvBase):
         F = len(self.robot.feet)
         self._foot_target_contacts = np.zeros((F, 1), dtype=np.float32)
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
-    
 
-    def generate_step_placements_normal(self):
-        # Check just in case
-        self.curriculum = min(self.curriculum, self.max_curriculum)
-        ratio = 0 # self.curriculum / self.max_curriculum
-
-        # {self.max_curriculum + 1} levels in total
-        dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[0]])
-        yaw_range = self.yaw_range * ratio * DEG2RAD
-        pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
-        tilt_range = self.tilt_range * ratio * DEG2RAD * 0
-
-        weights = np.linspace(1,10,self.curriculum+1)
-        weights /= sum(weights)
-        self.path_angle = np.pi / 2 # self.angle_curriculum[self.curriculum] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
-        # self.path_angle = self.angle_curriculum[0]
-
-        N = self.num_steps
-        if self.to_standstill:
-            weights = np.linspace(1,10,self.curriculum+1)
-            weights /= sum(weights)
-            self.dr_spacing = 0 # self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
-            dr = np.zeros(N) + self.dr_spacing
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle
-            # if not self.robot.mirrored:
-            #     dphi *= -1
-            #     print("mirrored")
-        else:
-            dr = self.np_random.uniform(*dist_range, size=N) 
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
-        dtheta = self.np_random.uniform(*pitch_range, size=N)
-        x_tilt = self.np_random.uniform(*tilt_range, size=N)
-        y_tilt = self.np_random.uniform(*tilt_range, size=N)
-
-        # make first step below feet
-        dr[0] = 0.0
-        dphi[0] = 0.0
-        dtheta[0] = np.pi / 2
-
-        dr[1] = 0.3
-        weights = np.linspace(1,10,self.curriculum+1)
-        weights /= sum(weights)
-        self.dr_spacing = self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
-        dr[2:] = self.dr_spacing
-        dphi[1] = 0.0
-        dtheta[1] = np.pi / 2
-
-        # dphi[2] = 0.0
-
-        x_tilt[0:2] = 0
-        y_tilt[0:2] = 0
-
-        swing_legs = np.ones(N, dtype=np.int8)
-
-        # Update x and y arrays
-        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
-
-        if not self.walk_forward:
-            swing_legs = 1 - swing_legs
-
-        # if self.allow_swing_leg_switch:
-        #     flip_array = self.get_random_flip_array(N)
-        #     self.flip_swing_legs_normal(swing_legs, flip_array)
-
-        dphi[self.stop_steps[1::2]] = 0
-
-        # dphi[swing_legs == 1] = np.abs(dphi[swing_legs == 1])
-        # dphi[swing_legs == 0] = -np.abs(dphi[swing_legs == 0])
-
-        # dphi_flip = self.get_random_flip_array(N)
-        # dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
-
-        dphi = np.cumsum(dphi)
-        
-        if self.allow_double_step:
-            indices_to_pick = np.arange(N)
-            indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
-            mask = []
-            while len(mask) < 3:
-                idx = self.np_random.choice(indices_to_pick)
-                if all(abs(idx - pi) > 1 for pi in mask):
-                    mask.append(idx)
-                    # Remove adjacent indices_to_pick to prevent them from being picked
-                    indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
-            mask = np.array(mask)
-            dr[mask] /= 2
-            for i in sorted(mask):
-                swing_legs[i:] = 1 - swing_legs[i:]
-                dphi[i] += self.np_random.uniform(0, 20 * DEG2RAD) * (1 if swing_legs[i] == 1 else -1)
-
-        dy = dr * np.sin(dtheta) * np.cos(dphi)
-        dx = dr * np.sin(dtheta) * np.sin(dphi)
-        dz = dr * np.cos(dtheta)
-
-        dy[self.stop_steps[1::2]] = 0
-        dx[self.stop_steps[1::2]] = 0
-
-        heading_targets = np.copy(dphi)
-
-        if not self.walk_forward:
-            dy *= -1
-
-        if self.allow_backward_switch:
-            backward_switch_array = self.get_random_flip_array(N)
-            dy[backward_switch_array.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
-
-        # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-        x = np.roll(np.repeat(dx[:N//2], 2),-1) # np.cumsum(dx)
-        y = np.roll(np.repeat(dy[:N//2], 2),-1)  # np.cumsum(dy)
-        z = np.roll(np.repeat(dz[:N//2], 2),-1) #  np.cumsum(dz)
-        y[3:] += y[2]
-        heading_targets = np.roll(np.repeat(heading_targets[:N//2], 2),-1)
-        # Calculate shifts
-        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
-        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
-
-        # Flip the shifts
-        left_shifts = np.flip(left_shifts, axis=0)
-        right_shifts = np.flip(right_shifts, axis=0)
-
-        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
-        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
-
-        # heading_targets[3:] += self.path_angle
-
-        if self.robot.mirrored:
-            # swing_legs = 1 - swing_legs
-            x *= -1
-        else:
-            swing_legs = 1 - swing_legs
-            heading_targets *= -1
-
-        # switched dy and dx before, so need to rectify
-        heading_targets += 90 * DEG2RAD
-
-        # # # vary heading targets to be either 0 diff from prev heading, or half, or full
-        # choices = np.array([0, 0.5, 1])
-        # stop_mask = np.ones(N, dtype=bool)
-        # stop_mask[self.stop_steps] = False
-        # heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
-        # heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
-
-        dphi *= 0
-
-        x[-1] = x[-3]
-        y[-1] = y[-3]
-        z[-1] = z[-3]
-        heading_targets[-1] = heading_targets[-3]
-
-        x[-2] = x[-4]
-        y[-2] = y[-4]
-        z[-2] = z[-4]
-        heading_targets[-2] = heading_targets[-4]
-
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
-
-
-    def generate_step_placements_nn(self):
-        # Check just in case
-        self.curriculum = min(self.curriculum, self.max_curriculum)
-        ratio = 0 # self.curriculum / self.max_curriculum
-
-        # {self.max_curriculum + 1} levels in total
-        dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
-        dist_range = np.array([self.dist_range[0], dist_upper[0]])
-        yaw_range = self.yaw_range * ratio * DEG2RAD
-        pitch_range = self.pitch_range * ratio * DEG2RAD * 0 + np.pi / 2
-        tilt_range = self.tilt_range * ratio * DEG2RAD * 0
-
-        weights = np.linspace(1,10,self.curriculum+1)
-        weights /= sum(weights)
-        self.path_angle = self.angle_curriculum[self.curriculum] # self.np_random.choice(self.angle_curriculum[0:self.curriculum+1], p=weights)
-        # self.path_angle = self.angle_curriculum[0]
-
-        N = self.num_steps
-        if self.to_standstill:
-            weights = np.linspace(1,10,self.curriculum+1)
-            weights /= sum(weights)
-            self.dr_spacing = self.dr_curriculum[3] # self.np_random.choice(self.dr_curriculum[0:self.curriculum+1], p=weights)
-            dr = np.zeros(N) + self.dr_spacing
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
-        else:
-            dr = self.np_random.uniform(*dist_range, size=N) 
-            dphi = self.np_random.uniform(*yaw_range, size=N) * 0 + self.path_angle * self.np_random.choice([-1, 1])
-        dtheta = self.np_random.uniform(*pitch_range, size=N)
-        x_tilt = self.np_random.uniform(*tilt_range, size=N)
-        y_tilt = self.np_random.uniform(*tilt_range, size=N)
-
-        # make first step below feet
-        dr[0] = 0.0
-        dphi[0] = 0.0
-        dtheta[0] = np.pi / 2
-
-        dr[1] = self.init_step_separation
-        dphi[1] = 0.0
-        dtheta[1] = np.pi / 2
-
-        dphi[2] = 0.0
-
-        x_tilt[0:2] = 0
-        y_tilt[0:2] = 0
-
-        swing_legs = np.ones(N, dtype=np.int8)
-
-        # Update x and y arrays
-        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
-
-        if not self.walk_forward:
-            swing_legs = 1 - swing_legs
-
-        if self.allow_swing_leg_switch:
-            flip_array = self.get_random_flip_array(N)
-            self.flip_swing_legs_normal(swing_legs, flip_array)
-
-        dphi[self.stop_steps[1::2]] = 0
-
-        # dphi[swing_legs == 1] = np.abs(dphi[swing_legs == 1])
-        # dphi[swing_legs == 0] = -np.abs(dphi[swing_legs == 0])
-
-        dphi_flip = self.get_random_flip_array(N)
-        dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
-
-        dphi = np.cumsum(dphi)
-        
-        if self.allow_double_step:
-            indices_to_pick = np.arange(N)
-            indices_to_pick = np.delete(indices_to_pick, [0,1,2,*self.stop_steps])
-            mask = []
-            while len(mask) < 3:
-                idx = self.np_random.choice(indices_to_pick)
-                if all(abs(idx - pi) > 1 for pi in mask):
-                    mask.append(idx)
-                    # Remove adjacent indices_to_pick to prevent them from being picked
-                    indices_to_pick = indices_to_pick[(indices_to_pick < idx - 1) | (indices_to_pick > idx + 1)]
-            mask = np.array(mask)
-            dr[mask] /= 2
-            for i in sorted(mask):
-                swing_legs[i:] = 1 - swing_legs[i:]
-                dphi[i] += self.np_random.uniform(0, 20 * DEG2RAD) * (1 if swing_legs[i] == 1 else -1)
-
-        dy = dr * np.sin(dtheta) * np.cos(dphi)
-        dx = dr * np.sin(dtheta) * np.sin(dphi)
-        dz = dr * np.cos(dtheta)
-
-        dy[self.stop_steps[1::2]] = 0
-        dx[self.stop_steps[1::2]] = 0
-
-        heading_targets = np.copy(dphi)
-
-        if not self.walk_forward:
-            dy *= -1
-
-        if self.allow_backward_switch:
-            backward_switch_array = self.get_random_flip_array(N)
-            dy[backward_switch_array.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
-
-        x = np.cumsum(dx)
-        y = np.cumsum(dy)
-        z = np.cumsum(dz)
-
-        # Calculate shifts
-        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
-        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
-
-        # Flip the shifts
-        left_shifts = np.flip(left_shifts, axis=0)
-        right_shifts = np.flip(right_shifts, axis=0)
-
-        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
-        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
-
-        # heading_targets[3:] += self.path_angle
-
-        if self.robot.mirrored:
-            # swing_legs = 1 - swing_legs
-            x *= -1
-        else:
-            swing_legs = 1 - swing_legs
-            heading_targets *= -1
-
-        # switched dy and dx before, so need to rectify
-        heading_targets += 90 * DEG2RAD
-
-        # # vary heading targets to be either 0 diff from prev heading, or half, or full
-        choices = np.array([0, 0.5, 1])
-        stop_mask = np.ones(N, dtype=bool)
-        stop_mask[self.stop_steps] = False
-        heading_diff = np.diff(heading_targets, prepend=heading_targets[0])
-        heading_targets[stop_mask] = heading_targets[stop_mask] - heading_diff[stop_mask] * self.np_random.choice(choices, size=N-len(self.stop_steps))
-
-        dphi *= 0
-
-        # timing_counts = 25 * np.ones(N)
-        # # timing_counts[self.stop_steps[1::2]] = 25 # second step to a standstill is a bit shorter
-        # after_stop_indices = np.array(self.stop_steps[1::2]) + 1
-        # after_stop_indices = [x for x in after_stop_indices if x < N]
-        # timing_counts[after_stop_indices] = 55 # takes some time to get out of a standstill
-
-        # # # factor = 2
-        # # timing_counts += self.np_random.choice([-0.5,-0.3,0,0.5,1.0]) * timing_counts
-        # self.timing_factor = 0
-        # if self.curriculum == 1:
-        #     self.timing_factor = self.np_random.choice([-0.4,0,0.4])
-        # if self.curriculum > 1:
-        #     self.timing_factor = self.np_random.choice([-0.7,-0.4,0,0.4,0.7])
-        # timing_counts += timing_counts * self.timing_factor
-
-        # timing_counts[0] = 10
-        # timing_counts[1] = 10
-        # timing_counts[2] = 25
-
-        # timing_counts = np.floor(timing_counts)
-
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
-    
 
     def generate_to_standstill_step_placements(self, curriculum):
         # Check just in case
@@ -865,7 +549,6 @@ class Walker3DStepperEnv(EnvBase):
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
     
-
     def generate_random_walks_step_placements(self, curriculum):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
@@ -1058,6 +741,102 @@ class Walker3DStepperEnv(EnvBase):
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
+    def generate_side_step_step_placements(self, curriculum):
+        # Check just in case
+        curriculum = min(curriculum, self.max_curriculum)
+        ratio = curriculum / self.max_curriculum
+
+        self.selected_behavior = "side_step"
+
+        # {self.max_curriculum + 1} levels in total
+        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD
+
+        self.path_angle = 0
+
+        N = self.num_steps
+
+        self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
+        dr = np.zeros(N) + self.dr_spacing
+
+        dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
+        dtheta = self.np_random.uniform(*pitch_range, size=N)
+        x_tilt = self.np_random.uniform(*tilt_range, size=N)
+        y_tilt = self.np_random.uniform(*tilt_range, size=N)
+
+        # make first step below feet
+        dr[0] = 0.0
+        dphi[0] = 0.0
+        dtheta[0] = np.pi / 2
+
+        dr[1] = self.init_step_separation
+        dphi[1] = 0.0
+        dtheta[1] = np.pi / 2
+
+        # dphi[2] = 0.0
+
+        x_tilt[0:2] = 0
+        y_tilt[0:2] = 0
+
+        swing_legs = np.ones(N, dtype=np.int8)
+
+        # Update x and y arrays
+        swing_legs[:N:2] = 0  # Set swing_legs to 1 at every second index starting from 0
+
+        dphi[self.stop_steps[1::2]] = 0
+        dphi = np.cumsum(dphi)
+
+        dy = dr * np.sin(dtheta) * np.cos(dphi)
+        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dx[2:] += self.dr_spacing
+        dz = dr * np.cos(dtheta)
+
+        dy[self.stop_steps[1::2]] = 0
+        dx[self.stop_steps[1::2]] = 0
+
+        heading_targets = np.copy(dphi)
+
+        x = np.roll(np.repeat(np.cumsum(dx[:N//2]), 2),-1)
+        y = np.roll(np.repeat(dy[:N//2], 2),-1)
+        z = np.roll(np.repeat(dz[:N//2], 2),-1)
+        y[3:] += self.init_step_separation - self.dr_spacing
+        heading_targets = np.roll(np.repeat(heading_targets[:N//2], 2),-1)
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
+        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
+        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
+
+        if self.robot.mirrored:
+            x *= -1
+        else:
+            swing_legs = 1 - swing_legs
+            heading_targets *= -1
+
+        # switched dy and dx before, so need to rectify
+        heading_targets += 90 * DEG2RAD
+
+        dphi *= 0
+
+        x[-1] = x[-3]
+        y[-1] = y[-3]
+        z[-1] = z[-3]
+        heading_targets[-1] = heading_targets[-3]
+
+        x[-2] = x[-4]
+        y[-2] = y[-4]
+        z[-2] = z[-4]
+        heading_targets[-2] = heading_targets[-4]
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+
     def generate_step_placements(self):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
@@ -1078,7 +857,14 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 return self.generate_turn_in_place_step_placements(self.curriculum)
         elif self.behaviors[self.behavior_curriculum] == "side_step":
-            return self.generate_side_step_step_placements()
+            if self.np_random.rand() < 0.3:
+                return self.np_random.choice([
+                    self.generate_to_standstill_step_placements(self.max_curriculum),
+                    self.generate_random_walks_step_placements(self.max_curriculum),
+                    self.generate_turn_in_place_step_placements(self.max_curriculum)
+                ])
+            else:
+                return self.generate_side_step_step_placements(self.curriculum)
         else:
             raise NotImplementedError(f"Behavior {self.behaviors[self.behavior_curriculum]} is not implemented")
 
@@ -1266,6 +1052,12 @@ class Walker3DStepperEnv(EnvBase):
                         behavior_str_index == "turn_in_place"
                         and (
                             isclose(self.path_angle, self.angle_curriculum[behavior_str_index][self.curriculum])
+                        )
+                    )
+                    or (
+                        behavior_str_index == "side_step"
+                        and (
+                            isclose(self.dr_spacing, self.dr_curriculum[behavior_str_index][self.curriculum])
                         )
                     )
                 )
