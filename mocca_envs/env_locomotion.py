@@ -353,7 +353,7 @@ class Walker3DStepperEnv(EnvBase):
         self.gauss_width = kwargs.pop("gauss_width", 10)
         self.legs_bonus = 0
         self.heading_bonus = 0
-        self.tilt_bonus_weight = 2
+        self.tilt_bonus_weight = 1
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
 
@@ -361,7 +361,7 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
         self.reached_last_step = False
 
-        self.time_offset = 5
+        self.time_offset = 0
         self.cycle_time = kwargs.pop("cycle_time", 60)
         half_stand_time = 4
         uncertainty_range = 5
@@ -1138,17 +1138,17 @@ class Walker3DStepperEnv(EnvBase):
         elbow_angles = self.robot.joint_angles[[16, 20]]
         elbow_angle_diffs = elbow_angles - 65 * DEG2RAD
         self.elbow_penalty = 0
-        if not elbow_angle_diffs[0] > 0:
-            self.elbow_penalty += abs(elbow_angle_diffs[0])
-        if not elbow_angle_diffs[1] > 0:
-            self.elbow_penalty += abs(elbow_angle_diffs[1])
+        # if not elbow_angle_diffs[0] > 0:
+        #     self.elbow_penalty += abs(elbow_angle_diffs[0])
+        # if not elbow_angle_diffs[1] > 0:
+        #     self.elbow_penalty += abs(elbow_angle_diffs[1])
 
-        heights = self.robot.upper_arm_and_head_xyz[:,2]
-        min_height_diff = 0.25
-        if heights[2] - heights[0] < min_height_diff:
-            self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
-        if heights[2] - heights[1] < min_height_diff:
-            self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
+        # heights = self.robot.upper_arm_and_head_xyz[:,2]
+        # min_height_diff = 0.25
+        # if heights[2] - heights[0] < min_height_diff:
+        #     self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
+        # if heights[2] - heights[1] < min_height_diff:
+        #     self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
@@ -1159,10 +1159,15 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt > 10 * DEG2RAD:
+        if self.target_reached and swing_foot_tilt < 5 * DEG2RAD:
             # allow negative tilt since on heels
             # print(f"{self.swing_leg} is not good, swing foot tilt is at {swing_foot_tilt * RAD2DEG}")
-            self.legs_bonus -= self.tilt_bonus_weight * abs(swing_foot_tilt - 10 * DEG2RAD) #, 10 * DEG2RAD)
+            self.legs_bonus += self.tilt_bonus_weight
+
+        # if self.target_reached and swing_foot_tilt > 10 * DEG2RAD:
+        #     # allow negative tilt since on heels
+        #     # print(f"{self.swing_leg} is not good, swing foot tilt is at {swing_foot_tilt * RAD2DEG}")
+        #     self.legs_bonus -= self.tilt_bonus_weight * abs(swing_foot_tilt - 10 * DEG2RAD) #, 10 * DEG2RAD)
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
