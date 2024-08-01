@@ -391,8 +391,10 @@ class Walker3D(WalkerBase):
         self.base_orientation = np.array([0, 0, 0, 1])
 
         if pose == "running_start":
-            self.base_joint_angles[[5, 6]] = -np.pi / 8  # Right leg
-            self.base_joint_angles[10] = np.pi / 10  # Left leg back
+            self.base_joint_angles[5] = -np.pi / 6  # Right leg hip y
+            self.base_joint_angles[6] = -np.pi / 10  # Right leg knee
+            self.base_joint_angles[10] = np.pi / 12  # Left leg back
+            self.base_joint_angles[12] = -np.pi / 16  # Left leg back
             self.base_joint_angles[[13, 17]] = np.pi / 3  # Shoulder x
             self.base_joint_angles[[14]] = -np.pi / 6  # Right shoulder back
             self.base_joint_angles[[18]] = np.pi / 6  # Left shoulder forward

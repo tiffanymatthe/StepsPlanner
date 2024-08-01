@@ -7,10 +7,13 @@ os.sys.path.insert(0, parent_dir)
 
 import gym
 import numpy as np
+import mocca_envs
+import time
+import matplotlib.pyplot as plt
 
 DEG2RAD = np.pi / 180
 
-env_name = sys.argv[1] if len(sys.argv) > 1 else "mocca_envs:Monkey3DCustomEnv-v0"
+env_name = sys.argv[1] if len(sys.argv) > 1 else "Walker3DStepperEnv-v0"
 render = sys.argv[2] in ["True", "true", "1", 1] if len(sys.argv) > 2 else True
 
 env = gym.make(env_name, render=render)
@@ -21,7 +24,8 @@ offset = 6
 # env.unwrapped._p.setGravity(0, 0, 0)
 
 obs = env.reset()
-
+env.camera._cam_yaw = 90
+env.camera.lookat([0,0.32,0])
 
 bc = env.unwrapped._p
 robot_id = env.unwrapped.robot.id
@@ -62,15 +66,20 @@ for key, part in env.unwrapped.robot.parts.items():
         print("{:25} {:.4f}".format(key, mass))
 print("{:25} {:.4f} kg".format("Total Mass:", total_mass))
 
-
+# plt.plot(env.start_leg_expected_contact_probabilities)
+# print(env.start_leg_expected_contact_probabilities)
+# print(env.starting_leg)
+# print(env.swing_leg)
+# plt.plot(env.other_leg_expected_contact_probabilities)
+# plt.show()
+# obs, reward, done, info = env.step(env.action_space.sample() * 0)
 while True:
-    ## uncomment to drive the base/standing position as the action instead
-    # to_normalized = env.unwrapped.robot.to_normalized
-    # base_angles = env.unwrapped.robot.base_joint_angles
-    # base_pose_action = to_normalized(base_angles)[[0,1,2,3,6, 7,8,9,10,13]]
-    # obs, reward, done, info = env.step(base_pose_action)
-
+#     ## uncomment to drive the base/standing position as the action instead
+#     # to_normalized = env.unwrapped.robot.to_normalized
+#     # base_angles = env.unwrapped.robot.base_joint_angles
+#     # base_pose_action = to_normalized(base_angles)[[0,1,2,3,6, 7,8,9,10,13]]
+#     # obs, reward, done, info = env.step(base_pose_action)
     obs, reward, done, info = env.step(env.action_space.sample() * 0)
-
-    if done:
-        env.reset()
+    # time.sleep(10)
+#     # if done:
+#     #     env.reset()
