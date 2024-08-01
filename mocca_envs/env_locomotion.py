@@ -1135,21 +1135,20 @@ class Walker3DStepperEnv(EnvBase):
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
-        if self.next_step_index > 2:
-            elbow_angles = self.robot.joint_angles[[16, 20]]
-            elbow_angle_diffs = elbow_angles - 65 * DEG2RAD
-            self.elbow_penalty = 0
-            if not elbow_angle_diffs[0] > 0:
-                self.elbow_penalty += abs(elbow_angle_diffs[0])
-            if not elbow_angle_diffs[1] > 0:
-                self.elbow_penalty += abs(elbow_angle_diffs[1])
+        elbow_angles = self.robot.joint_angles[[16, 20]]
+        elbow_angle_diffs = elbow_angles - 65 * DEG2RAD
+        self.elbow_penalty = 0
+        if not elbow_angle_diffs[0] > 0:
+            self.elbow_penalty += abs(elbow_angle_diffs[0])
+        if not elbow_angle_diffs[1] > 0:
+            self.elbow_penalty += abs(elbow_angle_diffs[1])
 
-            heights = self.robot.upper_arm_and_head_xyz[:,2]
-            min_height_diff = 0.25
-            if heights[2] - heights[0] < min_height_diff:
-                self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
-            if heights[2] - heights[1] < min_height_diff:
-                self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
+        heights = self.robot.upper_arm_and_head_xyz[:,2]
+        min_height_diff = 0.25
+        if heights[2] - heights[0] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
+        if heights[2] - heights[1] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
