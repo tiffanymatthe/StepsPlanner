@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 20
-    init_step_separation = 0.70
+    init_step_separation = 0.5
 
     lookahead = 2
     lookbehind = 1
@@ -361,7 +361,7 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
         self.reached_last_step = False
 
-        self.time_offset = 0
+        self.time_offset = 15
         self.cycle_time = kwargs.pop("cycle_time", 60)
         half_stand_time = 4
         uncertainty_range = 5
