@@ -1178,7 +1178,7 @@ class Walker3DStepperEnv(EnvBase):
         
         cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
 
-        if not self.past_last_step and not self.next_step_index == 1:
+        if not self.past_last_step:
             self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
             self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
         else:
@@ -1195,7 +1195,10 @@ class Walker3DStepperEnv(EnvBase):
         else:
             other_bonus = - (2 * int(self.other_expected_contact) - 1)
 
-        self.timing_bonus = start_bonus + other_bonus
+        if self.next_step_index > 1:
+            self.timing_bonus = start_bonus + other_bonus
+        else:
+            self.timing_bonus = 0
 
         if not self.past_last_step:
             self.timing_count_errors.append(self.timing_bonus)
