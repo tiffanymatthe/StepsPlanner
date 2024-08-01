@@ -431,7 +431,7 @@ class Walker3DStepperEnv(EnvBase):
         }
         self.dist_range = {
             "to_standstill": np.array([0.65, 0.0]),
-            "random_walks": np.array([0.65, 0.85]),
+            "random_walks": np.array([0.55, 0.85]),
             "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.5]),
         }
@@ -440,7 +440,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_range = np.array([0, 0])
         self.yaw_range = {
             "to_standstill": np.array([0.0, 0.0]),
-            "random_walks": np.array([-70.0, 70.0]),
+            "random_walks": np.array([-35.0, 35.0]),
             "turn_in_place": np.array([0.0, 0.0]),
             "side_step": np.array([0.0, 0.0]),
         }
