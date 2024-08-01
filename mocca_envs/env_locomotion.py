@@ -353,7 +353,7 @@ class Walker3DStepperEnv(EnvBase):
         self.gauss_width = kwargs.pop("gauss_width", 10)
         self.legs_bonus = 0
         self.heading_bonus = 0
-        self.tilt_bonus_weight = 1
+        self.tilt_bonus_weight = 2
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
 
@@ -1161,6 +1161,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.target_reached and swing_foot_tilt > 10 * DEG2RAD:
             # allow negative tilt since on heels
+            # print(f"{self.swing_leg} is not good, swing foot tilt is at {swing_foot_tilt * RAD2DEG}")
             self.legs_bonus -= self.tilt_bonus_weight * abs(swing_foot_tilt - 10 * DEG2RAD) #, 10 * DEG2RAD)
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
