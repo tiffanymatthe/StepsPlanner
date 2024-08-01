@@ -1136,7 +1136,7 @@ class Walker3DStepperEnv(EnvBase):
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
         elbow_angles = self.robot.joint_angles[[16, 20]]
-        elbow_angle_diffs = elbow_angles - 65 * DEG2RAD
+        # elbow_angle_diffs = elbow_angles - 65 * DEG2RAD
         self.elbow_penalty = 0
         # if not elbow_angle_diffs[0] > 0:
         #     self.elbow_penalty += abs(elbow_angle_diffs[0])
