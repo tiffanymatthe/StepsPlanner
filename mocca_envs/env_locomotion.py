@@ -361,7 +361,7 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
         self.reached_last_step = False
 
-        self.time_offset = -8
+        self.time_offset = 0
         self.cycle_time = kwargs.pop("cycle_time", 60)
         half_stand_time = 4
         uncertainty_range = 5
@@ -1202,6 +1202,8 @@ class Walker3DStepperEnv(EnvBase):
             other_bonus = 2 * int(self.other_expected_contact) - 1
         else:
             other_bonus = - (2 * int(self.other_expected_contact) - 1)
+
+        # print(f"Starting leg {self.starting_leg} and swing leg {self.swing_leg}")
 
         self.timing_bonus = start_bonus + other_bonus
 
