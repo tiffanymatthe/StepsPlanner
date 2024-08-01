@@ -1137,11 +1137,10 @@ class Walker3DStepperEnv(EnvBase):
 
         elbow_angles = self.robot.joint_angles[[16, 20]]
         elbow_angle_diffs = elbow_angles - 60 * DEG2RAD
-        elbow_angle_tolerance = 20 * DEG2RAD
         self.elbow_penalty = 0
-        if not -elbow_angle_tolerance < elbow_angle_diffs[0] < elbow_angle_tolerance:
+        if not elbow_angle_diffs[0] > 0:
             self.elbow_penalty += abs(elbow_angle_diffs[0])
-        if not -elbow_angle_tolerance < elbow_angle_diffs[1] < elbow_angle_tolerance:
+        if not elbow_angle_diffs[1] > 0:
             self.elbow_penalty += abs(elbow_angle_diffs[1])
 
         heights = self.robot.upper_arm_and_head_xyz[:,2]
@@ -1160,9 +1159,9 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt > 10 * DEG2RAD:
+        if self.target_reached and swing_foot_tilt < 10 * DEG2RAD:
             # allow negative tilt since on heels
-            self.legs_bonus -= self.tilt_bonus_weight * abs(swing_foot_tilt - 10 * DEG2RAD)
+            self.legs_bonus += self.tilt_bonus_weight * min(abs(swing_foot_tilt - 10 * DEG2RAD), 10 * DEG2RAD)
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
@@ -1173,13 +1172,13 @@ class Walker3DStepperEnv(EnvBase):
             self.legs_bonus -= 100
 
         if self.target_reached and not self.past_last_step:
-            self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) **2)
+            self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
         else:
             self.heading_bonus = 0
         
         cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
 
-        if not self.past_last_step:
+        if not self.past_last_step and not self.next_step_index == 1:
             self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
             self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
         else:
