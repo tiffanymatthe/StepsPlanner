@@ -449,6 +449,7 @@ class Walker3DStepperEnv(EnvBase):
         # Important to do this once before reset!
         self.swing_leg = 0
         self.starting_leg = 1 - self.swing_leg
+        self.clock_started = False
         self.terrain_info = self.generate_step_placements()
 
         # Observation and Action spaces
@@ -957,6 +958,7 @@ class Walker3DStepperEnv(EnvBase):
             mirror=True
         )
         self.prev_leg = self.swing_leg
+        self.clock_started = False
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
@@ -1205,12 +1207,14 @@ class Walker3DStepperEnv(EnvBase):
 
         # print(f"Starting leg {self.starting_leg} and swing leg {self.swing_leg}")
 
-        if self.next_step_index <= 1:
-            self.timing_bonus = other_bonus
+        if not self.clock_started:
+            self.timing_bonus = 0
+            self.start_expected_contact = -1
+            self.other_expected_contact = -1
         else:
             self.timing_bonus = start_bonus + other_bonus
 
-        if not self.past_last_step:
+        if not self.past_last_step and self.clock_started:
             self.timing_count_errors.append(self.timing_bonus)
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
@@ -1313,6 +1317,11 @@ class Walker3DStepperEnv(EnvBase):
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
+
+        if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0:
+            self.clock_started = True
+            self.time_offset = -self.timestep
+            self.starting_leg = 1 - self.swing_leg
 
         if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
@@ -1450,6 +1459,9 @@ class Walker3DStepperEnv(EnvBase):
             self.frozen_clock_signal = np.array([np.sin(2*np.pi*(43) / self.cycle_time), np.cos(2*np.pi*(43) / self.cycle_time)])
         else:
             clock_signal = self.frozen_clock_signal
+
+        if not self.clock_started:
+            clock_signal = np.array([0,0])
 
         deltas = concatenate(
             (
