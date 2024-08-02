@@ -312,8 +312,8 @@ class Walker3DStepperEnv(EnvBase):
     max_timestep = 1000
 
     robot_class = Walker3D
-    robot_random_start = False
-    robot_init_position = [0, 0.32, 1.23]
+    robot_random_start = True
+    robot_init_position = [0, 0.3, 1.32]
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
@@ -448,8 +448,7 @@ class Walker3DStepperEnv(EnvBase):
         self.step_param_dim = 6
         # Important to do this once before reset!
         self.swing_leg = 0
-        self.starting_leg = 1 - self.swing_leg
-        self.clock_started = False
+        self.starting_leg = self.swing_leg
         self.terrain_info = self.generate_step_placements()
 
         # Observation and Action spaces
@@ -966,7 +965,7 @@ class Walker3DStepperEnv(EnvBase):
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
-        self.starting_leg = 1 - self.swing_leg
+        self.starting_leg = self.swing_leg
         self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
         self.calc_feet_state()
 
@@ -1192,8 +1191,6 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.start_expected_contact = 1
             self.other_expected_contact = 1
-
-        # print(f"Time Step: {self.timestep} {self._foot_target_contacts}, expected {self.starting_leg} to have {self.start_expected_contact} and expected other contact {1-self.starting_leg} to have {self.other_expected_contact}")
 
         if self._foot_target_contacts[self.starting_leg, 0] == 1:
             start_bonus = 2 * int(self.start_expected_contact) - 1
