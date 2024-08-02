@@ -445,7 +445,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": np.array([0.0, 0.0]),
         }
 
-        self.step_param_dim = 7
+        self.step_param_dim = 6
         # Important to do this once before reset!
         self.swing_leg = 0
         self.starting_leg = 1 - self.swing_leg
@@ -1431,9 +1431,9 @@ class Walker3DStepperEnv(EnvBase):
             targets = self._targets
 
         # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-        self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
-        heading = self.terrain_info[self.next_step_index, 6]
-        if int(self.terrain_info[self.next_step_index, 7]) == 1:
+        self.walk_target = np.copy(self.targets[self.walk_target_index, 0:3])
+        heading = self.targets[self.walk_target_index, 6]
+        if int(self.targets[self.walk_target_index, 7]) == 1:
             self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
             self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
         else:
@@ -1471,7 +1471,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
-                (swing_legs_at_targets)[:, None],  # swing_legs
+                # (swing_legs_at_targets)[:, None],  # swing_legs
             ),
             axis=1,
         )
