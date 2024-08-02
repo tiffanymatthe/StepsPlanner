@@ -420,6 +420,8 @@ class Walker3DStepperEnv(EnvBase):
         self.elbow_penalty = 0
         self.elbow_weight = 1
 
+        self.clock_started = False
+
         self.selected_behavior = "to_standstill"
 
         # Terrain info
@@ -1008,7 +1010,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
-        reward += self.timing_bonus * 0 # self.timing_bonus_weight
+        reward += self.timing_bonus * self.timing_bonus_weight
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
@@ -1448,17 +1450,17 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        # if not self.past_last_step:
-        #     clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
-        #     if self.starting_leg == 0:
-        #         clock_signal = np.flip(clock_signal)
-        #     # WARNING: hard coded for 60 cycle time
-        #     self.frozen_clock_signal = np.array([np.sin(2*np.pi*(43) / self.cycle_time), np.cos(2*np.pi*(43) / self.cycle_time)])
-        # else:
-        #     clock_signal = self.frozen_clock_signal
+        if not self.past_last_step:
+            clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
+            if self.starting_leg == 0:
+                clock_signal = np.flip(clock_signal)
+            # WARNING: hard coded for 60 cycle time
+            self.frozen_clock_signal = np.array([np.sin(2*np.pi*(43) / self.cycle_time), np.cos(2*np.pi*(43) / self.cycle_time)])
+        else:
+            clock_signal = self.frozen_clock_signal
 
-        # if not self.clock_started:
-        clock_signal = np.array([0,0])
+        if not self.clock_started:
+            clock_signal = np.array([0,0])
 
         deltas = concatenate(
             (
