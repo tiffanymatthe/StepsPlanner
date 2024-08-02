@@ -224,7 +224,7 @@ def main():
                     expected_other_foot = []
                     actual_start_foot = []
                     actual_other_foot = []
-                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg")
+                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.timing_count_errors):.2f}")
                 obs = env.reset(reset_runner=False)
                 if args.heading:
                     foot_heading_targets = env.terrain_info[:, 6]
