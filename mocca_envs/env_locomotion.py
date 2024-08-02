@@ -420,7 +420,7 @@ class Walker3DStepperEnv(EnvBase):
         self.elbow_penalty = 0
         self.elbow_weight = 1
 
-        self.clock_started = False
+        self.clock_started = True
 
         self.selected_behavior = "to_standstill"
 
@@ -846,32 +846,34 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        if self.behaviors[self.behavior_curriculum] == "to_standstill":
-            return self.generate_to_standstill_step_placements(self.curriculum)
-        elif self.behaviors[self.behavior_curriculum] == "random_walks":
-            if self.np_random.rand() < 0.3:
-                return self.generate_to_standstill_step_placements(self.max_curriculum)
-            else:
-                return self.generate_random_walks_step_placements(self.curriculum)
-        elif self.behaviors[self.behavior_curriculum] == "turn_in_place":
-            if self.np_random.rand() < 0.3:
-                return self.np_random.choice([
-                    self.generate_to_standstill_step_placements(self.max_curriculum),
-                    self.generate_random_walks_step_placements(self.max_curriculum)
-                ])
-            else:
-                return self.generate_turn_in_place_step_placements(self.curriculum)
-        elif self.behaviors[self.behavior_curriculum] == "side_step":
-            if self.np_random.rand() < 0.3:
-                return self.np_random.choice([
-                    self.generate_to_standstill_step_placements(self.max_curriculum),
-                    self.generate_random_walks_step_placements(self.max_curriculum),
-                    self.generate_turn_in_place_step_placements(self.max_curriculum)
-                ])
-            else:
-                return self.generate_side_step_step_placements(self.curriculum)
-        else:
-            raise NotImplementedError(f"Behavior {self.behaviors[self.behavior_curriculum]} is not implemented")
+        return self.generate_to_standstill_step_placements(0)
+
+        # if self.behaviors[self.behavior_curriculum] == "to_standstill":
+        #     return self.generate_to_standstill_step_placements(self.curriculum)
+        # elif self.behaviors[self.behavior_curriculum] == "random_walks":
+        #     if self.np_random.rand() < 0.3:
+        #         return self.generate_to_standstill_step_placements(self.max_curriculum)
+        #     else:
+        #         return self.generate_random_walks_step_placements(self.curriculum)
+        # elif self.behaviors[self.behavior_curriculum] == "turn_in_place":
+        #     if self.np_random.rand() < 0.3:
+        #         return self.np_random.choice([
+        #             self.generate_to_standstill_step_placements(self.max_curriculum),
+        #             self.generate_random_walks_step_placements(self.max_curriculum)
+        #         ])
+        #     else:
+        #         return self.generate_turn_in_place_step_placements(self.curriculum)
+        # elif self.behaviors[self.behavior_curriculum] == "side_step":
+        #     if self.np_random.rand() < 0.3:
+        #         return self.np_random.choice([
+        #             self.generate_to_standstill_step_placements(self.max_curriculum),
+        #             self.generate_random_walks_step_placements(self.max_curriculum),
+        #             self.generate_turn_in_place_step_placements(self.max_curriculum)
+        #         ])
+        #     else:
+        #         return self.generate_side_step_step_placements(self.curriculum)
+        # else:
+        #     raise NotImplementedError(f"Behavior {self.behaviors[self.behavior_curriculum]} is not implemented")
 
     def create_terrain(self):
 
@@ -959,7 +961,7 @@ class Walker3DStepperEnv(EnvBase):
             mirror=True
         )
         self.prev_leg = self.swing_leg
-        self.clock_started = False
+        self.clock_started = True
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
@@ -1010,7 +1012,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
-        reward += self.timing_bonus * self.timing_bonus_weight
+        reward += self.timing_bonus * np.linspace(0, 2, self.max_curriculum + 1)[self.curriculum] # self.timing_bonus_weight
 
         # if self.progress != 0:
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
@@ -1317,10 +1319,10 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
-        if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0:
-            self.clock_started = True
-            self.time_offset = -self.timestep
-            self.starting_leg = 1 - self.swing_leg
+        # if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0:
+        #     self.clock_started = True
+        #     self.time_offset = -self.timestep
+        #     self.starting_leg = 1 - self.swing_leg
 
         if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
