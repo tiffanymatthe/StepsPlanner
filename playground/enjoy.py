@@ -52,6 +52,7 @@ def main():
     parser.add_argument("--render", type=int, default=1)
     parser.add_argument("--save", type=int, default=0)
     parser.add_argument("--heading", default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--determine", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--timing", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--ffmpeg", type=int, default=0)
     parser.add_argument("--csv", type=str, default=None)
@@ -68,6 +69,7 @@ def main():
         render=args.render,
         plank_class=args.plank_class,
         heading_bonus_weight=args.heading_bonus_weight,
+        determine=args.determine,
         use_egl=use_egl,
         use_ffmpeg=use_ffmpeg,
         cycle_time=args.cycle_time,

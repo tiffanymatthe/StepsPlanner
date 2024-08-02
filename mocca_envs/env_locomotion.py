@@ -361,6 +361,8 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
         self.reached_last_step = False
 
+        self.determine = kwargs.pop("determine", False)
+
         self.time_offset = 0
         self.cycle_time = kwargs.pop("cycle_time", 60)
         half_stand_time = 4
@@ -485,7 +487,10 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
 
-        self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
+        if self.determine:
+            self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        else:
+            self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
@@ -568,7 +573,10 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
 
-        self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
+        if self.determine:
+            self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        else:
+            self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
@@ -659,7 +667,10 @@ class Walker3DStepperEnv(EnvBase):
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        self.path_angle = self.np_random.choice(self.angle_curriculum[self.selected_behavior][0:curriculum+1])
+        if self.determine:
+            self.path_angle = self.angle_curriculum[self.selected_behavior][curriculum]
+        else:
+            self.path_angle = self.np_random.choice(self.angle_curriculum[self.selected_behavior][0:curriculum+1])
 
         N = self.num_steps
 
@@ -760,7 +771,10 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
 
-        self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
+        if self.determine:
+            self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        else:
+            self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
@@ -846,15 +860,20 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
+        if self.determine:
+            threshold = 0
+        else:
+            threshold = 0.3
+
         if self.behaviors[self.behavior_curriculum] == "to_standstill":
             return self.generate_to_standstill_step_placements(self.curriculum)
         elif self.behaviors[self.behavior_curriculum] == "random_walks":
-            if self.np_random.rand() < 0.3:
+            if self.np_random.rand() < threshold:
                 return self.generate_to_standstill_step_placements(self.max_curriculum)
             else:
                 return self.generate_random_walks_step_placements(self.curriculum)
         elif self.behaviors[self.behavior_curriculum] == "turn_in_place":
-            if self.np_random.rand() < 0.3:
+            if self.np_random.rand() < threshold:
                 return self.np_random.choice([
                     self.generate_to_standstill_step_placements(self.max_curriculum),
                     self.generate_random_walks_step_placements(self.max_curriculum)
@@ -862,7 +881,7 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 return self.generate_turn_in_place_step_placements(self.curriculum)
         elif self.behaviors[self.behavior_curriculum] == "side_step":
-            if self.np_random.rand() < 0.3:
+            if self.np_random.rand() < threshold:
                 return self.np_random.choice([
                     self.generate_to_standstill_step_placements(self.max_curriculum),
                     self.generate_random_walks_step_placements(self.max_curriculum),
