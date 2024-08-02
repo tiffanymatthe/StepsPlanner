@@ -361,7 +361,7 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
         self.reached_last_step = False
 
-        self.time_offset = -12
+        self.time_offset = 0
         self.cycle_time = kwargs.pop("cycle_time", 60)
         half_stand_time = 4
         uncertainty_range = 5
@@ -1205,7 +1205,10 @@ class Walker3DStepperEnv(EnvBase):
 
         # print(f"Starting leg {self.starting_leg} and swing leg {self.swing_leg}")
 
-        self.timing_bonus = start_bonus + other_bonus
+        if self.next_step_index <= 1:
+            self.timing_bonus = other_bonus
+        else:
+            self.timing_bonus = start_bonus + other_bonus
 
         if not self.past_last_step:
             self.timing_count_errors.append(self.timing_bonus)
