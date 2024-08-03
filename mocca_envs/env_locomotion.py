@@ -1159,16 +1159,16 @@ class Walker3DStepperEnv(EnvBase):
 
         self.elbow_penalty = 0
 
-        # elbow_angles = self.robot.joint_angles[[16, 20]]
-        # elbow_good_mask = elbow_angles > 65 * DEG2RAD
-        # self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
+        elbow_angles = self.robot.joint_angles[[16, 20]]
+        elbow_good_mask = elbow_angles > 65 * DEG2RAD
+        self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
 
-        # heights = self.robot.upper_arm_and_head_xyz[:,2]
-        # min_height_diff = 0.25
-        # if heights[2] - heights[0] < min_height_diff:
-        #     self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
-        # if heights[2] - heights[1] < min_height_diff:
-        #     self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
+        heights = self.robot.upper_arm_and_head_xyz[:,2]
+        min_height_diff = 0.25
+        if heights[2] - heights[0] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
+        if heights[2] - heights[1] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
@@ -1440,9 +1440,9 @@ class Walker3DStepperEnv(EnvBase):
             targets = self._targets
 
         # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-        self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
-        heading = self.terrain_info[self.next_step_index, 6]
-        if int(self.terrain_info[self.next_step_index, 7]) == 1:
+        self.walk_target = np.copy(targets[self.walk_target_index, 0:3])
+        heading = targets[self.walk_target_index, 6]
+        if int(targets[self.walk_target_index, 7]) == 1:
             self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
             self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
         else:
