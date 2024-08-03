@@ -1449,9 +1449,9 @@ class Walker3DStepperEnv(EnvBase):
             targets = self._targets
 
         # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-        self.walk_target = np.copy(targets[self.walk_target_index, 0:3])
-        heading = targets[self.walk_target_index, 6]
-        if int(targets[self.walk_target_index, 7]) == 1:
+        self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:3])
+        heading = self.terrain_info[self.next_step_index, 6]
+        if int(self.terrain_info[self.next_step_index, 7]) == 1:
             self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
             self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
         else:
