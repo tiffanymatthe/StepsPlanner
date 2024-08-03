@@ -678,8 +678,8 @@ class Walker3DStepperEnv(EnvBase):
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
-        dphi_flip = self.get_random_flip_array_every_5(N)
-        dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
+        # dphi_flip = self.get_random_flip_array_every_5(N)
+        # dphi[dphi_flip.astype(bool)] *= -1 # flip dy since np.sin(dphi), but don't change heading
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -1439,10 +1439,13 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-        self.walk_target = np.copy(targets[self.walk_target_index, 0:3])
-        heading = targets[self.walk_target_index, 6]
-        if int(targets[self.walk_target_index, 7]) == 1:
+        if self.behaviors[self.behavior_curriculum] in {"turn_in_place", "side_step"}:
+            walk_target_full = self.terrain_info[self.next_step_index]
+        else:
+            walk_target_full = targets[self.walk_target_index]
+        self.walk_target = np.copy(walk_target_full[0:3])
+        heading = walk_target_full[6]
+        if int(walk_target_full[7]) == 1:
             self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
             self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
         else:
