@@ -349,6 +349,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.timing_count_errors = []
+        self.met_times = []
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 8)
         self.gauss_width = kwargs.pop("gauss_width", 10)
         self.legs_bonus = 0
@@ -420,7 +421,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         self.elbow_penalty = 0
-        self.elbow_weight = 1
+        self.elbow_weight = 0.3
 
         self.clock_started = False
 
@@ -960,6 +961,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.timing_count_errors = []
+        self.met_times = []
         self.past_last_step = False
 
         self.reached_last_step = False
@@ -1093,10 +1095,12 @@ class Walker3DStepperEnv(EnvBase):
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
                 info["avg_timing_err"] = nanmean(self.timing_count_errors)
+                info["avg_timing_met"] = nanmean(self.met_times)
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
                 info["avg_timing_err"] = np.nan
+                info["avg_timing_met"] = np.nan
 
         return state, reward, self.done, info
 
@@ -1204,15 +1208,25 @@ class Walker3DStepperEnv(EnvBase):
             self.start_expected_contact = 1
             self.other_expected_contact = 1
 
+        met_time = 0
+
         if self._foot_target_contacts[self.starting_leg, 0] == 1:
             start_bonus = 2 * int(self.start_expected_contact) - 1
+            if self.start_expected_contact >= 0.5:
+                met_time += 1
         else:
             start_bonus = - (2 * int(self.start_expected_contact) - 1)
+            if self.start_expected_contact <= 0.5:
+                met_time += 1
 
         if self._foot_target_contacts[1-self.starting_leg, 0] == 1:
             other_bonus = 2 * int(self.other_expected_contact) - 1
+            if self.other_expected_contact >= 0.5:
+                met_time += 1
         else:
             other_bonus = - (2 * int(self.other_expected_contact) - 1)
+            if self.other_expected_contact <= 0.5:
+                met_time += 1
 
         # print(f"Starting leg {self.starting_leg} and swing leg {self.swing_leg}")
 
@@ -1225,6 +1239,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if not self.past_last_step and self.clock_started:
             self.timing_count_errors.append(self.timing_bonus)
+            self.met_times.append(met_time)
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
         # if self.done:
