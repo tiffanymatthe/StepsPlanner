@@ -456,6 +456,8 @@ class Walker3DStepperEnv(EnvBase):
         self.starting_leg = self.swing_leg
         self.terrain_info = self.generate_step_placements()
 
+        self.next_step_start_timestep = 0
+
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
@@ -959,6 +961,8 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
+        self.next_step_start_timestep = 0
+
         self.heading_errors = []
         self.timing_count_errors = []
         self.met_times = []
@@ -1124,8 +1128,8 @@ class Walker3DStepperEnv(EnvBase):
         self.linear_potential = -(body_distance_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
-        # angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
-        # self.linear_potential += -(angle_delta * 0.2) / self.scene.dt
+        angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
+        self.linear_potential += -(angle_delta * 0.2) / self.scene.dt
 
     def calc_base_reward(self, action):
 
@@ -1241,7 +1245,9 @@ class Walker3DStepperEnv(EnvBase):
             self.timing_count_errors.append(self.timing_bonus)
             self.met_times.append(met_time)
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
+        waited_too_long = not self.next_step_index >= self.num_steps - 1 and (self.timestep - self.next_step_start_timestep) > 2 * self.cycle_time
+
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count or waited_too_long
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
@@ -1369,6 +1375,7 @@ class Walker3DStepperEnv(EnvBase):
                     # self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
+                    self.next_step_start_timestep = self.timestep
                     if self.next_step_index < self.num_steps:
                         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
                     self.target_reached_count = 0
