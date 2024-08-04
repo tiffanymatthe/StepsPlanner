@@ -1482,10 +1482,10 @@ class Walker3DStepperEnv(EnvBase):
             clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
             if self.starting_leg == 0:
                 clock_signal = np.flip(clock_signal)
-            # WARNING: hard coded for 60 cycle time
-            self.frozen_clock_signal = np.array([np.sin(2*np.pi*(43) / self.cycle_time), np.cos(2*np.pi*(43) / self.cycle_time)])
+            # # WARNING: hard coded for 60 cycle time
+            # self.frozen_clock_signal = np.array([np.sin(2*np.pi*(43) / self.cycle_time), np.cos(2*np.pi*(43) / self.cycle_time)])
         else:
-            clock_signal = self.frozen_clock_signal
+            clock_signal = np.array([1,1]) # self.frozen_clock_signal
 
         if not self.clock_started:
             clock_signal = np.array([0,0])
