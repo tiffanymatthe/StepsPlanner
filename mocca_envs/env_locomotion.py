@@ -1129,7 +1129,7 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = body_distance_to_target
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
-        self.linear_potential += -(angle_delta * 0.2) / self.scene.dt
+        self.linear_potential += -(angle_delta * 0.1) / self.scene.dt
 
     def calc_base_reward(self, action):
 
@@ -1245,9 +1245,9 @@ class Walker3DStepperEnv(EnvBase):
             self.timing_count_errors.append(self.timing_bonus)
             self.met_times.append(met_time)
 
-        waited_too_long = not self.next_step_index >= self.num_steps - 1 and (self.timestep - self.next_step_start_timestep) > 2 * self.cycle_time
+        # waited_too_long = not self.next_step_index >= self.num_steps - 1 and (self.timestep - self.next_step_start_timestep) > 2 * self.cycle_time
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count or waited_too_long
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count # or waited_too_long
         # if self.done:
         #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
 
