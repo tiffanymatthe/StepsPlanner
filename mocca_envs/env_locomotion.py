@@ -387,8 +387,8 @@ class Walker3DStepperEnv(EnvBase):
             offset = (width - 1) // 2
             return (middle_index - offset, middle_index + offset)
 
-        SS_phase = 22 # self.cycle_time // 3
-        DS_phase = 8 # self.cycle_time // 6
+        SS_phase = 23 # self.cycle_time // 3
+        DS_phase = 7 # self.cycle_time // 6
         assert SS_phase * 2 + DS_phase * 2 == self.cycle_time, f"SS_phase {SS_phase} and DS_phase {DS_phase} do not make {self.cycle_time}" # TODO: fix
         self.start_leg_expected_contact_probabilities = np.zeros(self.cycle_time)
         self.start_leg_expected_contact_probabilities[SS_phase:] = 1
@@ -399,8 +399,8 @@ class Walker3DStepperEnv(EnvBase):
         self.start_leg_expected_contact_probabilities[0] = 0.5
         interpolate_between_indices(self.start_leg_expected_contact_probabilities, 0, uncertainty_range // 2)
         interpolate_between_indices(self.start_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase, uncertainty_range))
-        self.start_leg_expected_contact_probabilities[-1] = 0.5
-        interpolate_between_indices(self.start_leg_expected_contact_probabilities, self.cycle_time - 1 - uncertainty_range // 2, self.cycle_time - 1)
+        self.start_leg_expected_contact_probabilities[-1] = 0.75
+        interpolate_between_indices(self.start_leg_expected_contact_probabilities, self.cycle_time - uncertainty_range // 2, self.cycle_time - 1)
 
         interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase+DS_phase, uncertainty_range))
         interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase*2+DS_phase, uncertainty_range))
