@@ -437,7 +437,7 @@ class Walker3DStepperEnv(EnvBase):
         self.dist_range = {
             "to_standstill": np.array([0.65, 0.0]),
             "random_walks": np.array([0.55, 0.85]),
-            "turn_in_place": np.array([0.7, 0.1]),
+            "turn_in_place": np.array([0.7, 0.3]),
             "side_step": np.array([0.2, 0.5]),
         }
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
@@ -673,7 +673,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.determine:
             self.path_angle = self.angle_curriculum[self.selected_behavior][curriculum]
         else:
-            self.path_angle = self.np_random.choice(self.angle_curriculum[self.selected_behavior][0:curriculum+1])
+            weights = np.linspace(1,10,self.curriculum+1)
+            weights /= sum(weights)
+            self.path_angle = self.np_random.choice(self.angle_curriculum[self.selected_behavior][0:curriculum+1], p=weights)
 
         N = self.num_steps
 
@@ -777,7 +779,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.determine:
             self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
         else:
-            self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
+            weights = np.linspace(1,10,self.curriculum+1)
+            weights /= sum(weights)
+            self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1], p=weights)
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
@@ -1033,7 +1037,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
+        reward += self.legs_bonus # - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
         reward += self.timing_bonus * self.timing_bonus_weight
 
@@ -1165,18 +1169,18 @@ class Walker3DStepperEnv(EnvBase):
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
-        self.elbow_penalty = 0
+        # self.elbow_penalty = 0
 
-        elbow_angles = self.robot.joint_angles[[16, 20]]
-        elbow_good_mask = elbow_angles > 65 * DEG2RAD
-        self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
+        # elbow_angles = self.robot.joint_angles[[16, 20]]
+        # elbow_good_mask = elbow_angles > 65 * DEG2RAD
+        # self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
 
-        heights = self.robot.upper_arm_and_head_xyz[:,2]
-        min_height_diff = 0.25
-        if heights[2] - heights[0] < min_height_diff:
-            self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
-        if heights[2] - heights[1] < min_height_diff:
-            self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
+        # heights = self.robot.upper_arm_and_head_xyz[:,2]
+        # min_height_diff = 0.25
+        # if heights[2] - heights[0] < min_height_diff:
+        #     self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
+        # if heights[2] - heights[1] < min_height_diff:
+        #     self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
