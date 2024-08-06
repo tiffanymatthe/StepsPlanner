@@ -866,7 +866,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.determine:
             threshold = 0
         else:
-            threshold = 0.3
+            threshold = 0
 
         if self.behaviors[self.behavior_curriculum] == "to_standstill":
             return self.generate_to_standstill_step_placements(self.curriculum)
