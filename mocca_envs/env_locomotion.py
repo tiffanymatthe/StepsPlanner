@@ -419,7 +419,7 @@ class Walker3DStepperEnv(EnvBase):
         self.elbow_penalty = 0
         self.elbow_weight = 0.4
 
-        self.clock_started = True
+        self.clock_started = False
 
         self.selected_behavior = "to_standstill"
 
@@ -969,7 +969,7 @@ class Walker3DStepperEnv(EnvBase):
             mirror=True
         )
         self.prev_leg = self.swing_leg
-        self.clock_started = True
+        self.clock_started = False
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
