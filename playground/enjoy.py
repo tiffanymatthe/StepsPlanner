@@ -197,12 +197,14 @@ def main():
                     right_foot_positions = []
                     target_indices = []
                 if args.timing:
-                    fig, axs = plt.subplots(2)
+                    fig, axs = plt.subplots(3)
                     fig.suptitle('Timing')
                     axs[0].plot(expected_start_foot)
                     axs[1].plot(expected_other_foot)
                     axs[0].plot(actual_start_foot)
                     axs[1].plot(actual_other_foot)
+                    axs[2].plot(env.start_leg_expected_contact_probabilities)
+                    axs[2].plot(env.other_leg_expected_contact_probabilities)
                     plt.show()
                     expected_start_foot = []
                     expected_other_foot = []
