@@ -1177,20 +1177,20 @@ class Walker3DStepperEnv(EnvBase):
         met_time = 0
 
         if self._foot_target_contacts[self.starting_leg, 0] == 1:
-            start_bonus = 2 * int(self.start_expected_contact) - 1
+            start_bonus = 2 * self.start_expected_contact - 1
             if self.start_expected_contact >= 0.5:
                 met_time += 1
         else:
-            start_bonus = - (2 * int(self.start_expected_contact) - 1)
+            start_bonus = - (2 * self.start_expected_contact - 1)
             if self.start_expected_contact <= 0.5:
                 met_time += 1
 
         if self._foot_target_contacts[1-self.starting_leg, 0] == 1:
-            other_bonus = 2 * int(self.other_expected_contact) - 1
+            other_bonus = 2 * self.other_expected_contact - 1
             if self.other_expected_contact >= 0.5:
                 met_time += 1
         else:
-            other_bonus = - (2 * int(self.other_expected_contact) - 1)
+            other_bonus = - (2 * self.other_expected_contact - 1)
             if self.other_expected_contact <= 0.5:
                 met_time += 1
 
