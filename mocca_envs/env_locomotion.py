@@ -366,14 +366,11 @@ class Walker3DStepperEnv(EnvBase):
 
         self.time_offset = 0
         self.cycle_time = kwargs.pop("cycle_time", 60)
-        half_stand_time = 4
+        # half_stand_time = 4
         uncertainty_range = 5
 
         def interpolate_between_indices(array, start_index, end_index):
             # end index is inclusive
-            # Ensure the array is a NumPy array
-            array = np.array(array)
-            
             # Get the values at the start and end indices
             start_value = array[start_index]
             end_value = array[end_index]
@@ -386,28 +383,28 @@ class Walker3DStepperEnv(EnvBase):
             
             # Replace the elements in the array with interpolated values
             array[start_index:end_index + 1] = interpolated_values
-            
-            return array
         
         def get_left_right_indices(middle_index, width):
             offset = (width - 1) // 2
             return (middle_index - offset, middle_index + offset)
 
+        # total: SS_phase * 2 + DS_phase * 2 = cycle_time (works for 60 integer)
+        SS_phase = self.cycle_time // 3
+        DS_phase = self.cycle_time // 6
         self.start_leg_expected_contact_probabilities = np.zeros(self.cycle_time)
-        self.start_leg_expected_contact_probabilities[self.cycle_time//2-half_stand_time:] = 1
-        self.start_leg_expected_contact_probabilities[0] = 0.5
-        self.start_leg_expected_contact_probabilities[-1] = 0.5
-        self.start_leg_expected_contact_probabilities = interpolate_between_indices(self.start_leg_expected_contact_probabilities, 0, (uncertainty_range//2+1)-1)
-        self.start_leg_expected_contact_probabilities = interpolate_between_indices(self.start_leg_expected_contact_probabilities, *get_left_right_indices(self.cycle_time // 2 - half_stand_time, uncertainty_range))
-        self.start_leg_expected_contact_probabilities = interpolate_between_indices(self.start_leg_expected_contact_probabilities, self.cycle_time - (uncertainty_range//2+1), self.cycle_time-1)
+        self.start_leg_expected_contact_probabilities[SS_phase:] = 1
+        self.other_leg_expected_contact_probabilities = np.ones(self.cycle_time)
+        self.other_leg_expected_contact_probabilities[SS_phase + DS_phase:SS_phase*2 + DS_phase] = 0
 
-        self.other_leg_expected_contact_probabilities = np.zeros(self.cycle_time)
-        self.other_leg_expected_contact_probabilities[:self.cycle_time//2 + half_stand_time] = 1
-        self.other_leg_expected_contact_probabilities[0] = 0.5
-        self.other_leg_expected_contact_probabilities[-1] = 0.5
-        self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, 0, (uncertainty_range//2+1)-1)
-        self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(self.cycle_time // 2 + half_stand_time, uncertainty_range))
-        self.other_leg_expected_contact_probabilities = interpolate_between_indices(self.other_leg_expected_contact_probabilities, self.cycle_time - (uncertainty_range // 2+1), self.cycle_time-1)
+        # smooth out transitions
+        self.start_leg_expected_contact_probabilities[0] = 0.5
+        interpolate_between_indices(self.start_leg_expected_contact_probabilities, 0, uncertainty_range // 2)
+        interpolate_between_indices(self.start_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase, uncertainty_range))
+        self.start_leg_expected_contact_probabilities[-1] = 0.5
+        interpolate_between_indices(self.start_leg_expected_contact_probabilities, self.cycle_time - 1 - uncertainty_range // 2, self.cycle_time - 1)
+
+        interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase+DS_phase, uncertainty_range))
+        interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase*2+DS_phase, uncertainty_range))
 
         # Robot settings
         N = self.max_curriculum + 1
