@@ -340,7 +340,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 9
-        self.advance_threshold = min(15, self.num_steps)
+        self.advance_threshold = min(13, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
@@ -423,7 +423,7 @@ class Walker3DStepperEnv(EnvBase):
         self.elbow_penalty = 0
         self.elbow_weight = 0.4
 
-        self.clock_started = False
+        self.clock_started = True
 
         self.selected_behavior = "to_standstill"
 
@@ -988,7 +988,7 @@ class Walker3DStepperEnv(EnvBase):
             mirror=True
         )
         self.prev_leg = self.swing_leg
-        self.clock_started = False
+        self.clock_started = True
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
@@ -1132,8 +1132,9 @@ class Walker3DStepperEnv(EnvBase):
         self.linear_potential = -(body_distance_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
-        angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
-        self.linear_potential += -(angle_delta * 0.1) / self.scene.dt
+        if self._foot_target_contacts[self.swing_leg, 0] == 0:
+            angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
+            self.linear_potential += -(angle_delta * 0.1) / self.scene.dt
 
     def calc_base_reward(self, action):
 
