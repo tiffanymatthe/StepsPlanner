@@ -447,10 +447,10 @@ class Walker3DStepperEnv(EnvBase):
         }
 
         self.generated_paths_cache = {
-            "to_standstill": [None] * self.max_curriculum,
-            "random_walks": [None] * self.max_curriculum,
-            "turn_in_place": [None] * self.max_curriculum,
-            "side_step": [None] * self.max_curriculum,
+            "to_standstill":  [[None, None] for _ in range(self.max_curriculum)],
+            "random_walks": [[None, None] for _ in range(self.max_curriculum)],
+            "turn_in_place": [[None, None] for _ in range(self.max_curriculum)],
+            "side_step": [[None, None] for _ in range(self.max_curriculum)],
         }
 
         self.step_param_dim = 6
@@ -865,8 +865,8 @@ class Walker3DStepperEnv(EnvBase):
             weights /= sum(weights)
             self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
 
-        if self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum] is not None:
-            return self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum]
+        if self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum][int(self.robot.mirrored)] is not None:
+            return self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum][int(self.robot.mirrored)]
 
         if self.behaviors[self.behavior_curriculum] == "to_standstill":
             path = self.generate_to_standstill_step_placements(self.selected_curriculum)
@@ -877,7 +877,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             raise NotImplementedError(f"Behavior {self.behaviors[self.behavior_curriculum]} is not implemented")
         
-        self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum] = np.copy(path)
+        self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum][int(self.robot.mirrored)] = np.copy(path)
 
         return path
 
@@ -1444,8 +1444,6 @@ class Walker3DStepperEnv(EnvBase):
             clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
             if self.starting_leg == 0:
                 clock_signal = np.flip(clock_signal)
-            # WARNING: hard coded for 60 cycle time
-            # self.frozen_clock_signal = np.array([np.sin(2*np.pi*(43) / self.cycle_time), np.cos(2*np.pi*(43) / self.cycle_time)])
         else:
             clock_signal = np.array([1,1])
 
@@ -1520,7 +1518,7 @@ class Walker3DStepperEnv(EnvBase):
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
                     i * self.step_param_dim + 5, # heading
-                    i * self.step_param_dim + 6, # swing legs
+                    # i * self.step_param_dim + 6, # swing legs
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
