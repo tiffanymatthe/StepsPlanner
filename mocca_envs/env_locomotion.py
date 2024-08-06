@@ -348,7 +348,6 @@ class Walker3DStepperEnv(EnvBase):
         self.max_behavior_curriculum = 3
 
         self.heading_errors = []
-        self.timing_count_errors = []
         self.met_times = []
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 8)
         self.gauss_width = kwargs.pop("gauss_width", 10)
@@ -447,6 +446,13 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": np.array([0.0, 0.0]),
         }
 
+        self.generated_paths_cache = {
+            "to_standstill": [None] * self.max_curriculum,
+            "random_walks": [None] * self.max_curriculum,
+            "turn_in_place": [None] * self.max_curriculum,
+            "side_step": [None] * self.max_curriculum,
+        }
+
         self.step_param_dim = 6
         # Important to do this once before reset!
         self.swing_leg = 0
@@ -486,11 +492,8 @@ class Walker3DStepperEnv(EnvBase):
         self.path_angle = 0
 
         N = self.num_steps
-
-        if self.determine:
-            self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
-        else:
-            self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1])
+        
+        self.dr_spacing = self.dr_curriculum[self.selected_behavior][self.selected_curriculum]
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
@@ -556,7 +559,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
-    
+        
     def generate_random_walks_step_placements(self, curriculum):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
@@ -667,12 +670,7 @@ class Walker3DStepperEnv(EnvBase):
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        if self.determine:
-            self.path_angle = self.angle_curriculum[self.selected_behavior][curriculum]
-        else:
-            weights = np.linspace(1,10,self.curriculum+1)
-            weights /= sum(weights)
-            self.path_angle = self.np_random.choice(self.angle_curriculum[self.selected_behavior][0:curriculum+1], p=weights)
+        self.path_angle = self.angle_curriculum[self.selected_behavior][curriculum]
 
         N = self.num_steps
 
@@ -745,15 +743,15 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        # x[-1] = x[-3]
-        # y[-1] = y[-3]
-        # z[-1] = z[-3]
-        # heading_targets[-1] = heading_targets[-3]
+        x[-1] = x[-3]
+        y[-1] = y[-3]
+        z[-1] = z[-3]
+        heading_targets[-1] = heading_targets[-3]
 
-        # x[-2] = x[-4]
-        # y[-2] = y[-4]
-        # z[-2] = z[-4]
-        # heading_targets[-2] = heading_targets[-4]
+        x[-2] = x[-4]
+        y[-2] = y[-4]
+        z[-2] = z[-4]
+        heading_targets[-2] = heading_targets[-4]
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
 
@@ -773,12 +771,8 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
 
-        if self.determine:
-            self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
-        else:
-            weights = np.linspace(1,10,self.curriculum+1)
-            weights /= sum(weights)
-            self.dr_spacing = self.np_random.choice(self.dr_curriculum[self.selected_behavior][0:curriculum+1], p=weights)
+        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
@@ -865,36 +859,27 @@ class Walker3DStepperEnv(EnvBase):
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
         if self.determine:
-            threshold = 0
+            self.selected_curriculum = self.curriculum
         else:
-            threshold = 0
+            weights = np.linspace(1,10,self.curriculum+1)
+            weights /= sum(weights)
+            self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+
+        if self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum] is not None:
+            return self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum]
 
         if self.behaviors[self.behavior_curriculum] == "to_standstill":
-            return self.generate_to_standstill_step_placements(self.curriculum)
-        elif self.behaviors[self.behavior_curriculum] == "random_walks":
-            if self.np_random.rand() < threshold:
-                return self.generate_to_standstill_step_placements(self.max_curriculum)
-            else:
-                return self.generate_random_walks_step_placements(self.curriculum)
+            path = self.generate_to_standstill_step_placements(self.selected_curriculum)
         elif self.behaviors[self.behavior_curriculum] == "turn_in_place":
-            if self.np_random.rand() < threshold:
-                return self.np_random.choice([
-                    self.generate_to_standstill_step_placements(self.max_curriculum),
-                    self.generate_random_walks_step_placements(self.max_curriculum)
-                ])
-            else:
-                return self.generate_turn_in_place_step_placements(self.curriculum)
+            path = self.generate_turn_in_place_step_placements(self.selected_curriculum)
         elif self.behaviors[self.behavior_curriculum] == "side_step":
-            if self.np_random.rand() < threshold:
-                return self.np_random.choice([
-                    self.generate_to_standstill_step_placements(self.max_curriculum),
-                    self.generate_random_walks_step_placements(self.max_curriculum),
-                    self.generate_turn_in_place_step_placements(self.max_curriculum)
-                ])
-            else:
-                return self.generate_side_step_step_placements(self.curriculum)
+            path = self.generate_side_step_step_placements(self.selected_curriculum)
         else:
             raise NotImplementedError(f"Behavior {self.behaviors[self.behavior_curriculum]} is not implemented")
+        
+        self.generated_paths_cache[self.behaviors[self.behavior_curriculum]][self.selected_curriculum] = np.copy(path)
+
+        return path
 
     def create_terrain(self):
 
@@ -965,7 +950,6 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_start_timestep = 0
 
         self.heading_errors = []
-        self.timing_count_errors = []
         self.met_times = []
         self.past_last_step = False
 
@@ -1070,28 +1054,7 @@ class Walker3DStepperEnv(EnvBase):
             if (
                 behavior_str_index == self.selected_behavior
                 and (
-                    self.curriculum == 0
-                    or (
-                        behavior_str_index == "to_standstill"
-                        and (
-                            isclose(self.dr_spacing, self.dr_curriculum[behavior_str_index][self.curriculum])
-                        )
-                    )
-                    or (
-                        behavior_str_index == "random_walks"
-                    )
-                    or (
-                        behavior_str_index == "turn_in_place"
-                        and (
-                            isclose(self.path_angle, self.angle_curriculum[behavior_str_index][self.curriculum])
-                        )
-                    )
-                    or (
-                        behavior_str_index == "side_step"
-                        and (
-                            isclose(self.dr_spacing, self.dr_curriculum[behavior_str_index][self.curriculum])
-                        )
-                    )
+                    self.curriculum == self.selected_curriculum
                 )
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
@@ -1099,12 +1062,10 @@ class Walker3DStepperEnv(EnvBase):
                 else:
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
-                info["avg_timing_err"] = nanmean(self.timing_count_errors)
                 info["avg_timing_met"] = nanmean(self.met_times)
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
-                info["avg_timing_err"] = np.nan
                 info["avg_timing_met"] = np.nan
 
         return state, reward, self.done, info
@@ -1241,7 +1202,6 @@ class Walker3DStepperEnv(EnvBase):
             self.timing_bonus = start_bonus + other_bonus
 
         if not self.past_last_step and self.clock_started:
-            self.timing_count_errors.append(self.timing_bonus)
             self.met_times.append(met_time)
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count

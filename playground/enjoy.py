@@ -145,12 +145,6 @@ def main():
 
         done = False
 
-        fig, axs = plt.subplots(1)
-        fig.suptitle('Timing')
-        axs.plot(env.start_leg_expected_contact_probabilities)
-        axs.plot(env.other_leg_expected_contact_probabilities)
-        plt.show()
-
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
             if type(actor) == MixedActor and args.plot:
@@ -183,24 +177,6 @@ def main():
 
             if done:
                 if args.heading:
-                    # plt.plot(heading_targets, label="Target")
-                    # # avg_heading = ema(np.array(robot_headings))
-                    # # plt.plot(avg_heading, label="Robot Heading EMA")
-                    # plt.plot(robot_headings, label="Actual")
-                    # # plt.plot(butt_headings, label="butt heading")
-                    # # plt.plot(l_headings, label="left foot heading")
-                    # # plt.plot(r_headings, label="right foot heading")
-                    # # plt.plot(np.array(l_headings)/2 + np.array(r_headings)/2, label="Avg foot heading")
-                    # steps = np.multiply(reached_steps, robot_headings)
-                    # steps[steps==0] = np.nan
-                    # plt.plot(steps, 'o', mfc='none', label="step reached")
-                    # plt.legend()
-                    # steps = np.ma.array(steps, mask=np.isnan(steps))
-                    # heading_targets = np.ma.array(heading_targets, mask=np.isnan(steps))
-                    # mse = np.square(steps - heading_targets).mean()
-                    # plt.title(f"MSE at steps: {mse}")
-                    # plt.show()
-                    # when target indices switches, extract position and index and plot
                     target_change_mask = np.roll(target_indices, 1)
                     target_change_mask[0] = target_indices[0]
                     target_change_mask = target_indices != target_change_mask
@@ -232,7 +208,7 @@ def main():
                     expected_other_foot = []
                     actual_start_foot = []
                     actual_other_foot = []
-                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.timing_count_errors):.2f}, {nanmean(env.met_times):.2f}")
+                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
                 obs = env.reset(reset_runner=False)
                 if args.heading:
                     foot_heading_targets = env.terrain_info[:, 6]
