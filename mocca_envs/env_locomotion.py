@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill", "random_walks", "turn_in_place", "side_step"]
+        self.behaviors = ["to_standstill", "turn_in_place", "random_walks", "side_step"]
         self.max_behavior_curriculum = 3
 
         self.heading_errors = []
@@ -1128,9 +1128,8 @@ class Walker3DStepperEnv(EnvBase):
         self.linear_potential = -(body_distance_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
-        if self.selected_behavior not in {"to_standstill", "random_walks"}:
-            angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
-            self.linear_potential += -(angle_delta * 0.2) / self.scene.dt
+        angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
+        self.linear_potential += -(angle_delta * 0.2) / self.scene.dt
 
     def calc_base_reward(self, action):
 
