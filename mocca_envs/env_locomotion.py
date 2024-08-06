@@ -1035,7 +1035,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_env_state(action)
 
         reward = self.progress - self.energy_penalty
-        reward += self.step_bonus + self.target_bonus - self.speed_penalty
+        reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus # - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
@@ -1236,8 +1236,6 @@ class Walker3DStepperEnv(EnvBase):
             if self.other_expected_contact <= 0.5:
                 met_time += 1
 
-        # print(f"Starting leg {self.starting_leg} and swing leg {self.swing_leg}")
-
         if not self.clock_started:
             self.timing_bonus = 0
             self.start_expected_contact = -1
@@ -1249,11 +1247,7 @@ class Walker3DStepperEnv(EnvBase):
             self.timing_count_errors.append(self.timing_bonus)
             self.met_times.append(met_time)
 
-        # waited_too_long = not self.next_step_index >= self.num_steps - 1 and (self.timestep - self.next_step_start_timestep) > 2 * self.cycle_time
-
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count # or waited_too_long
-        # if self.done:
-        #     print(f"Terminated because not tall: {self.tall_bonus} or abs height: {abs_height} or swing leg has fallen {self.swing_leg_has_fallen} or other leg {self.other_leg_has_fallen}")
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
 
     def smallest_angle_between(self, angle1, angle2):
         # Normalize the angles to the range [0, 2pi)
@@ -1465,7 +1459,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if self.behaviors[self.behavior_curriculum] in {"turn_in_place", "side_step"}:
+        if self.selected_behavior in {"turn_in_place", "side_step"}:
             walk_target_full = self.terrain_info[self.next_step_index]
         else:
             walk_target_full = targets[self.walk_target_index]

@@ -217,10 +217,12 @@ def main():
                 if args.timing:
                     fig, axs = plt.subplots(2)
                     fig.suptitle('Timing')
-                    axs[0].plot(expected_start_foot)
-                    axs[1].plot(expected_other_foot)
-                    axs[0].plot(actual_start_foot)
-                    axs[1].plot(actual_other_foot)
+                    axs[0].plot(env.start_leg_expected_contact_probabilities)
+                    axs[0].plot(env.other_leg_expected_contact_probabilities)
+                    # axs[0].plot(expected_start_foot)
+                    # axs[1].plot(expected_other_foot)
+                    # axs[0].plot(actual_start_foot)
+                    # axs[1].plot(actual_other_foot)
                     plt.show()
                     expected_start_foot = []
                     expected_other_foot = []
