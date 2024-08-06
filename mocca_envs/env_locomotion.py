@@ -1303,7 +1303,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
-        if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0:
+        if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0 and not self.clock_started:
             self.clock_started = True
             self.time_offset = -self.timestep
             self.starting_leg = 1 - self.swing_leg
