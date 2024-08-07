@@ -447,10 +447,10 @@ class Walker3DStepperEnv(EnvBase):
         }
 
         self.generated_paths_cache = {
-            "to_standstill":  [[None, None] for _ in range(self.max_curriculum)],
-            "random_walks": [[None, None] for _ in range(self.max_curriculum)],
-            "turn_in_place": [[None, None] for _ in range(self.max_curriculum)],
-            "side_step": [[None, None] for _ in range(self.max_curriculum)],
+            "to_standstill":  [[None, None] for _ in range(self.max_curriculum+1)],
+            "random_walks": [[None, None] for _ in range(self.max_curriculum+1)],
+            "turn_in_place": [[None, None] for _ in range(self.max_curriculum+1)],
+            "side_step": [[None, None] for _ in range(self.max_curriculum+1)],
         }
 
         self.step_param_dim = 6
