@@ -43,6 +43,8 @@ RAD2DEG = 180 / np.pi
 def configs():
     env = "Walker3DStepperEnv-v0"
 
+    use_wandb = True
+
     # Env settings
     use_mirror = True
     use_curriculum = False
@@ -52,7 +54,6 @@ def configs():
     gauss_width = 0.5
     start_curriculum = 0
     start_behavior_curriculum = 0
-    cycle_time = 60
 
     timing_mask_on = False
 
@@ -99,10 +100,11 @@ def configs():
 def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
 
-    run = wandb.init(
-        project="WalkerStepperEnv-v0 - All Training",
-        config=args
-    )
+    if args.use_wandb:
+        run = wandb.init(
+            project="WalkerStepperEnv-v0 - Mask Timing",
+            config=args
+        )
 
     env_name = args.env
 
@@ -115,7 +117,6 @@ def main(_seed, _config, _run):
         "gauss_width": args.gauss_width,
         "timing_bonus_weight": args.timing_bonus_weight,
         "start_curriculum": args.start_curriculum,
-        "cycle_time": args.cycle_time,
         "start_behavior_curriculum": args.start_behavior_curriculum,
         "timing_mask_on": args.timing_mask_on,
     }
@@ -321,5 +322,5 @@ def main(_seed, _config, _run):
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
                 },
-                wandb
+                wandb if args.use_wandb else None
             )
