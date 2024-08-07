@@ -1018,7 +1018,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
-        reward += self.legs_bonus # - self.elbow_penalty * self.elbow_weight
+        reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
         reward += self.timing_bonus * self.timing_bonus_weight
 
@@ -1127,18 +1127,18 @@ class Walker3DStepperEnv(EnvBase):
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
-        # self.elbow_penalty = 0
+        self.elbow_penalty = 0
 
-        # elbow_angles = self.robot.joint_angles[[16, 20]]
-        # elbow_good_mask = elbow_angles > 65 * DEG2RAD
-        # self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
+        elbow_angles = self.robot.joint_angles[[16, 20]]
+        elbow_good_mask = elbow_angles > 65 * DEG2RAD
+        self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
 
-        # heights = self.robot.upper_arm_and_head_xyz[:,2]
-        # min_height_diff = 0.25
-        # if heights[2] - heights[0] < min_height_diff:
-        #     self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
-        # if heights[2] - heights[1] < min_height_diff:
-        #     self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
+        heights = self.robot.upper_arm_and_head_xyz[:,2]
+        min_height_diff = 0.25
+        if heights[2] - heights[0] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
+        if heights[2] - heights[1] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
