@@ -976,8 +976,8 @@ class Walker3DStepperEnv(EnvBase):
         self.clock_started = False
 
         # Randomize platforms
-        # replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirror
-        replace = prev_robot_mirrored != self.robot.mirror
+        # replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
+        replace = prev_robot_mirrored != self.robot.mirrored
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1134,16 +1134,16 @@ class Walker3DStepperEnv(EnvBase):
 
         self.elbow_penalty = 0
 
-        elbow_angles = self.robot.joint_angles[[16, 20]]
-        elbow_good_mask = elbow_angles > 65 * DEG2RAD
-        self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
+        # elbow_angles = self.robot.joint_angles[[16, 20]]
+        # elbow_good_mask = elbow_angles > 65 * DEG2RAD
+        # self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
 
-        heights = self.robot.upper_arm_and_head_xyz[:,2]
-        min_height_diff = 0.25
-        if heights[2] - heights[0] < min_height_diff:
-            self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
-        if heights[2] - heights[1] < min_height_diff:
-            self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
+        # heights = self.robot.upper_arm_and_head_xyz[:,2]
+        # min_height_diff = 0.25
+        # if heights[2] - heights[0] < min_height_diff:
+        #     self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
+        # if heights[2] - heights[1] < min_height_diff:
+        #     self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
