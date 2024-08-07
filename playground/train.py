@@ -54,6 +54,8 @@ def configs():
     start_behavior_curriculum = 0
     cycle_time = 60
 
+    foot_angle_weight = 0.1
+
     # Network settings
     actor_class = "SoftsignActor"
     fix_experts = False
@@ -115,6 +117,7 @@ def main(_seed, _config, _run):
         "start_curriculum": args.start_curriculum,
         "cycle_time": args.cycle_time,
         "start_behavior_curriculum": args.start_behavior_curriculum,
+        "foot_angle_weight": args.foot_angle_weight,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)

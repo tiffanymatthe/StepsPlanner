@@ -357,6 +357,8 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
 
+        self.foot_angle_weight = kwargs.pop("foot_angle_weight", 0.1)
+
         self.frozen_clock_signal = None
         self.past_last_step = False
         self.reached_last_step = False
@@ -1093,7 +1095,7 @@ class Walker3DStepperEnv(EnvBase):
         self.distance_to_target = body_distance_to_target
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
-        self.linear_potential += -(angle_delta * 0.2) / self.scene.dt
+        self.linear_potential += -(angle_delta * self.foot_angle_weight) / self.scene.dt
 
     def calc_base_reward(self, action):
 
