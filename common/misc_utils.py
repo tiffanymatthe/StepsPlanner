@@ -183,3 +183,43 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError("Boolean value expected.")
+
+def interpolate_between_indices(array, start_index, end_index):
+    # end index is inclusive
+    # Get the values at the start and end indices
+    start_value = array[start_index]
+    end_value = array[end_index]
+    
+    # Number of elements to interpolate
+    num_elements = end_index - start_index + 1
+    
+    # Create interpolated values
+    interpolated_values = np.linspace(start_value, end_value, num_elements)
+    
+    # Replace the elements in the array with interpolated values
+    array[start_index:end_index + 1] = interpolated_values
+        
+def get_left_right_indices(middle_index, width):
+    offset = (width - 1) // 2
+    return (middle_index - offset, middle_index + offset)
+
+def get_contact_gaits(cycle_time, uncertainty_range):
+    SS_phase = int(cycle_time * 0.76 / 2)
+    DS_phase = int((cycle_time - 2 * SS_phase) / 2)
+    assert SS_phase * 2 + DS_phase * 2 == cycle_time, f"SS_phase {SS_phase} and DS_phase {DS_phase} do not make {cycle_time}"
+    start_leg_expected_contact_probabilities = np.zeros(cycle_time)
+    start_leg_expected_contact_probabilities[SS_phase:] = 1
+    other_leg_expected_contact_probabilities = np.ones(cycle_time)
+    other_leg_expected_contact_probabilities[SS_phase + DS_phase:SS_phase*2 + DS_phase] = 0
+
+    # smooth out transitions
+    start_leg_expected_contact_probabilities[0] = 0.5
+    interpolate_between_indices(start_leg_expected_contact_probabilities, 0, uncertainty_range // 2)
+    interpolate_between_indices(start_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase, uncertainty_range))
+    start_leg_expected_contact_probabilities[-1] = 0.75
+    interpolate_between_indices(start_leg_expected_contact_probabilities, cycle_time - uncertainty_range // 2, cycle_time - 1)
+
+    interpolate_between_indices(other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase+DS_phase, uncertainty_range))
+    interpolate_between_indices(other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase*2+DS_phase, uncertainty_range))
+
+    return start_leg_expected_contact_probabilities, other_leg_expected_contact_probabilities
