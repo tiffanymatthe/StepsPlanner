@@ -976,7 +976,8 @@ class Walker3DStepperEnv(EnvBase):
         self.clock_started = False
 
         # Randomize platforms
-        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
+        # replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirror
+        replace = prev_robot_mirrored != self.robot.mirror
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
