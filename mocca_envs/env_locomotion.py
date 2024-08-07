@@ -387,9 +387,9 @@ class Walker3DStepperEnv(EnvBase):
             offset = (width - 1) // 2
             return (middle_index - offset, middle_index + offset)
 
-        SS_phase = 23 # self.cycle_time // 3
-        DS_phase = 7 # self.cycle_time // 6
-        assert SS_phase * 2 + DS_phase * 2 == self.cycle_time, f"SS_phase {SS_phase} and DS_phase {DS_phase} do not make {self.cycle_time}" # TODO: fix
+        SS_phase = int(self.cycle_time * 0.4)
+        DS_phase = int((self.cycle_time - 2 * SS_phase) // 2)
+        assert SS_phase * 2 + DS_phase * 2 == self.cycle_time, f"2 * SS_phase {2 * SS_phase} and 2 * DS_phase {2 * DS_phase} do not make {self.cycle_time}"
         self.start_leg_expected_contact_probabilities = np.zeros(self.cycle_time)
         self.start_leg_expected_contact_probabilities[SS_phase:] = 1
         self.other_leg_expected_contact_probabilities = np.ones(self.cycle_time)
