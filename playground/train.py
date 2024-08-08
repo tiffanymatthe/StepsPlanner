@@ -323,3 +323,5 @@ def main(_seed, _config, _run):
                 },
                 wandb
             )
+
+    envs.close()
