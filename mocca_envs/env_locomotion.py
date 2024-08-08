@@ -371,6 +371,9 @@ class Walker3DStepperEnv(EnvBase):
         self.cycle_times_curriculum = np.array([50,60,70,80])
         uncertainty_range = 5
 
+        self.allow_cycle_time_change = False
+        self.selected_curriculum = 0
+
         self.start_leg_expected_contact_probabilities, self.other_leg_expected_contact_probabilities = [None for _ in range(self.max_curriculum+1)], [None for _ in range(self.max_curriculum+1)]
 
         for i in range(self.max_curriculum + 1):
@@ -905,7 +908,8 @@ class Walker3DStepperEnv(EnvBase):
         factor = 0 if self.determine else 0.2
         train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
 
-        self.selected_curriculum = self.np_random.choice(list(range(0,self.max_curriculum+1)))
+        if self.allow_cycle_time_change:
+            self.selected_curriculum = self.np_random.choice(list(range(0,self.max_curriculum+1)))
 
         # if self.determine:
         #     self.selected_curriculum = self.curriculum
@@ -1021,22 +1025,19 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
 
-        replace = self.next_step_index >= 5 # self.num_steps / 2
-
-        mirror_robot = prev_robot_mirrored if not replace else self.np_random.choice([True, False])
-
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=mirror_robot
+            mirror=True
         )
         self.prev_leg = self.swing_leg
         self.clock_started = False
 
         # Randomize platforms
-        # replace = self.next_step_index >= self.num_steps / 2 # or prev_robot_mirrored != self.robot.mirrored
+        replace = prev_robot_mirrored != self.robot.mirrored
+        self.allow_cycle_time_change = self.next_step_index > 5
         # if replace:
         #     self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
