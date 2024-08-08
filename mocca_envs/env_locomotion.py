@@ -464,7 +464,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][self.selected_curriculum]
+        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
         dr = np.zeros(N) + self.dr_spacing
 
         self.cycle_time = self.cycle_times_curriculum[curriculum]
@@ -547,7 +547,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][self.selected_curriculum]
+        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
@@ -1231,6 +1231,8 @@ class Walker3DStepperEnv(EnvBase):
 
         if not self.timing_mask_on:
             if not self.past_last_step:
+                if cycle_time_elapsed > self.cycle_time - 1:
+                    print(f"Cycle time elapsed is {cycle_time_elapsed} for {self.cycle_time} and selected curriculum {self.selected_curriculum}")
                 self.start_expected_contact = self.start_leg_expected_contact_probabilities[self.selected_curriculum][cycle_time_elapsed]
                 self.other_expected_contact = self.other_leg_expected_contact_probabilities[self.selected_curriculum][cycle_time_elapsed]
             else:
