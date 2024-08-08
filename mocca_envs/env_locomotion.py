@@ -1021,18 +1021,22 @@ class Walker3DStepperEnv(EnvBase):
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
 
+        replace = self.next_step_index >= 5 # self.num_steps / 2
+
+        mirror_robot = prev_robot_mirrored if not replace else self.np_random.choice([True, False])
+
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=True
+            mirror=mirror_robot
         )
         self.prev_leg = self.swing_leg
         self.clock_started = False
 
         # Randomize platforms
-        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
+        # replace = self.next_step_index >= self.num_steps / 2 # or prev_robot_mirrored != self.robot.mirrored
         # if replace:
         #     self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
