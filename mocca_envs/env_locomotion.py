@@ -905,21 +905,23 @@ class Walker3DStepperEnv(EnvBase):
         factor = 0 if self.determine else 0.2
         train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
 
-        if self.determine:
-            self.selected_curriculum = self.curriculum
-            self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        else:
-            if train_on_past:
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-            else:
-                weights = np.linspace(1,10,self.curriculum+1)
-                weights /= sum(weights)
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-                self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        self.selected_curriculum = self.np_random.choice(list(range(0,self.max_curriculum+1)))
 
-        if self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
-            return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
+        # if self.determine:
+        #     self.selected_curriculum = self.curriculum
+        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        # else:
+        #     if train_on_past:
+        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+        #         self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+        #     else:
+        #         weights = np.linspace(1,10,self.curriculum+1)
+        #         weights /= sum(weights)
+        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+        #         self.selected_behavior = self.behaviors[self.behavior_curriculum]
+
+        # if self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
+        #     return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
 
         if self.selected_behavior == "timing_gaits":
             path = self.generate_timing_gaits_step_placements(self.selected_curriculum)
@@ -934,8 +936,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
         
-        if self.selected_behavior != "random_walks":
-            self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] = np.copy(path)
+        # if self.selected_behavior != "random_walks":
+        #     self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] = np.copy(path)
 
         return path
 
