@@ -31,7 +31,7 @@ def train(
     act_dim = envs.action_space.shape[0]
     
     buffer_observations = torch.zeros(num_steps * num_epochs + 1, num_processes, *obs_shape, device=device)
-    buffer_actions = torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device)
+    buffer_expert_actions = torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device)
 
     start = time.time()
     for epoch in range(num_epochs):
@@ -40,18 +40,20 @@ def train(
         with torch.no_grad():
             for step in range(num_steps):
                 buffer_index = epoch * num_steps + step
-                if epoch == 0:
-                    _, action, _ = expert_policy.act(
-                        buffer_observations[buffer_index], deterministic=True
-                    )
-                else:
-                    action = student_actor(buffer_observations[buffer_index])
+                _, expert_action, _ = expert_policy.act(
+                    buffer_observations[buffer_index], deterministic=True
+                )
+                if epoch > 0:
+                    student_action = student_actor(buffer_observations[buffer_index])
 
-                cpu_actions = action.cpu().numpy()
+                if epoch == 0:
+                    cpu_actions = expert_action.cpu().numpy()
+                else:
+                    cpu_actions = student_action.cpu().numpy()
                 obs, _, _, _ = envs.step(cpu_actions)
 
                 buffer_observations[buffer_index + 1].copy_(torch.from_numpy(obs))
-                buffer_actions[buffer_index].copy_(action)
+                buffer_expert_actions[buffer_index].copy_(expert_action)
 
         batch_size = num_steps * (epoch + 1) * num_processes
         num_mini_batch = batch_size // mini_batch_size
@@ -61,7 +63,7 @@ def train(
         shuffled_indices_batch = shuffled_indices.view(num_mini_batch, -1)
 
         observations_shaped = buffer_observations.view(-1, obs_dim)
-        actions_shaped = buffer_actions.view(-1, act_dim)
+        expert_actions_shaped = buffer_expert_actions.view(-1, act_dim)
 
         ep_action_loss = torch.tensor(0.0, device=device).float()
 
@@ -69,7 +71,7 @@ def train(
             optimizer.zero_grad()
 
             observations_batch = observations_shaped[indices]
-            actions_batch = actions_shaped[indices]
+            actions_batch = expert_actions_shaped[indices]
 
             pred_actions = student_actor(observations_batch)
 
