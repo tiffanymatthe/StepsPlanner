@@ -30,9 +30,9 @@ def main():
         "heading_bonus_weight": 8,
         "gauss_width": 10,
         "timing_bonus_weight": 2,
-        "start_curriculum": 0,
+        "start_curriculum": 3,
         "cycle_time": 60,
-        "start_behavior_curriculum": 0,
+        "start_behavior_curriculum": 1,
         "foot_angle_weight": 0.1,
     }
 

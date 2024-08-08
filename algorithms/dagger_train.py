@@ -16,8 +16,8 @@ def train(
     seed=0,
 ) -> None:
     
-    dummy_env = make_env(env_name, **env_kwargs)
-    student_actor = SoftsignActor(dummy_env).to(device)
+    # dummy_env = make_env(env_name, **env_kwargs)
+    student_actor = torch.load("daggered.pt", map_location=torch.device(device)) #  SoftsignActor(dummy_env).to(device)
 
     envs = make_vec_envs(
         env_name, seed, num_processes, None, **env_kwargs
@@ -94,7 +94,7 @@ def train(
                 f"Action Loss: {ep_action_loss.item():8.4f} | "
             )
         )
-    student_file_name = "daggered.pt"
+    student_file_name = "daggered_turning.pt"
     torch.save(student_actor, student_file_name)
     print(f"Saved student actor to {student_file_name}")
     envs.close()
