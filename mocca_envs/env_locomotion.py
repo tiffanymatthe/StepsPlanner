@@ -1037,7 +1037,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Randomize platforms
         replace = prev_robot_mirrored != self.robot.mirrored
-        self.allow_cycle_time_change = self.next_step_index > 5
+        self.allow_cycle_time_change = self.next_step_index > 3
         # if replace:
         #     self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
@@ -1120,9 +1120,9 @@ class Walker3DStepperEnv(EnvBase):
             behavior_str_index = self.behaviors[self.behavior_curriculum]
             if (
                 behavior_str_index == self.selected_behavior
-                and (
-                    self.curriculum == self.selected_curriculum
-                )
+                # and (
+                #     self.curriculum == self.selected_curriculum
+                # )
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
