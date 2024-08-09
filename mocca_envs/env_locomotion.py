@@ -970,7 +970,7 @@ class Walker3DStepperEnv(EnvBase):
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror= self.selected_behavior != "turn_in_place"
+            mirror= self.behavior_curriculum == 0
         )
         self.prev_leg = self.swing_leg
         self.clock_started = False
