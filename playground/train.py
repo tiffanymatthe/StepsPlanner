@@ -14,6 +14,7 @@ from collections import deque
 import wandb
 
 from bottleneck import nanmean
+from collections import Counter
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -200,6 +201,7 @@ def main(_seed, _config, _run):
     curriculum_metrics = deque(maxlen=args.num_processes)
     avg_heading_errs = deque(maxlen=args.num_processes)
     avg_timing_mets = deque(maxlen=args.num_processes)
+    cycle_times = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -246,6 +248,8 @@ def main(_seed, _config, _run):
                         avg_heading_errs.append(info["avg_heading_err"])
                     if "avg_timing_met" in info:
                         avg_timing_mets.append(info["avg_timing_met"])
+                    if "cycle_time" in info:
+                        cycle_times.append(info["cycle_time"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -307,6 +311,11 @@ def main(_seed, _config, _run):
             end = time.time()
             mean_metric = nanmean(curriculum_metrics)
             heading_metric = nanmean(avg_heading_errs)
+            cycle_times_count = Counter(cycle_times)
+            cycle_times_50 = cycle_times_count[50]
+            cycle_times_60 = cycle_times_count[60]
+            cycle_times_70 = cycle_times_count[70]
+            cycle_times_80 = cycle_times_count[80]
             logger.log_epoch(
                 {
                     "curriculum": current_curriculum if args.use_curriculum else 0,
@@ -314,6 +323,10 @@ def main(_seed, _config, _run):
                     "curriculum_metric": mean_metric,
                     "avg_heading_err": heading_metric,
                     "avg_timing_met": nanmean(avg_timing_mets),
+                    "cycle_times_50": cycle_times_50,
+                    "cycle_times_60": cycle_times_60,
+                    "cycle_times_70": cycle_times_70,
+                    "cycle_times_80": cycle_times_80,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,
