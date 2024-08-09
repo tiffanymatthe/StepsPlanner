@@ -342,7 +342,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 3
-        self.advance_threshold = min(15, self.num_steps)
+        self.advance_threshold = min(8, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
@@ -906,23 +906,23 @@ class Walker3DStepperEnv(EnvBase):
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
         factor = 0 if self.determine else 0.2
-        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
+        train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
 
-        if self.allow_cycle_time_change:
-            self.selected_curriculum = self.np_random.choice(list(range(0,self.max_curriculum+1)))
+        # if self.allow_cycle_time_change:
+        #     self.selected_curriculum = self.np_random.choice(list(range(0,self.max_curriculum+1)))
 
-        # if self.determine:
-        #     self.selected_curriculum = self.curriculum
-        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        # else:
-        #     if train_on_past:
-        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-        #         self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-        #     else:
-        #         weights = np.linspace(1,10,self.curriculum+1)
-        #         weights /= sum(weights)
-        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-        #         self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        if self.determine:
+            self.selected_curriculum = self.curriculum
+            self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        else:
+            if train_on_past:
+                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+            else:
+                weights = np.linspace(1,10,self.curriculum+1)
+                weights /= sum(weights)
+                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+                self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         # if self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
         #     return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
@@ -1036,8 +1036,8 @@ class Walker3DStepperEnv(EnvBase):
         self.clock_started = False
 
         # Randomize platforms
-        replace = prev_robot_mirrored != self.robot.mirrored
-        self.allow_cycle_time_change = self.next_step_index > 3
+        replace = prev_robot_mirrored != self.robot.mirrored or self.next_step_index > self.num_steps / 2
+        # self.allow_cycle_time_change = self.next_step_index > 3
         # if replace:
         #     self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
