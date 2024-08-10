@@ -1130,11 +1130,12 @@ class Walker3DStepperEnv(EnvBase):
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
                 info["avg_timing_met"] = nanmean(self.met_times)
+                info[f"avg_timing_met_{self.cycle_times_curriculum[self.selected_curriculum]}"] = nanmean(self.met_times)
                 info["cycle_time"] = self.cycle_times_curriculum[self.selected_curriculum]
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
-                info["avg_timing_met"] = np.nan
+                info[f"avg_timing_met_{self.cycle_times_curriculum[self.selected_curriculum]}"] = nanmean(self.met_times)
                 info["cycle_time"] = self.cycle_times_curriculum[self.selected_curriculum]
 
         return state, reward, self.done, info

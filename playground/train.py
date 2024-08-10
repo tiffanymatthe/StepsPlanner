@@ -200,6 +200,10 @@ def main(_seed, _config, _run):
     episode_rewards = deque(maxlen=args.num_processes)
     curriculum_metrics = deque(maxlen=args.num_processes)
     avg_heading_errs = deque(maxlen=args.num_processes)
+    avg_timing_mets_60 = deque(maxlen=args.num_processes)
+    avg_timing_mets_70 = deque(maxlen=args.num_processes)
+    avg_timing_mets_50 = deque(maxlen=args.num_processes)
+    avg_timing_mets_80 = deque(maxlen=args.num_processes)
     avg_timing_mets = deque(maxlen=args.num_processes)
     cycle_times = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
@@ -246,6 +250,14 @@ def main(_seed, _config, _run):
                         curriculum_metrics.append(info["curriculum_metric"])
                     if "avg_heading_err" in info:
                         avg_heading_errs.append(info["avg_heading_err"])
+                    if "avg_timing_met_50" in info:
+                        avg_timing_mets_50.append(info["avg_timing_met_50"])
+                    if "avg_timing_met_60" in info:
+                        avg_timing_mets_60.append(info["avg_timing_met_60"])
+                    if "avg_timing_met_70" in info:
+                        avg_timing_mets_70.append(info["avg_timing_met_70"])
+                    if "avg_timing_met_80" in info:
+                        avg_timing_mets_80.append(info["avg_timing_met_80"])
                     if "avg_timing_met" in info:
                         avg_timing_mets.append(info["avg_timing_met"])
                     if "cycle_time" in info:
@@ -322,7 +334,10 @@ def main(_seed, _config, _run):
                     "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,
                     "avg_heading_err": heading_metric,
-                    "avg_timing_met": nanmean(avg_timing_mets),
+                    "avg_timing_met_50": nanmean(avg_timing_mets_50),
+                    "avg_timing_met_60": nanmean(avg_timing_mets_60),
+                    "avg_timing_met_70": nanmean(avg_timing_mets_70),
+                    "avg_timing_met_80": nanmean(avg_timing_mets_80),
                     "cycle_times_50": cycle_times_50,
                     "cycle_times_60": cycle_times_60,
                     "cycle_times_70": cycle_times_70,
