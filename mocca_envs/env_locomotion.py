@@ -919,9 +919,9 @@ class Walker3DStepperEnv(EnvBase):
                 self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
                 self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
             else:
-                weights = np.linspace(1,10,self.curriculum+1)
-                weights /= sum(weights)
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+                # weights = np.linspace(1,10,self.curriculum+1)
+                # weights /= sum(weights)
+                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1))) #, p=weights)
                 self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         # if self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
@@ -1135,6 +1135,7 @@ class Walker3DStepperEnv(EnvBase):
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
                 info["avg_timing_met"] = np.nan
+                info["cycle_time"] = self.cycle_times_curriculum[self.selected_curriculum]
 
         return state, reward, self.done, info
 
