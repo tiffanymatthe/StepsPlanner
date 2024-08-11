@@ -324,6 +324,7 @@ def main(_seed, _config, _run):
             mean_metric = nanmean(curriculum_metrics)
             heading_metric = nanmean(avg_heading_errs)
             cycle_times_count = Counter(cycle_times)
+            cycle_times_0 = cycle_times_count[0]
             cycle_times_50 = cycle_times_count[50]
             cycle_times_60 = cycle_times_count[60]
             cycle_times_70 = cycle_times_count[70]
@@ -338,6 +339,7 @@ def main(_seed, _config, _run):
                     "avg_timing_met_60": nanmean(avg_timing_mets_60),
                     "avg_timing_met_70": nanmean(avg_timing_mets_70),
                     "avg_timing_met_80": nanmean(avg_timing_mets_80),
+                    "cycle_times_0": cycle_times_0,
                     "cycle_times_50": cycle_times_50,
                     "cycle_times_60": cycle_times_60,
                     "cycle_times_70": cycle_times_70,
