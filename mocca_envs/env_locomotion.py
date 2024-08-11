@@ -1125,6 +1125,7 @@ class Walker3DStepperEnv(EnvBase):
                 behavior_str_index == self.selected_behavior
                 and (
                     self.curriculum == self.selected_curriculum
+                    or self.curriculum >= 4
                 )
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
