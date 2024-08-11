@@ -1038,8 +1038,8 @@ class Walker3DStepperEnv(EnvBase):
         # Randomize platforms
         replace = prev_robot_mirrored != self.robot.mirrored or self.next_step_index > self.num_steps / 2
         # self.allow_cycle_time_change = self.next_step_index > 3
-        # if replace:
-        #     self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
+        if replace:
+            self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1129,14 +1129,20 @@ class Walker3DStepperEnv(EnvBase):
                 else:
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
-                info["avg_timing_met"] = nanmean(self.met_times)
-                info[f"avg_timing_met_{self.cycle_times_curriculum[self.selected_curriculum]}"] = nanmean(self.met_times)
-                info["cycle_time"] = self.cycle_times_curriculum[self.selected_curriculum]
+                if self.timing_mask_on:
+                    info["cycle_time"] = 0
+                else:
+                    info["avg_timing_met"] = nanmean(self.met_times)
+                    info[f"avg_timing_met_{self.cycle_times_curriculum[self.selected_curriculum]}"] = nanmean(self.met_times)
+                    info["cycle_time"] = self.cycle_times_curriculum[self.selected_curriculum]
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
-                info[f"avg_timing_met_{self.cycle_times_curriculum[self.selected_curriculum]}"] = nanmean(self.met_times)
-                info["cycle_time"] = self.cycle_times_curriculum[self.selected_curriculum]
+                if self.timing_mask_on:
+                    info["cycle_time"] = 0
+                else:
+                    info[f"avg_timing_met_{self.cycle_times_curriculum[self.selected_curriculum]}"] = nanmean(self.met_times)
+                    info["cycle_time"] = self.cycle_times_curriculum[self.selected_curriculum]
 
         return state, reward, self.done, info
 

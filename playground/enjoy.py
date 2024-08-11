@@ -169,7 +169,7 @@ def main():
             env.camera.lookat(env.robot.body_xyz)
             ep_reward += reward
 
-            if args.timing:
+            if args.timing and not env.timing_mask_on:
                 expected_start_foot.append(env.start_expected_contact)
                 expected_other_foot.append(env.other_expected_contact)
                 actual_start_foot.append(env.robot.feet_contact[env.starting_leg])
