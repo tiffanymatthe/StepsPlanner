@@ -341,7 +341,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 3
+        self.max_curriculum = 5
         self.advance_threshold = min(8, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
@@ -368,7 +368,7 @@ class Walker3DStepperEnv(EnvBase):
         self.determine = kwargs.pop("determine", False)
 
         self.time_offset = 0
-        self.cycle_times_curriculum = np.array([50,60,70,80])
+        self.cycle_times_curriculum = np.array([50,60,70,80,80,80])
         uncertainty_range = 5
 
         self.allow_cycle_time_change = False
@@ -919,9 +919,12 @@ class Walker3DStepperEnv(EnvBase):
                 self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
                 self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
             else:
-                # weights = np.linspace(1,10,self.curriculum+1)
-                # weights /= sum(weights)
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1))) #, p=weights)
+                if self.curriculum < 4:
+                    weights = np.linspace(1,10,self.curriculum+1)
+                    weights /= sum(weights)
+                    self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+                else:
+                    self.selected_curriculum = self.np_random.choice(list(range(0,4)))
                 self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         # if self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
@@ -1038,7 +1041,7 @@ class Walker3DStepperEnv(EnvBase):
         # Randomize platforms
         replace = prev_robot_mirrored != self.robot.mirrored or self.next_step_index > self.num_steps / 2
         # self.allow_cycle_time_change = self.next_step_index > 3
-        if replace:
+        if self.curriculum == 5 and replace:
             self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
