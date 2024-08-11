@@ -435,7 +435,7 @@ class Walker3DStepperEnv(EnvBase):
         self.dist_range = {
             "to_standstill": np.array([0.65, 0.0]),
             "random_walks": np.array([0.55, 0.85]),
-            "turn_in_place": np.array([0.7, 0.3]),
+            "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.5]),
         }
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
@@ -851,7 +851,7 @@ class Walker3DStepperEnv(EnvBase):
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
         factor = 0 if self.determine else 0.2
-        train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
+        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if self.determine:
             self.selected_curriculum = self.curriculum
@@ -970,7 +970,7 @@ class Walker3DStepperEnv(EnvBase):
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=0 if self.behavior_curriculum == 0 else 1 # 0 if random, 1 if force True, 2 if force False
+            mirror=0 # if self.behavior_curriculum == 0 else 1 # 0 if random, 1 if force True, 2 if force False
         )
         self.prev_leg = self.swing_leg
         self.clock_started = False
