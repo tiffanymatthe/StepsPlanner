@@ -419,7 +419,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         self.elbow_penalty = 0
-        self.elbow_weight = 0.4
+        self.elbow_weight = 0.25
 
         self.clock_started = False
 
@@ -672,8 +672,8 @@ class Walker3DStepperEnv(EnvBase):
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
-        dphi_flip = self.get_random_flip_array_every_5(N)
-        dphi[dphi_flip.astype(bool)] *= -1
+        # dphi_flip = self.get_random_flip_array_every_5(N)
+        # dphi[dphi_flip.astype(bool)] *= -1
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
         y_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -850,7 +850,7 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        factor = 0 if self.determine else 0.5
+        factor = 0 if self.determine else 0.4
         train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if self.determine:
