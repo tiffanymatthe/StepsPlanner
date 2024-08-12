@@ -1521,12 +1521,12 @@ class Walker3DStepperEnv(EnvBase):
         feet_heading = np.array([self.robot.feet_rpy[int(i), 2] for i in targets[:, 7]])
         heading_angle_to_targets = targets[:, 6] - feet_heading
 
-        # # reduce the angle  
-        # heading_angle_to_targets =  heading_angle_to_targets % (2 * np.pi)
-        # # force it to be the positive remainder, so that 0 <= heading_angle_to_targets < 2 * np.pi  
-        # heading_angle_to_targets = (heading_angle_to_targets + 2 * np.pi) % (2 * np.pi)
-        # # force into the minimum absolute value residue class, so that -180 < heading_angle_to_targets <= 180  
-        # heading_angle_to_targets[heading_angle_to_targets > np.pi] -= (2 * np.pi)
+        # reduce the angle  
+        heading_angle_to_targets =  heading_angle_to_targets % (2 * np.pi)
+        # force it to be the positive remainder, so that 0 <= heading_angle_to_targets < 2 * np.pi  
+        heading_angle_to_targets = (heading_angle_to_targets + 2 * np.pi) % (2 * np.pi)
+        # force into the minimum absolute value residue class, so that -180 < heading_angle_to_targets <= 180  
+        heading_angle_to_targets[heading_angle_to_targets > np.pi] -= (2 * np.pi)
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
