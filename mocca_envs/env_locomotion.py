@@ -419,7 +419,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         self.elbow_penalty = 0
-        self.elbow_weight = 0.2
+        self.elbow_weight = 0.1
 
         self.clock_started = False
 
