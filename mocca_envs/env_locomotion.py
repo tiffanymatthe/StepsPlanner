@@ -341,7 +341,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 5
+        self.max_curriculum = 0
         self.advance_threshold = min(8, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
@@ -365,10 +365,13 @@ class Walker3DStepperEnv(EnvBase):
         self.past_last_step = False
         self.reached_last_step = False
 
+        self.current_step_time = 6
+        self.time_left = np.array([0, 24, 30, 0])
+
         self.determine = kwargs.pop("determine", False)
 
         self.time_offset = 0
-        self.cycle_times_curriculum = np.array([50,60,70,80,80,80])
+        self.cycle_times_curriculum = np.array([60]) #,60,70,80,80,80])
         uncertainty_range = 5
 
         self.allow_cycle_time_change = False
@@ -442,7 +445,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 2
+        self.extra_step_dim = 4
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -1014,6 +1017,9 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
+        self.current_step_time = 6
+        self.time_left = np.array([0, 24, 30, 0])
+
         self.next_step_start_timestep = 0
 
         self.heading_errors = []
@@ -1041,8 +1047,8 @@ class Walker3DStepperEnv(EnvBase):
         # Randomize platforms
         replace = prev_robot_mirrored != self.robot.mirrored or self.next_step_index > self.num_steps / 2
         # self.allow_cycle_time_change = self.next_step_index > 3
-        if self.curriculum == 5 and replace:
-            self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
+        # if self.curriculum == 5 and replace:
+        #     self.timing_mask_on = self.np_random.choice([True, False], p=[0.3,0.7])
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1060,7 +1066,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.targets, self.extra_param = self.delta_to_k_targets()
         assert self.targets.shape[-1] == self.step_param_dim
-        assert self.extra_param.shape[0] == self.extra_step_dim
+        assert (self.extra_step_dim == 0 and self.extra_param is None) or (self.extra_param.shape[0] == self.extra_step_dim)
 
         # Order is important because walk_target is set up above
         self.calc_potential()
@@ -1074,6 +1080,7 @@ class Walker3DStepperEnv(EnvBase):
 
     def step(self, action):
         self.timestep += 1
+        self.current_step_time += 1
 
         self.robot.apply_action(action)
         self.scene.global_step()
@@ -1245,44 +1252,26 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
         
-        cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_times_curriculum[self.selected_curriculum]
+        # cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_times_curriculum[self.selected_curriculum]
 
         if not self.timing_mask_on:
             if not self.past_last_step:
-                self.start_expected_contact = self.start_leg_expected_contact_probabilities[self.selected_curriculum][cycle_time_elapsed]
-                self.other_expected_contact = self.other_leg_expected_contact_probabilities[self.selected_curriculum][cycle_time_elapsed]
+                self.start_expected_contact = 1 if self.current_step_time <= 6 else 0
+                self.other_expected_contact = 1
             else:
                 self.start_expected_contact = 1
                 self.other_expected_contact = 1
 
-            met_time = 0
-
-            if self._foot_target_contacts[self.starting_leg, 0] == 1:
-                start_bonus = 2 * self.start_expected_contact - 1
-                if self.start_expected_contact >= 0.5:
-                    met_time += 1
+            if self.swing_leg == 1:
+                expected_contacts = [self.other_expected_contact, self.start_expected_contact]
             else:
-                start_bonus = - (2 * self.start_expected_contact - 1)
-                if self.start_expected_contact <= 0.5:
-                    met_time += 1
+                expected_contacts = [self.start_expected_contact, self.other_expected_contact]
 
-            if self._foot_target_contacts[1-self.starting_leg, 0] == 1:
-                other_bonus = 2 * self.other_expected_contact - 1
-                if self.other_expected_contact >= 0.5:
-                    met_time += 1
-            else:
-                other_bonus = - (2 * self.other_expected_contact - 1)
-                if self.other_expected_contact <= 0.5:
-                    met_time += 1
+            met_time = np.sum(expected_contacts == self._foot_target_contacts[:, 0])
 
-            if not self.clock_started:
-                self.timing_bonus = 0
-                self.start_expected_contact = -1
-                self.other_expected_contact = -1
-            else:
-                self.timing_bonus = start_bonus + other_bonus
+            self.timing_bonus = np.sum(2 * [expected_contacts == self._foot_target_contacts[:, 0]] - 1)
 
-            if not self.past_last_step and self.clock_started:
+            if not self.past_last_step:
                 self.met_times.append(met_time)
         else:
             self.timing_bonus = 0
@@ -1386,10 +1375,10 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
-        if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0 and not self.clock_started:
-            self.clock_started = True
-            self.time_offset = -self.timestep
-            self.starting_leg = 1 - self.swing_leg
+        # if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0 and not self.clock_started:
+        #     self.clock_started = True
+        #     self.time_offset = -self.timestep
+        #     self.starting_leg = 1 - self.swing_leg
 
         if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
@@ -1407,6 +1396,7 @@ class Walker3DStepperEnv(EnvBase):
             delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
+                    self.current_step_time = 0
                     self.current_target_count = 0
                     self.in_air_count = 0
                     self.prev_leg_pos[self.swing_leg] = self.terrain_info[self.next_step_index, 0:2]
@@ -1530,21 +1520,18 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        if not self.past_last_step:
-            clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_times_curriculum[self.selected_curriculum]), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_times_curriculum[self.selected_curriculum])])
-            if self.starting_leg == 0:
-                clock_signal = np.flip(clock_signal)
+        # swing leg, other leg -> no need to mirror
+        # TODO: could mirror and do right leg, left leg instead
+        time_left = np.array([6, 24, 30, 0])
+        if self.current_step_time <= 6:
+            time_left[0] -= self.current_step_time
+            time_left[2] -= self.current_step_time
         else:
-            clock_signal = np.array([1,1])
+            time_left[0] = 0
+            time_left[1] = max(time_left[1] - (self.current_step_time - 6), 0)
+            time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
-        if not self.clock_started:
-            clock_signal = np.array([0,0])
-
-        if self.timing_mask_on:
-            # zero out clock signal
-            clock_signal = np.array([0,0])
-
-        timing_mask = np.ones(j + k) * self.timing_mask_on
+        self.time_left = time_left
 
         deltas = concatenate(
             (
@@ -1554,13 +1541,13 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
-                (timing_mask)[:, None],
-                # (swing_legs_at_targets)[:, None],  # swing_legs
+                # (timing_mask)[:, None],
+                (swing_legs_at_targets)[:, None],  # swing_legs
             ),
             axis=1,
         )
 
-        return deltas, clock_signal
+        return deltas, time_left
 
     def get_mirror_indices(self):
 
@@ -1577,9 +1564,9 @@ class Walker3DStepperEnv(EnvBase):
                     6 + 2 * action_dim + 2 * i
                     for i in range(len(self.robot.foot_names) // 2)
                 ],
-                [
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim
-                ],
+                # [
+                #     (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim
+                # ],
             )
         )
 
@@ -1592,9 +1579,9 @@ class Walker3DStepperEnv(EnvBase):
                     6 + 2 * action_dim + 2 * i + 1
                     for i in range(len(self.robot.foot_names) // 2)
                 ],
-                [
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim
-                ],
+                # [
+                #     (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim
+                # ],
             )
         )
 
@@ -1615,7 +1602,7 @@ class Walker3DStepperEnv(EnvBase):
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
                     i * self.step_param_dim + 5, # heading
-                    # i * self.step_param_dim + 6, # swing legs
+                    i * self.step_param_dim + 6, # swing legs
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],
