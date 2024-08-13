@@ -453,7 +453,6 @@ class Walker3DStepperEnv(EnvBase):
 
         self.generated_paths_cache = {
             "to_standstill":  [[None, None] for _ in range(self.max_curriculum+1)],
-            "random_walks": [[None, None] for _ in range(self.max_curriculum+1)],
             "turn_in_place": [[None, None] for _ in range(self.max_curriculum+1)],
             "side_step": [[None, None] for _ in range(self.max_curriculum+1)],
             "backward": [[None, None] for _ in range(self.max_curriculum+1)],
@@ -486,10 +485,11 @@ class Walker3DStepperEnv(EnvBase):
     def generate_to_standstill_step_placements(self, curriculum):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
+        behavior = 'to_standstill'
         ratio = curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
-        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
@@ -497,7 +497,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        self.dr_spacing = self.dr_curriculum[behavior][curriculum]
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
@@ -568,9 +568,10 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum
+        behavior = 'backward'
 
         # {self.max_curriculum + 1} levels in total
-        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
@@ -578,7 +579,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][self.selected_curriculum]
+        self.dr_spacing = self.dr_curriculum[behavior][curriculum]
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
@@ -653,9 +654,10 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum
+        behavior = 'random_walks'
 
         # {self.max_curriculum + 1} levels in total
-        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
@@ -663,7 +665,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
 
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        self.dr_spacing = self.dr_curriculum[behavior][curriculum]
 
         dr = np.zeros(N) + self.dr_spacing
 
@@ -747,17 +749,18 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum
+        behavior = 'turn_in_place'
 
         # {self.max_curriculum + 1} levels in total
-        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        self.path_angle = self.angle_curriculum[self.selected_behavior][curriculum]
+        self.path_angle = self.angle_curriculum[behavior][curriculum]
 
         N = self.num_steps
 
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        self.dr_spacing = self.dr_curriculum[behavior][curriculum]
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N) + self.path_angle
@@ -842,9 +845,10 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum
+        behavior = 'side_step'
 
         # {self.max_curriculum + 1} levels in total
-        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
@@ -852,7 +856,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
 
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        self.dr_spacing = self.dr_curriculum[behavior][curriculum]
 
         dr = np.zeros(N) + self.dr_spacing
 
@@ -944,36 +948,35 @@ class Walker3DStepperEnv(EnvBase):
             self.generate_turn_in_place_step_placements,
             self.generate_side_step_step_placements,
             self.generate_random_walks_step_placements,
-            self.generate_backward_step_placements
+            # self.generate_backward_step_placements
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
         selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 3)
+        print(selected_step_placement_fcns)
 
         step_placements = None
 
         for i, selected_step_placement_fcn in enumerate(selected_step_placement_fcns):
-            step_placements_part = selected_step_placement_fcn(self.np_random.choice(list(range(0,self.curriculum+1))))
+            step_placements_part = selected_step_placement_fcn(self.np_random.choice(list(range(0,self.max_curriculum+1))))
             if i == 0:
                 step_placements = step_placements_part
             elif i == 1:
-                step_placements[7:14, :] = step_placements_part[7:14, :]
                 x_shift = step_placements_part[6, 0] - step_placements[6, 0]
                 step_placements_part[7:14, 0] -= x_shift
                 y_shift = step_placements_part[6, 1] - step_placements[6, 1]
                 step_placements_part[7:14, 1] -= y_shift
                 heading_shift = step_placements_part[6, 6] - step_placements[6, 6]
                 step_placements_part[7:14, 6] -= heading_shift
+                step_placements[7:14, :] = step_placements_part[7:14, :]
             else:
-                step_placements[14:, :] = step_placements_part[14:, :]
-                step_placements[14:, :] = step_placements_part[14:, :]
                 x_shift = step_placements_part[13, 0] - step_placements[13, 0]
                 step_placements_part[14:, 0] -= x_shift
                 y_shift = step_placements_part[13, 1] - step_placements[13, 1]
                 step_placements_part[14:, 1] -= y_shift
                 heading_shift = step_placements_part[13, 6] - step_placements[13, 6]
                 step_placements_part[14:, 6] -= heading_shift
-
+                step_placements[14:, :] = step_placements_part[14:, :]
         return step_placements
 
     def generate_step_placements(self):
@@ -999,7 +1002,7 @@ class Walker3DStepperEnv(EnvBase):
                 self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
                 self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
-        if self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
+        if self.selected_behavior in self.generated_paths_cache and self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
 
         if self.selected_behavior == "to_standstill":
@@ -1017,7 +1020,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
         
-        if self.selected_behavior not in {"random_walks", "transition_all"}:
+        if self.selected_behavior in self.generated_paths_cache:
             self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] = np.copy(path)
 
         return path
