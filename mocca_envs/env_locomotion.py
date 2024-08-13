@@ -1255,8 +1255,11 @@ class Walker3DStepperEnv(EnvBase):
         # cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_times_curriculum[self.selected_curriculum]
 
         if not self.timing_mask_on:
+            self.left_actual_contact = self._foot_target_contacts[1,0]
+            self.right_actual_contact = self._foot_target_contacts[0,0]
+
             if not self.past_last_step:
-                self.start_expected_contact = 1 if self.current_step_time <= 6 else 0
+                self.start_expected_contact = 1 if (self.current_step_time <= 6 or self.current_step_time >= 30) else 0
                 self.other_expected_contact = 1
             else:
                 self.start_expected_contact = 1
@@ -1264,9 +1267,12 @@ class Walker3DStepperEnv(EnvBase):
 
             if self.swing_leg == 1:
                 expected_contacts = [self.other_expected_contact, self.start_expected_contact]
+                self.left_expected_contact = self.start_expected_contact
+                self.right_expected_contact = self.other_expected_contact
             else:
                 expected_contacts = [self.start_expected_contact, self.other_expected_contact]
-                self.start_expected_contact, self.other_expected_contact = self.other_expected_contact, self.start_expected_contact
+                self.left_expected_contact = self.other_expected_contact
+                self.right_expected_contact = self.start_expected_contact
 
             met_time = np.sum(expected_contacts == self._foot_target_contacts[:, 0])
 

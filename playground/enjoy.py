@@ -170,10 +170,10 @@ def main():
             ep_reward += reward
 
             if args.timing and not env.timing_mask_on:
-                expected_start_foot.append(env.start_expected_contact)
-                expected_other_foot.append(env.other_expected_contact)
-                actual_start_foot.append(env.robot.feet_contact[env.starting_leg])
-                actual_other_foot.append(env.robot.feet_contact[1-env.starting_leg])
+                expected_start_foot.append(env.left_expected_contact)
+                expected_other_foot.append(env.right_expected_contact)
+                actual_start_foot.append(env.left_actual_contact)
+                actual_other_foot.append(env.right_actual_contact)
 
             if done:
                 if args.heading:
