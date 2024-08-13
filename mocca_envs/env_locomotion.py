@@ -615,8 +615,7 @@ class Walker3DStepperEnv(EnvBase):
         dy[self.stop_steps[1::2]] = 0
         dx[self.stop_steps[1::2]] = 0
 
-        dy[2] = 0
-        dy[3:] *= -1
+        dy *= -1
 
         heading_targets = np.copy(dphi)
 
@@ -635,7 +634,7 @@ class Walker3DStepperEnv(EnvBase):
         x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
         y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
 
-        if self.robot.mirrored:
+        if not self.robot.mirrored:
             x *= -1
         else:
             swing_legs = 1 - swing_legs
@@ -645,6 +644,8 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets += 90 * DEG2RAD
 
         dphi *= 0
+
+        y += 0.8
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
         
