@@ -341,7 +341,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 0
+        self.max_curriculum = 1
         self.advance_threshold = min(8, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
@@ -377,10 +377,10 @@ class Walker3DStepperEnv(EnvBase):
         self.allow_cycle_time_change = False
         self.selected_curriculum = 0
 
-        self.start_leg_expected_contact_probabilities, self.other_leg_expected_contact_probabilities = [None for _ in range(self.max_curriculum+1)], [None for _ in range(self.max_curriculum+1)]
+        # self.start_leg_expected_contact_probabilities, self.other_leg_expected_contact_probabilities = [None for _ in range(self.max_curriculum+1)], [None for _ in range(self.max_curriculum+1)]
 
-        for i in range(self.max_curriculum + 1):
-            self.start_leg_expected_contact_probabilities[i], self.other_leg_expected_contact_probabilities[i] = get_contact_gaits(self.cycle_times_curriculum[i], uncertainty_range)
+        # for i in range(self.max_curriculum + 1):
+        #     self.start_leg_expected_contact_probabilities[i], self.other_leg_expected_contact_probabilities[i] = get_contact_gaits(self.cycle_times_curriculum[i], uncertainty_range)
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -1266,10 +1266,11 @@ class Walker3DStepperEnv(EnvBase):
                 expected_contacts = [self.other_expected_contact, self.start_expected_contact]
             else:
                 expected_contacts = [self.start_expected_contact, self.other_expected_contact]
+                self.start_expected_contact, self.other_expected_contact = self.other_expected_contact, self.start_expected_contact
 
             met_time = np.sum(expected_contacts == self._foot_target_contacts[:, 0])
 
-            self.timing_bonus = np.sum(2 * [expected_contacts == self._foot_target_contacts[:, 0]] - 1)
+            self.timing_bonus = np.sum(2 * (expected_contacts == self._foot_target_contacts[:, 0]) - 1)
 
             if not self.past_last_step:
                 self.met_times.append(met_time)
