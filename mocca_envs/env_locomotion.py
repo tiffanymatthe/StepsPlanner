@@ -962,42 +962,30 @@ class Walker3DStepperEnv(EnvBase):
             if i == 0:
                 step_placements = step_placements_part
             elif i == 1:
-                heading_shift = step_placements_part[6, 6] - step_placements[6, 6]
-                print(f"Rotated steps by {heading_shift * RAD2DEG}, prev step heading is {step_placements[6,6] * RAD2DEG} and new one is {step_placements_part[6, 6] * RAD2DEG}")
-                step_placements_part[7:14,0] -= step_placements_part[6,0]
-                step_placements_part[7:14,1] -= step_placements_part[6,1]
-                x = np.copy(step_placements_part[7:14,0])
-                y = np.copy(step_placements_part[7:14,1])
-                step_placements_part[7:14,0] = x * np.cos(heading_shift) - y * np.sin(heading_shift)
-                step_placements_part[7:14,1] = x * np.sin(heading_shift) - y * np.cos(heading_shift)
-                step_placements_part[7:14,0] += step_placements_part[6,0]
-                step_placements_part[7:14,1] += step_placements_part[6,1]
+                heading_shift = -(step_placements_part[6, 6] - step_placements[6, 6])
+                dx = step_placements_part[7:14,0] - step_placements_part[6,0]
+                dy = step_placements_part[7:14,1] - step_placements_part[6,1]
+                step_placements_part[7:14,0] = step_placements_part[6,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
+                step_placements_part[7:14,1] = step_placements_part[6,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
                 step_placements_part[7:14, 6] += heading_shift
-                print(f"Rotated heading by {heading_shift * RAD2DEG}")
 
-                # x_shift = step_placements_part[6, 0] - step_placements[6, 0]
-                # step_placements_part[7:14, 0] -= x_shift
-                # y_shift = step_placements_part[6, 1] - step_placements[6, 1]
-                # step_placements_part[7:14, 1] -= y_shift
+                x_shift = step_placements_part[6, 0] - step_placements[6, 0]
+                step_placements_part[7:14, 0] -= x_shift
+                y_shift = step_placements_part[6, 1] - step_placements[6, 1]
+                step_placements_part[7:14, 1] -= y_shift
                 step_placements[7:14:, :] = step_placements_part[7:14:, :]
             else:
-                heading_shift = step_placements_part[13, 6] - step_placements[13, 6]
-                print(f"2Rotated steps by {heading_shift * RAD2DEG}, prev step heading is {step_placements[13,6] * RAD2DEG} and new one is {step_placements_part[13, 6] * RAD2DEG}")
-                step_placements_part[14:,0] -= step_placements_part[13,0]
-                step_placements_part[14:,1] -= step_placements_part[13,1]
-                x = np.copy(step_placements_part[14:,0])
-                y = np.copy(step_placements_part[14:,1])
-                step_placements_part[14:,0] = x * np.cos(heading_shift) - y * np.sin(heading_shift)
-                step_placements_part[14:,1] = x * np.sin(heading_shift) - y * np.cos(heading_shift)
-                step_placements_part[14:,0] += step_placements_part[13,0]
-                step_placements_part[14:,1] += step_placements_part[13,1]
+                heading_shift = -(step_placements_part[13, 6] - step_placements[13, 6])
+                dx = step_placements_part[14:,0] - step_placements_part[13,0]
+                dy = step_placements_part[14:,1] - step_placements_part[13,1]
+                step_placements_part[14:,0] = step_placements_part[13,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
+                step_placements_part[14:,1] = step_placements_part[13,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
                 step_placements_part[14:, 6] += heading_shift
-                print(f"2Rotated heading by {heading_shift * RAD2DEG}")
 
-                # x_shift = step_placements_part[13, 0] - step_placements[13, 0]
-                # step_placements_part[14:, 0] -= x_shift
-                # y_shift = step_placements_part[13, 1] - step_placements[13, 1]
-                # step_placements_part[14:, 1] -= y_shift
+                x_shift = step_placements_part[13, 0] - step_placements[13, 0]
+                step_placements_part[14:, 0] -= x_shift
+                y_shift = step_placements_part[13, 1] - step_placements[13, 1]
+                step_placements_part[14:, 1] -= y_shift
                 step_placements[14:, :] = step_placements_part[14:, :]
         return step_placements
 
