@@ -344,8 +344,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill", "turn_in_place", "side_step", "random_walks", "backward", "combine_all"]
-        self.max_behavior_curriculum = 5
+        self.behaviors = ["to_standstill", "turn_in_place", "side_step", "random_walks", "backward", "combine_all", "transition_all"]
+        self.max_behavior_curriculum = 6
 
         self.heading_errors = []
         self.met_times = []
@@ -934,6 +934,47 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets[-2] = heading_targets[-4]
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+    
+    def generate_transition_all_step_placements(self, curriculum):
+        # Check just in case
+        curriculum = min(curriculum, self.max_curriculum)
+        
+        step_placement_fcns = [
+            self.generate_to_standstill_step_placements,
+            self.generate_turn_in_place_step_placements,
+            self.generate_side_step_step_placements,
+            self.generate_random_walks_step_placements,
+            self.generate_backward_step_placements
+        ]
+
+        # randomly pick 3, rotate steps to match last heading of previous and shift
+        selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 3)
+
+        step_placements = None
+
+        for i, selected_step_placement_fcn in enumerate(selected_step_placement_fcns):
+            step_placements_part = selected_step_placement_fcn(self.np_random.choice(list(range(0,self.curriculum+1))))
+            if i == 0:
+                step_placements = step_placements_part
+            elif i == 1:
+                step_placements[7:14, :] = step_placements_part[7:14, :]
+                x_shift = step_placements_part[6, 0] - step_placements[6, 0]
+                step_placements_part[7:14, 0] -= x_shift
+                y_shift = step_placements_part[6, 1] - step_placements[6, 1]
+                step_placements_part[7:14, 1] -= y_shift
+                heading_shift = step_placements_part[6, 6] - step_placements[6, 6]
+                step_placements_part[7:14, 6] -= heading_shift
+            else:
+                step_placements[14:, :] = step_placements_part[14:, :]
+                step_placements[14:, :] = step_placements_part[14:, :]
+                x_shift = step_placements_part[13, 0] - step_placements[13, 0]
+                step_placements_part[14:, 0] -= x_shift
+                y_shift = step_placements_part[13, 1] - step_placements[13, 1]
+                step_placements_part[14:, 1] -= y_shift
+                heading_shift = step_placements_part[13, 6] - step_placements[13, 6]
+                step_placements_part[14:, 6] -= heading_shift
+
+        return step_placements
 
     def generate_step_placements(self):
         self.curriculum = min(self.curriculum, self.max_curriculum)
@@ -971,10 +1012,12 @@ class Walker3DStepperEnv(EnvBase):
             path = self.generate_random_walks_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "backward":
             path = self.generate_backward_step_placements(self.selected_curriculum)
+        elif self.selected_behavior == "transition_all":
+            path = self.generate_transition_all_step_placements(self.selected_curriculum)
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
         
-        if self.selected_behavior != "random_walks":
+        if self.selected_behavior not in {"random_walks", "transition_all"}:
             self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] = np.copy(path)
 
         return path
