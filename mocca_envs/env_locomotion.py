@@ -645,7 +645,7 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        y += 0.8
+        y += 0.3
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
         
@@ -939,7 +939,7 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        factor = 0 if self.determine else 0.4
+        factor = 0 if self.determine else 0.2
         train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if self.behaviors[self.behavior_curriculum] == "combine_all":
