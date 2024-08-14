@@ -348,7 +348,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         high = np.inf * np.ones(
-            self.robot_obs_dim, dtype=np.float32
+            self.robot_obs_dim + 2, dtype=np.float32
         )
         self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
         self.action_space = self.robot.action_space
@@ -381,7 +381,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.calc_potential()
 
-        state = self.robot_state
+        walk_target_delta = self.walk_target - self.robot.body_xyz
+        state = np.concatenate([self.robot_state, walk_target_delta[0:2]])
 
         if not self.state_id >= 0:
             self.state_id = self._p.saveState()
@@ -408,7 +409,8 @@ class Walker3DStepperEnv(EnvBase):
         reward += -self.foot_tilt_penalty
         # print(f"Elbow penalty: {self.elbow_penalty * 0.4} and foot tilt penalty: {self.foot_tilt_penalty} vs total reward: {reward}")
 
-        state = self.robot_state
+        walk_target_delta = self.walk_target - self.robot.body_xyz
+        state = np.concatenate([self.robot_state, walk_target_delta[0:2]])
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard()
@@ -469,10 +471,11 @@ class Walker3DStepperEnv(EnvBase):
         foot_tilts = self.robot.feet_rpy[:, 1]
 
         self.foot_tilt_penalty = 0
-        # if foot_tilts[0] > 5 * DEG2RAD:
-        #     self.foot_tilt_penalty += foot_tilts[0] - 5 * DEG2RAD
-        # if foot_tilts[1] > 5 * DEG2RAD:
-        #     self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
+        if self.task_is_standing:
+            if foot_tilts[0] > 5 * DEG2RAD:
+                self.foot_tilt_penalty += foot_tilts[0] - 5 * DEG2RAD
+            if foot_tilts[1] > 5 * DEG2RAD:
+                self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
