@@ -335,6 +335,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.elbow_penalty = 0
         self.foot_tilt_penalty = 0
+        self.torso_heading_bonus = 0
 
         # Robot settings
         N = self.curriculum + 1 # hardcoding
@@ -404,6 +405,7 @@ class Walker3DStepperEnv(EnvBase):
         # rewards for walking
         if not self.task_is_standing:
             reward += self.progress * 2
+            reward += self.torso_heading_bonus
         # reward for arms flailing
         reward += -self.elbow_penalty * 0.4
         reward += -self.foot_tilt_penalty
@@ -476,6 +478,11 @@ class Walker3DStepperEnv(EnvBase):
                 self.foot_tilt_penalty += foot_tilts[0] - 5 * DEG2RAD
             if foot_tilts[1] > 5 * DEG2RAD:
                 self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
+
+        self.torso_heading_bonus = 0
+        if not self.task_is_standing:
+            if 70 * DEG2RAD < self.robot.body_rpy[2] < 110 * DEG2RAD:
+                self.torso_heading_bonus = np.exp(-11 * (self.robot.body_rpy[2] - 90 * DEG2RAD)**2)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
