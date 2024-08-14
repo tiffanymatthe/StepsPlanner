@@ -344,8 +344,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill", "turn_in_place", "side_step", "random_walks", "backward", "combine_all", "transition_all"]
-        self.max_behavior_curriculum = 6
+        self.behaviors = ["to_standstill", "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.max_behavior_curriculum = 5
 
         self.heading_errors = []
         self.met_times = []
