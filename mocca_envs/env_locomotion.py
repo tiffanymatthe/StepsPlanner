@@ -328,6 +328,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.walk_target = [0, 10, 0]
 
+        self.elbow_penalty = 0
+
         # Robot settings
         N = self.curriculum + 1 # hardcoding
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
@@ -364,7 +366,7 @@ class Walker3DStepperEnv(EnvBase):
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=True # allow random chance of mirroring robot
+            mirror=False #True # allow random chance of mirroring robot
         )
 
         # Reset camera
@@ -394,6 +396,8 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         # rewards for walking
         reward += self.progress
+        # reward for arms flailing
+        reward += -self.elbow_penalty * 0.4
 
         state = self.robot_state
 
@@ -1254,6 +1258,17 @@ class Monkey3DStepperEnv(Walker3DStepperEnv):
         self.energy_penalty = electricity_cost + stall_torque_cost
 
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
+
+        self.elbow_penalty = 0
+        elbow_angles = self.robot.joint_angles[[16, 20]]
+        elbow_good_mask = elbow_angles > 65 * DEG2RAD
+        self.elbow_penalty += np.dot(1 * ~elbow_good_mask, np.abs(elbow_angles - 65 * DEG2RAD))
+        heights = self.robot.upper_arm_and_head_xyz[:,2]
+        min_height_diff = 0.25
+        if heights[2] - heights[0] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[0] - min_height_diff)
+        if heights[2] - heights[1] < min_height_diff:
+            self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
         self.tall_bonus = 1
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
