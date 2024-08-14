@@ -322,7 +322,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=False, **kwargs)
-        self.task_is_standing = True
+        self.task_is_standing = False
 
         if self.task_is_standing:
             self.robot.set_base_pose(pose="stand")
@@ -463,10 +463,10 @@ class Walker3DStepperEnv(EnvBase):
         foot_tilts = self.robot.feet_rpy[:, 1]
 
         self.foot_tilt_penalty = 0
-        if foot_tilts[0] > 5 * DEG2RAD:
-            self.foot_tilt_penalty += foot_tilts[0] - 5 * DEG2RAD
-        if foot_tilts[1] > 5 * DEG2RAD:
-            self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
+        # if foot_tilts[0] > 5 * DEG2RAD:
+        #     self.foot_tilt_penalty += foot_tilts[0] - 5 * DEG2RAD
+        # if foot_tilts[1] > 5 * DEG2RAD:
+        #     self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
