@@ -339,7 +339,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 2
+        self.max_curriculum = 0
         self.advance_threshold = min(8, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
@@ -441,7 +441,7 @@ class Walker3DStepperEnv(EnvBase):
     def generate_timing_gaits_step_placements(self, curriculum):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
-        ratio = curriculum / self.max_curriculum
+        ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -516,13 +516,13 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        if curriculum == 0:
-            half_cycle_times = np.ones(N) * 30
-        elif curriculum == 1:
-            half_cycle_times = np.ones(N) * self.np_random.choice([15,20,25,30,35,40])
-        else:
-            half_cycle_times = self.np_random.choice([15,20,25,30,35,40], size=N)
-            half_cycle_times[0:3] = 30 # to start properly
+        # if curriculum == 0:
+        #     half_cycle_times = np.ones(N) * 30
+        # elif curriculum == 1:
+        #     half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
+        # else:
+        half_cycle_times = self.np_random.choice([10,20,30,40,50,60], size=N)
+        half_cycle_times[0:3] = 30 # to start properly
         timing_0 = half_cycle_times * 0.2
         timing_1 = half_cycle_times * 0.8
         timing_0 = timing_0.astype(int)
@@ -535,7 +535,7 @@ class Walker3DStepperEnv(EnvBase):
         timing_0[0] = 0
 
         timing_2[1] -= timing_0[1]
-        timing_0[1] = 1
+        timing_0[1] = 0
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
