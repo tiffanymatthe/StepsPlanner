@@ -517,13 +517,16 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         if curriculum == 0:
-            half_cycle_time = 30
+            half_cycle_times = np.ones(N) * 30
         else:
-            half_cycle_time = self.np_random.choice([26,30,35,40])
-        timing_0 = np.array([int(half_cycle_time * 0.2) for _ in range(N)]) # 20%
-        timing_1 = np.array([int(half_cycle_time * 0.8) for _ in range(N)]) # 80%
-        timing_2 = np.array([timing_0[0] + timing_1[0] for _ in range(N)])
-        timing_3 = np.array([0 for _ in range(N)])
+            half_cycle_times = self.np_random.choice([15,20,25,30,35,40], size=N)
+            half_cycle_times[0:3] = 30 # to start properly
+        timing_0 = half_cycle_times * 0.2
+        timing_1 = half_cycle_times * 0.8
+        timing_0 = timing_0.astype(int)
+        timing_1 = timing_1.astype(int)
+        timing_2 = np.ones(N) * (timing_0[0] + timing_1[0])
+        timing_3 = np.zeros(N)
 
         # make first step shorter
         timing_2[0] -= timing_0[0]
