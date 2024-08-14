@@ -339,7 +339,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 1
+        self.max_curriculum = 2
         self.advance_threshold = min(8, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
@@ -518,6 +518,8 @@ class Walker3DStepperEnv(EnvBase):
 
         if curriculum == 0:
             half_cycle_times = np.ones(N) * 30
+        elif curriculum == 1:
+            half_cycle_times = np.ones(N) * self.np_random.choice([15,20,25,30,35,40])
         else:
             half_cycle_times = self.np_random.choice([15,20,25,30,35,40], size=N)
             half_cycle_times[0:3] = 30 # to start properly
