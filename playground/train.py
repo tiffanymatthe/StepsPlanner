@@ -139,7 +139,7 @@ def main(_seed, _config, _run):
 
     if args.net is not None:
         print(f"Loading model {args.net}")
-        actor_critic = torch.load(args.net)
+        actor_critic = torch.load(args.net, map_location=torch.device(args.device))
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
