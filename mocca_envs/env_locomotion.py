@@ -480,9 +480,9 @@ class Walker3DStepperEnv(EnvBase):
                 self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
 
         self.torso_heading_bonus = 0
-        if not self.task_is_standing:
-            if 70 * DEG2RAD < self.robot.body_rpy[2] < 110 * DEG2RAD:
-                self.torso_heading_bonus = 1 # np.exp(-11 * (self.robot.body_rpy[2] - 90 * DEG2RAD)**2)
+        # if not self.task_is_standing:
+        #     if 70 * DEG2RAD < self.robot.body_rpy[2] < 110 * DEG2RAD:
+        #         self.torso_heading_bonus = 1 # np.exp(-11 * (self.robot.body_rpy[2] - 90 * DEG2RAD)**2)
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
