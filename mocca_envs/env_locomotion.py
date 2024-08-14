@@ -516,26 +516,37 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        # if curriculum == 0:
-        #     half_cycle_times = np.ones(N) * 30
-        # elif curriculum == 1:
-        #     half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
-        # else:
-        half_cycle_times = self.np_random.choice([10,20,30,40,50,60], size=N)
-        half_cycle_times[0:3] = 30 # to start properly
-        timing_0 = half_cycle_times * 0.2
-        timing_1 = half_cycle_times * 0.8
-        timing_0 = timing_0.astype(int)
-        timing_1 = timing_1.astype(int)
-        timing_2 = np.ones(N) * (timing_0[0] + timing_1[0])
-        timing_3 = np.zeros(N)
+        if curriculum == 0:
+            half_cycle_times = np.ones(N) * 30
+        elif curriculum == 1:
+            half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
+        else:
+            half_cycle_times = self.np_random.choice([10,20,30,40,50,60], size=N)
+            half_cycle_times[0:3] = 30 # to start properly
+        
+        method = "running"
 
-        # make first step shorter
-        timing_2[0] -= timing_0[0]
-        timing_0[0] = 0
+        if method == "walking":
+            timing_0 = half_cycle_times * 0.2
+            timing_1 = half_cycle_times * 0.8
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2 = np.ones(N) * (timing_0[0] + timing_1[0])
+            timing_3 = np.zeros(N)
 
-        timing_2[1] -= timing_0[1]
-        timing_0[1] = 0
+            # make first step shorter
+            timing_2[0] -= timing_0[0]
+            timing_0[0] = 0
+
+            timing_2[1] -= timing_0[1]
+            timing_0[1] = 0
+        elif method == "running":
+            timing_0 = np.zeros(N)
+            timing_1 = half_cycle_times
+            timing_2 = half_cycle_times * 0.8
+            timing_3 = half_cycle_times * 0.2
+            timing_2 = timing_0.astype(int)
+            timing_3 = timing_1.astype(int)
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
