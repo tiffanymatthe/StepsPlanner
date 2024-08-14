@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0.3, 1.32]
+    robot_init_position = [0, 0, 1.32]
     robot_init_velocity = None
 
     def __init__(self, **kwargs):
@@ -402,7 +402,7 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         # rewards for walking
         if not self.task_is_standing:
-            reward += self.progress
+            reward += self.progress * 2
         # reward for arms flailing
         reward += -self.elbow_penalty * 0.4
         reward += -self.foot_tilt_penalty
@@ -431,9 +431,9 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.distance_to_target < 0.1:
             # once close, move target 1 meter further and update potentials
+            self.walk_target[1] += 1
             self.calc_potential()
             old_linear_potential = self.linear_potential
-            self.walk_target[1] += 1
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
