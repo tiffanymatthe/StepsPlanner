@@ -443,7 +443,7 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "hopping"
+        method = "running"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -550,8 +550,8 @@ class Walker3DStepperEnv(EnvBase):
             timing_1 = half_cycle_times
             timing_2 = half_cycle_times * 0.8
             timing_3 = half_cycle_times * 0.2
-            timing_2 = timing_0.astype(int)
-            timing_3 = timing_1.astype(int)
+            timing_2 = timing_2.astype(int)
+            timing_3 = timing_3.astype(int)
         elif method == "hopping":
             timing_0 = half_cycle_times * 0.5
             timing_1 = half_cycle_times * 0.5
