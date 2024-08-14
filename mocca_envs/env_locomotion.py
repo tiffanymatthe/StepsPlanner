@@ -340,12 +340,12 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 9
-        self.advance_threshold = min(15, self.num_steps)
+        self.advance_threshold = min(16, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill", "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
-        self.max_behavior_curriculum = 5
+        self.behaviors = ["to_standstill", "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.max_behavior_curriculum = 1
 
         self.heading_errors = []
         self.met_times = []
@@ -445,7 +445,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_range = np.array([0, 0])
         self.yaw_range = {
             "to_standstill": np.array([0.0, 0.0]),
-            "random_walks": np.array([-35.0, 35.0]),
+            "random_walks": np.array([-55.0, 55.0]),
             "turn_in_place": np.array([0.0, 0.0]),
             "side_step": np.array([0.0, 0.0]),
             "backward": np.array([0.0, 0.0]),
@@ -944,48 +944,45 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         
         step_placement_fcns = [
-            self.generate_to_standstill_step_placements,
-            self.generate_turn_in_place_step_placements,
-            self.generate_side_step_step_placements,
-            self.generate_random_walks_step_placements,
-            # self.generate_backward_step_placements
+            (self.generate_to_standstill_step_placements, "to_standstill"),
+            (self.generate_turn_in_place_step_placements, "turn_in_place"),
+            (self.generate_side_step_step_placements, "side_step"),
+            (self.generate_random_walks_step_placements, "random_walks"),
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
-        selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 3)
+        selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 5)
 
         step_placements = None
 
-        for i, selected_step_placement_fcn in enumerate(selected_step_placement_fcns):
-            step_placements_part = selected_step_placement_fcn(self.np_random.choice(list(range(0,self.max_curriculum+1))))
+        transition_indices = [4,8,12,16,self.num_steps]
+
+        for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
+            selected_step_placement_fcn, behavior_str = selected_step_placement_fcn_tuple
+            selected_step_curriculum = self.np_random.choice(list(range(0,curriculum+1)))
+            if behavior_str in self.generated_paths_cache and self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] is not None:
+                step_placements_part = np.copy(self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)])
+            else:
+                step_placements_part = selected_step_placement_fcn(selected_step_curriculum)
+                if behavior_str in self.generated_paths_cache:
+                    self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] = np.copy(step_placements_part)
+
             if i == 0:
                 step_placements = step_placements_part
-            elif i == 1:
-                heading_shift = -(step_placements_part[6, 6] - step_placements[6, 6])
-                dx = step_placements_part[7:14,0] - step_placements_part[6,0]
-                dy = step_placements_part[7:14,1] - step_placements_part[6,1]
-                step_placements_part[7:14,0] = step_placements_part[6,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
-                step_placements_part[7:14,1] = step_placements_part[6,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
-                step_placements_part[7:14, 6] += heading_shift
+            a = transition_indices[i-1]
+            b = transition_indices[i]
+            heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
+            dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
+            dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
+            step_placements_part[a:b,0] = step_placements_part[a-1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
+            step_placements_part[a:b,1] = step_placements_part[a-1,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
+            step_placements_part[a:b, 6] += heading_shift
 
-                x_shift = step_placements_part[6, 0] - step_placements[6, 0]
-                step_placements_part[7:14, 0] -= x_shift
-                y_shift = step_placements_part[6, 1] - step_placements[6, 1]
-                step_placements_part[7:14, 1] -= y_shift
-                step_placements[7:14:, :] = step_placements_part[7:14:, :]
-            else:
-                heading_shift = -(step_placements_part[13, 6] - step_placements[13, 6])
-                dx = step_placements_part[14:,0] - step_placements_part[13,0]
-                dy = step_placements_part[14:,1] - step_placements_part[13,1]
-                step_placements_part[14:,0] = step_placements_part[13,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
-                step_placements_part[14:,1] = step_placements_part[13,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
-                step_placements_part[14:, 6] += heading_shift
-
-                x_shift = step_placements_part[13, 0] - step_placements[13, 0]
-                step_placements_part[14:, 0] -= x_shift
-                y_shift = step_placements_part[13, 1] - step_placements[13, 1]
-                step_placements_part[14:, 1] -= y_shift
-                step_placements[14:, :] = step_placements_part[14:, :]
+            x_shift = step_placements_part[a-1, 0] - step_placements[a-1, 0]
+            step_placements_part[a:b, 0] -= x_shift
+            y_shift = step_placements_part[a-1, 1] - step_placements[a-1, 1]
+            step_placements_part[a:b, 1] -= y_shift
+            step_placements[a:b:, :] = step_placements_part[a:b:, :]
         return step_placements
 
     def generate_step_placements(self):
