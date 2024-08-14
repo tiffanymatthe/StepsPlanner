@@ -1024,7 +1024,8 @@ class Walker3DStepperEnv(EnvBase):
             path = self.generate_random_walks_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "backward":
             path = self.generate_backward_step_placements(self.selected_curriculum)
-        elif self.selected_behavior == "transition_all":
+        elif self.selected_behavior in {"transition_all", "combine_all"}:
+            self.selected_behavior = "transition_all"
             path = self.generate_transition_all_step_placements(self.selected_curriculum)
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
