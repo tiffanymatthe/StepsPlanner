@@ -953,7 +953,6 @@ class Walker3DStepperEnv(EnvBase):
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
         selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 3)
-        print(selected_step_placement_fcns)
 
         step_placements = None
 
