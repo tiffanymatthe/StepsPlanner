@@ -373,7 +373,7 @@ class Walker3DStepperEnv(EnvBase):
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
             quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
-            mirror=False #True # allow random chance of mirroring robot
+            mirror=True # allow random chance of mirroring robot
         )
 
         # Reset camera
