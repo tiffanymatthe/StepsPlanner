@@ -322,11 +322,14 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=False, **kwargs)
-        self.robot.set_base_pose(pose="running_start")
+        self.task_is_standing = True
+
+        if self.task_is_standing:
+            self.robot.set_base_pose(pose="stand")
+        else:
+            self.robot.set_base_pose(pose="running_start")
 
         self.curriculum = 0
-
-        self.task_is_standing = True
 
         self.walk_target = [0, 10, 0]
 
@@ -335,7 +338,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Robot settings
         N = self.curriculum + 1 # hardcoding
-        self.terminal_height_curriculum = np.linspace(0.9, 0.9, N)
+        self.terminal_height_curriculum = np.linspace(1.03, 1.03, N)
         self.applied_gain_curriculum = np.linspace(1.0, 1.0, N)
         self.angle_curriculum = np.linspace(0, np.pi / 2, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
@@ -403,6 +406,7 @@ class Walker3DStepperEnv(EnvBase):
         # reward for arms flailing
         reward += -self.elbow_penalty * 0.4
         reward += -self.foot_tilt_penalty
+        # print(f"Elbow penalty: {self.elbow_penalty * 0.4} and foot tilt penalty: {self.foot_tilt_penalty} vs total reward: {reward}")
 
         state = self.robot_state
 
@@ -460,9 +464,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.foot_tilt_penalty = 0
         if foot_tilts[0] > 5 * DEG2RAD:
-            self.foot_tilt_penalty += 5 * DEG2RAD - foot_tilts[0]
+            self.foot_tilt_penalty += foot_tilts[0] - 5 * DEG2RAD
         if foot_tilts[1] > 5 * DEG2RAD:
-            self.foot_tilt_penalty += 5 * DEG2RAD - foot_tilts[1]
+            self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
