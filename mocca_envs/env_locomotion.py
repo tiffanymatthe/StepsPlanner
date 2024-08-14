@@ -331,7 +331,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.curriculum = 0
 
-        self.walk_target = [0, 10, 0]
+        self.walk_target = [0, 1, 0]
 
         self.elbow_penalty = 0
         self.foot_tilt_penalty = 0
@@ -428,6 +428,12 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
         linear_progress = self.linear_potential - old_linear_potential
         self.progress = linear_progress
+
+        if self.distance_to_target < 0.1:
+            # once close, move target 1 meter further and update potentials
+            self.calc_potential()
+            old_linear_potential = self.linear_potential
+            self.walk_target[1] += 1
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
