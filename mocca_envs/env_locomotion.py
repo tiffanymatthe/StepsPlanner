@@ -563,12 +563,12 @@ class Walker3DStepperEnv(EnvBase):
             for i in [3,6,10,15]:
                 timing_0[i], timing_1[i], timing_2[i], timing_3[i] = timing_2[i], timing_3[i], timing_0[i], timing_1[i]
 
-            # make first step shorter
-            timing_2[0] -= timing_0[0]
-            timing_0[0] = 0
-
-            timing_2[1] -= timing_0[1]
-            timing_0[1] = 0
+        # make first step shorter
+        time_to_remove = timing_0[1]
+        leftover = max(time_to_remove - timing_2[1], 0)
+        timing_2[1] -= time_to_remove
+        timing_0[1] = 0
+        timing_3[1] -= leftover
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
@@ -1285,20 +1285,24 @@ class Walker3DStepperEnv(EnvBase):
 
             if not self.past_last_step:
                 # assumes swing leg == 1 (will swap later)
-                if self.next_step_index < self.num_steps - 1:
-                    if self.current_step_time <= next_step_time[0]:
-                        self.left_expected_contact = 1
+                    if self.next_step_index < self.num_steps - 1:
+                        if self.current_step_time <= next_step_time[0]:
+                            self.left_expected_contact = 1
+                        elif next_step_time[0] < self.current_step_time <= next_step_time[0] + next_step_time[1]:
+                            self.left_expected_contact = 0
+                        else:
+                            self.left_expected_contact = int(next_next_step_time[2] != 0) if self.terrain_info[self.next_step_index, 7] != self.swing_leg else int(next_next_step_time[0] != 0)
                     else:
-                        self.left_expected_contact = int(next_next_step_time[2] != 0) if self.terrain_info[self.next_step_index, 7] != self.swing_leg else int(next_next_step_time[0] != 0)
-                else:
-                    self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
-                if self.next_step_index < self.num_steps - 1:
-                    if self.current_step_time <= next_step_time[2]:
-                        self.right_expected_contact = 1
+                        self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
+                    if self.next_step_index < self.num_steps - 1:
+                        if self.current_step_time <= next_step_time[2]:
+                            self.right_expected_contact = 1
+                        elif next_step_time[2] < self.current_step_time <= next_step_time[2] + next_step_time[3]:
+                            self.right_expected_contact = 0
+                        else:
+                            self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
                     else:
-                        self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
-                else:
-                    self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
+                        self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
             else:
                 self.left_expected_contact = 1
                 self.right_expected_contact = 1
