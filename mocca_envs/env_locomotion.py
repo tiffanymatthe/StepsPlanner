@@ -417,7 +417,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": [[None, None] for _ in range(self.max_curriculum+1)],
         }
 
-        self.step_param_dim = 7 + 4 # 4 for timing
+        self.step_param_dim = 7 # 4 for timing
         # Important to do this once before reset!
         self.swing_leg = 0
         self.starting_leg = self.swing_leg
@@ -426,7 +426,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 0
+        self.extra_step_dim = 4
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -479,7 +479,7 @@ class Walker3DStepperEnv(EnvBase):
         if method != "hopping":
             swing_legs = np.ones(N, dtype=np.int8)
             swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
-            swing_legs[6:] = 1
+            # swing_legs[6:] = 1
         else:
             swing_legs = np.zeros(N, dtype=np.int8)
             swing_legs[1] = 1
@@ -548,13 +548,13 @@ class Walker3DStepperEnv(EnvBase):
             timing_2[1] -= timing_0[1]
             timing_0[1] = 0
 
-            # add hopping only on left leg after 5 steps
-            timing_0[6:] = half_cycle_times[6:] * 0.7
-            timing_1[6:] = half_cycle_times[6:] * 0.3
-            timing_0[6:] = timing_0[6:].astype(int)
-            timing_1[6:] = timing_1[6:].astype(int)
-            timing_2[6:] = np.zeros(N)[6:]
-            timing_3[6:] = half_cycle_times[6:]
+            # # add hopping only on left leg after 5 steps
+            # timing_0[6:] = half_cycle_times[6:] * 0.7
+            # timing_1[6:] = half_cycle_times[6:] * 0.3
+            # timing_0[6:] = timing_0[6:].astype(int)
+            # timing_1[6:] = timing_1[6:].astype(int)
+            # timing_2[6:] = np.zeros(N)[6:]
+            # timing_3[6:] = half_cycle_times[6:]
 
         elif method == "running":
             timing_0 = np.zeros(N)
@@ -1593,10 +1593,10 @@ class Walker3DStepperEnv(EnvBase):
             time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
-        time_left_0 = np.array([targets[0, 8], time_left[0], targets[2, 8]])
-        time_left_1 = np.array([targets[0, 9], time_left[1], targets[2, 9]])
-        time_left_2 = np.array([targets[0, 10], time_left[2], targets[2, 10]])
-        time_left_3 = np.array([targets[0, 11], time_left[3], targets[2, 11]])
+        # time_left_0 = np.array([targets[0, 8], time_left[0], targets[2, 8]])
+        # time_left_1 = np.array([targets[0, 9], time_left[1], targets[2, 9]])
+        # time_left_2 = np.array([targets[0, 10], time_left[2], targets[2, 10]])
+        # time_left_3 = np.array([targets[0, 11], time_left[3], targets[2, 11]])
 
         deltas = concatenate(
             (
@@ -1608,15 +1608,15 @@ class Walker3DStepperEnv(EnvBase):
                 (heading_angle_to_targets)[:, None], # heading
                 # (timing_mask)[:, None],
                 (swing_legs_at_targets)[:, None],  # swing_legs
-                (time_left_0)[:, None],
-                (time_left_1)[:, None],
-                (time_left_2)[:, None],
-                (time_left_3)[:, None],
+                # (time_left_0)[:, None],
+                # (time_left_1)[:, None],
+                # (time_left_2)[:, None],
+                # (time_left_3)[:, None],
             ),
             axis=1,
         )
 
-        return deltas, None # , time_left
+        return deltas, time_left
 
     def get_mirror_indices(self):
 
