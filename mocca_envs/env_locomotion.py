@@ -479,7 +479,7 @@ class Walker3DStepperEnv(EnvBase):
         if method != "hopping":
             swing_legs = np.ones(N, dtype=np.int8)
             swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
-            swing_legs[6:] = 1
+            swing_legs[4:] = 1
         else:
             swing_legs = np.zeros(N, dtype=np.int8)
             swing_legs[1] = 1
@@ -526,7 +526,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         if curriculum == 0:
-            half_cycle_times = np.ones(N) * 30
+            half_cycle_times = np.ones(N) * 40
         elif curriculum == 1:
             half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
         else:
@@ -534,8 +534,8 @@ class Walker3DStepperEnv(EnvBase):
             half_cycle_times[0:3] = 30 # to start properly
 
         if method == "walking":
-            timing_0 = half_cycle_times * 0.2
-            timing_1 = half_cycle_times * 0.8
+            timing_0 = half_cycle_times * 0.7
+            timing_1 = half_cycle_times * 0.3
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
             timing_2 = np.ones(N) * (timing_0[0] + timing_1[0])
@@ -549,15 +549,15 @@ class Walker3DStepperEnv(EnvBase):
             timing_0[1] = 0
 
             # add hopping only on left leg after 5 steps
-            timing_0[6:] = half_cycle_times[6:] * 0.6 + 10
-            timing_1[6:] = half_cycle_times[6:] * 0.4 + 10
-            timing_0[6:] = timing_0[6:].astype(int)
-            timing_1[6:] = timing_1[6:].astype(int)
-            timing_2[6:] = np.zeros(N)[6:]
-            timing_3[6:] = half_cycle_times[6:] + 20
+            timing_0[4:] = 13
+            timing_1[4:] = 7
+            timing_2[4:] = 0
+            timing_3[4:] = 20
 
-            timing_2[6] = 5
-            timing_3[6] -= 5
+            timing_0[4] = 15
+            timing_1[4] = 7
+            timing_2[4] = 4
+            timing_3[4] = 18
 
         elif method == "running":
             timing_0 = np.zeros(N)
