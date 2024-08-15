@@ -480,10 +480,11 @@ class Walker3DStepperEnv(EnvBase):
             swing_legs = np.ones(N, dtype=np.int8)
             swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
         else:
-            swing_legs = np.zeros(N, dtype=np.int8)
-            swing_legs[0:3] = 1
-            swing_legs[6:10] = 1
-            swing_legs[15:] = 1
+            swing_legs = np.ones(N, dtype=np.int8)
+            swing_legs[1] = 0
+            swing_legs[3] = 0
+            swing_legs[6:10] = 0
+            swing_legs[15:] = 0
 
         dphi[self.stop_steps[1::2]] = 0
         dphi = np.cumsum(dphi)
@@ -560,7 +561,7 @@ class Walker3DStepperEnv(EnvBase):
             timing_2 = np.zeros(N)
             timing_3 = half_cycle_times
 
-            for i in [3,6,10,15]:
+            for i in np.where(np.diff(swing_legs,prepend=np.nan))[0]:
                 timing_0[i], timing_1[i], timing_2[i], timing_3[i] = timing_2[i], timing_3[i], timing_0[i], timing_1[i]
 
         # make first step shorter

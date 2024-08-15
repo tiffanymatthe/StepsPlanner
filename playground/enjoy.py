@@ -199,13 +199,30 @@ def main():
                     right_foot_positions = []
                     target_indices = []
                 if args.timing:
-                    fig, axs = plt.subplots(3)
+                    fig, axs = plt.subplots(4)
                     fig.suptitle('Timing')
                     axs[0].plot(expected_start_foot, label="Expected Left Foot")
                     axs[1].plot(expected_other_foot)
                     axs[0].plot(actual_start_foot, label="Actual Left Foot")
                     axs[1].plot(actual_other_foot)
                     axs[2].plot(index_switch)
+                    left_leg_contacts = []
+                    right_leg_contacts = []
+                    for i in range(env.num_steps):
+                        if env.terrain_info[i, 7] == 1:
+                            left_leg_contacts.extend([1] * int(env.terrain_info[i, 8]))
+                            left_leg_contacts.extend([0] * int(env.terrain_info[i, 9]))
+                            right_leg_contacts.extend([1] * int(env.terrain_info[i, 10]))
+                            right_leg_contacts.extend([0] * int(env.terrain_info[i, 11]))
+                        else:
+                            right_leg_contacts.extend([1] * int(env.terrain_info[i, 8]))
+                            right_leg_contacts.extend([0] * int(env.terrain_info[i, 9]))
+                            left_leg_contacts.extend([1] * int(env.terrain_info[i, 10]))
+                            left_leg_contacts.extend([0] * int(env.terrain_info[i, 11]))
+                        axs[3].axvline(x=len(left_leg_contacts))
+                    axs[3].plot(left_leg_contacts, label="left")
+                    axs[3].plot(right_leg_contacts)
+                    axs[3].legend()
                     axs[0].legend()
                     plt.show()
                     expected_start_foot = []
