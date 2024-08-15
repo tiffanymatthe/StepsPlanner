@@ -1106,7 +1106,10 @@ class Walker3DStepperEnv(EnvBase):
         # Order is important because walk_target is set up above
         self.calc_potential()
 
-        state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
+        if self.extra_step_dim == 0:
+            state = concatenate((self.robot_state, self.targets.flatten()))
+        else:
+            state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
 
         if not self.state_id >= 0:
             self.state_id = self._p.saveState()
@@ -1138,7 +1141,10 @@ class Walker3DStepperEnv(EnvBase):
         #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
 
         # targets is calculated by calc_env_state()
-        state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
+        if self.extra_step_dim == 0:
+            state = concatenate((self.robot_state, self.targets.flatten()))
+        else:
+            state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
         # print(f"{self.next_step_index}: timing observation {self.extra_param} with timing bonus {self.timing_bonus}")
 
         if self.is_rendered or self.use_egl:
