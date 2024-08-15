@@ -549,12 +549,15 @@ class Walker3DStepperEnv(EnvBase):
             timing_0[1] = 0
 
             # add hopping only on left leg after 5 steps
-            timing_0[6:] = half_cycle_times[6:] * 0.7
-            timing_1[6:] = half_cycle_times[6:] * 0.3
+            timing_0[6:] = half_cycle_times[6:] * 0.6 + 10
+            timing_1[6:] = half_cycle_times[6:] * 0.4 + 10
             timing_0[6:] = timing_0[6:].astype(int)
             timing_1[6:] = timing_1[6:].astype(int)
             timing_2[6:] = np.zeros(N)[6:]
-            timing_3[6:] = half_cycle_times[6:]
+            timing_3[6:] = half_cycle_times[6:] + 20
+
+            timing_2[6] = 5
+            timing_3[6] -= 5
 
         elif method == "running":
             timing_0 = np.zeros(N)
