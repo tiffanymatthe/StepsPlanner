@@ -426,7 +426,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 8
+        self.extra_step_dim = 4
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -1636,7 +1636,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas, np.concatenate([time_left, time_left_future])
+        return deltas, time_left # np.concatenate([time_left, time_left_future])
 
     def get_mirror_indices(self):
 
@@ -1656,8 +1656,8 @@ class Walker3DStepperEnv(EnvBase):
                 [
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim,
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 4 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 5 + self.robot_obs_dim
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 4 + self.robot_obs_dim,
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 5 + self.robot_obs_dim
                 ],
             )
         )
@@ -1674,8 +1674,8 @@ class Walker3DStepperEnv(EnvBase):
                 [
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 2 + self.robot_obs_dim,
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 3 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 6 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 7 + self.robot_obs_dim
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 6 + self.robot_obs_dim,
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 7 + self.robot_obs_dim
                 ],
             )
         )
