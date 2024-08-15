@@ -417,7 +417,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": [[None, None] for _ in range(self.max_curriculum+1)],
         }
 
-        self.step_param_dim = 7
+        self.step_param_dim = 7 + 4 # 4 for timing
         # Important to do this once before reset!
         self.swing_leg = 0
         self.starting_leg = self.swing_leg
@@ -426,7 +426,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 4
+        self.extra_step_dim = 0
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -443,7 +443,7 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "hopping"
+        method = "walking"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -1564,18 +1564,23 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
         time_left = np.array([
-            self.terrain_info[self.next_step_index, 8],
-            self.terrain_info[self.next_step_index, 9],
-            self.terrain_info[self.next_step_index, 10],
-            self.terrain_info[self.next_step_index, 11]
+            targets[1, 8],
+            targets[1, 9],
+            targets[1, 10],
+            targets[1, 11]
         ])
         if self.current_step_time <= time_left[0]:
             time_left[0] -= self.current_step_time
             time_left[2] -= self.current_step_time
         else:
             time_left[0] = 0
-            time_left[1] = max(time_left[1] - (self.current_step_time - self.terrain_info[self.next_step_index, 8]), 0)
+            time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
+
+        time_left_0 = np.array([targets[0, 8], time_left[0], targets[2, 8]])
+        time_left_1 = np.array([targets[0, 9], time_left[1], targets[2, 9]])
+        time_left_2 = np.array([targets[0, 10], time_left[2], targets[2, 10]])
+        time_left_3 = np.array([targets[0, 11], time_left[3], targets[2, 11]])
 
         deltas = concatenate(
             (
@@ -1587,11 +1592,15 @@ class Walker3DStepperEnv(EnvBase):
                 (heading_angle_to_targets)[:, None], # heading
                 # (timing_mask)[:, None],
                 (swing_legs_at_targets)[:, None],  # swing_legs
+                (time_left_0)[:, None],
+                (time_left_1)[:, None],
+                (time_left_2)[:, None],
+                (time_left_3)[:, None],
             ),
             axis=1,
         )
 
-        return deltas, time_left
+        return deltas # , time_left
 
     def get_mirror_indices(self):
 
