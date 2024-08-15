@@ -1579,19 +1579,26 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
+        # time_left = np.array([
+        #     targets[1, 8],
+        #     targets[1, 9],
+        #     targets[1, 10],
+        #     targets[1, 11]
+        # ])
+        # if self.current_step_time <= time_left[0]:
+        #     time_left[0] -= self.current_step_time
+        #     time_left[2] -= self.current_step_time
+        # else:
+        #     time_left[0] = 0
+        #     time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
+        #     time_left[2] = max(time_left[2] - self.current_step_time, 0)
+        total_time = targets[1,8] + targets[1,9]
         time_left = np.array([
-            targets[1, 8],
-            targets[1, 9],
-            targets[1, 10],
-            targets[1, 11]
+            total_time,
+            targets[1,9] / total_time, # % swing leg air time
+            targets[1,11] / total_time, # % other leg air time
+            max(1 - self.current_step_time / total_time, 0),
         ])
-        if self.current_step_time <= time_left[0]:
-            time_left[0] -= self.current_step_time
-            time_left[2] -= self.current_step_time
-        else:
-            time_left[0] = 0
-            time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
-            time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
         # time_left_0 = np.array([targets[0, 8], time_left[0], targets[2, 8]])
         # time_left_1 = np.array([targets[0, 9], time_left[1], targets[2, 9]])
