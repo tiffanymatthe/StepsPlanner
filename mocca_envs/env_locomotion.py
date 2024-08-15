@@ -1581,6 +1581,7 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
+        # order right left
         time_left = np.array([
             targets[1, 8],
             targets[1, 9],
@@ -1595,16 +1596,22 @@ class Walker3DStepperEnv(EnvBase):
             time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
-        time_left_to_add = np.copy(time_left)
-        if targets[1, 7] != targets[2, 7]:
-            time_left_to_add[0], time_left_to_add[1], time_left_to_add[2], time_left_to_add[3] = time_left_to_add[2], time_left_to_add[3], time_left_to_add[0], time_left_to_add[1]
+        if targets[1, 7] != 0: # always order by right leg, then left leg
+            time_left[0], time_left[1], time_left[2], time_left[3] = time_left[2], time_left[3], time_left[0], time_left[1]
+
+        # time_left_to_add = np.copy(time_left)
+        # if targets[1, 7] != targets[2, 7]:
+        #     time_left_to_add[0], time_left_to_add[1], time_left_to_add[2], time_left_to_add[3] = time_left_to_add[2], time_left_to_add[3], time_left_to_add[0], time_left_to_add[1]
 
         time_left_future = np.array([
             targets[2, 8],
             targets[2, 9],
             targets[2, 10],
             targets[2, 11]
-        ]) + time_left_to_add
+        ])#  + time_left_to_add
+
+        if targets[2, 7] != 0: # always order by right leg, then left leg
+            time_left_future[0], time_left_future[1], time_left_future[2], time_left_future[3] = time_left_future[2], time_left_future[3], time_left_future[0], time_left_future[1]
 
         # time_left_0 = np.array([targets[0, 8], time_left[0], targets[2, 8]])
         # time_left_1 = np.array([targets[0, 9], time_left[1], targets[2, 9]])
@@ -1646,9 +1653,12 @@ class Walker3DStepperEnv(EnvBase):
                     6 + 2 * action_dim + 2 * i
                     for i in range(len(self.robot.foot_names) // 2)
                 ],
-                # [
-                #     (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim
-                # ],
+                [
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim,
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim,
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 4 + self.robot_obs_dim,
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 5 + self.robot_obs_dim
+                ],
             )
         )
 
@@ -1661,9 +1671,12 @@ class Walker3DStepperEnv(EnvBase):
                     6 + 2 * action_dim + 2 * i + 1
                     for i in range(len(self.robot.foot_names) // 2)
                 ],
-                # [
-                #     (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim
-                # ],
+                [
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 2 + self.robot_obs_dim,
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 3 + self.robot_obs_dim,
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 6 + self.robot_obs_dim,
+                    (self.lookahead + self.lookbehind) * self.step_param_dim + 7 + self.robot_obs_dim
+                ],
             )
         )
 
