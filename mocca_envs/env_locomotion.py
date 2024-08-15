@@ -1637,9 +1637,9 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         total_time = targets[1, 8] + targets[1, 9]
-        time_left_future = max(total_time - self.current_step_time, 0)
+        time_left_countdown = max(total_time - self.current_step_time, 0)
 
-        time_left_until_contact = np.array([time_left_future[0] + time_left_future, time_left_future[2] + time_left_future])
+        time_left_until_contact = np.array([time_left_future[0] + time_left_countdown, time_left_future[2] + time_left_countdown])
 
         return deltas, np.concatenate([time_left, time_left_until_contact])
 
