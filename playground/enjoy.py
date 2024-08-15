@@ -136,6 +136,7 @@ def main():
         expected_other_foot = []
         actual_start_foot = []
         actual_other_foot = []
+        index_switch = []
 
         foot_heading_targets = env.terrain_info[:, 6]
         foot_position_targets = env.terrain_info[:, 0:2]
@@ -174,6 +175,7 @@ def main():
                 expected_other_foot.append(env.right_expected_contact)
                 actual_start_foot.append(env.left_actual_contact)
                 actual_other_foot.append(env.right_actual_contact)
+                index_switch.append(env.current_step_time == 0)
 
             if done:
                 if args.heading:
@@ -199,17 +201,18 @@ def main():
                 if args.timing:
                     fig, axs = plt.subplots(3)
                     fig.suptitle('Timing')
-                    axs[0].plot(expected_start_foot)
+                    axs[0].plot(expected_start_foot, label="Expected Left Foot")
                     axs[1].plot(expected_other_foot)
-                    axs[0].plot(actual_start_foot)
+                    axs[0].plot(actual_start_foot, label="Actual Left Foot")
                     axs[1].plot(actual_other_foot)
-                    # axs[2].plot(env.start_leg_expected_contact_probabilities)
-                    # axs[2].plot(env.other_leg_expected_contact_probabilities)
+                    axs[2].plot(index_switch)
+                    axs[0].legend()
                     plt.show()
                     expected_start_foot = []
                     expected_other_foot = []
                     actual_start_foot = []
                     actual_other_foot = []
+                    index_switch = []
                 print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
                 obs = env.reset(reset_runner=False)
                 if args.heading:
