@@ -1659,8 +1659,8 @@ class Walker3DStepperEnv(EnvBase):
                 [
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim,
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 4 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 5 + self.robot_obs_dim
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 4 + self.robot_obs_dim,
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 5 + self.robot_obs_dim
                 ],
             )
         )
@@ -1677,8 +1677,8 @@ class Walker3DStepperEnv(EnvBase):
                 [
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 2 + self.robot_obs_dim,
                     (self.lookahead + self.lookbehind) * self.step_param_dim + 3 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 6 + self.robot_obs_dim,
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 7 + self.robot_obs_dim
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 6 + self.robot_obs_dim,
+                    # (self.lookahead + self.lookbehind) * self.step_param_dim + 7 + self.robot_obs_dim
                 ],
             )
         )
