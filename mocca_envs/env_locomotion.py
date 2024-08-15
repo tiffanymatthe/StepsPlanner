@@ -1264,7 +1264,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
         
-        if not self.timing_mask_on:
+        if not self.timing_mask_on and self.current_step_time < 30 + 2:
             self.left_actual_contact = self._foot_target_contacts[1,0]
             self.right_actual_contact = self._foot_target_contacts[0,0]
 
