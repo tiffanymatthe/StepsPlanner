@@ -426,7 +426,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 4
+        self.extra_step_dim = 8
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -527,6 +527,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if curriculum == 0:
             half_cycle_times = np.ones(N) * 30
+            half_cycle_times[::2] = 60
         elif curriculum == 1:
             half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
         else:
@@ -1593,6 +1594,13 @@ class Walker3DStepperEnv(EnvBase):
             time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
+        time_left_future = np.array([
+            targets[2, 8],
+            targets[2, 9],
+            targets[2, 10],
+            targets[2, 11]
+        ])
+
         # time_left_0 = np.array([targets[0, 8], time_left[0], targets[2, 8]])
         # time_left_1 = np.array([targets[0, 9], time_left[1], targets[2, 9]])
         # time_left_2 = np.array([targets[0, 10], time_left[2], targets[2, 10]])
@@ -1616,7 +1624,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas, time_left
+        return deltas, np.concatenate([time_left, time_left_future])
 
     def get_mirror_indices(self):
 
