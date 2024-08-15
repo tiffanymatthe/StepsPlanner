@@ -527,8 +527,8 @@ class Walker3DStepperEnv(EnvBase):
 
         if curriculum == 0:
             half_cycle_times = np.ones(N) * 30
-            # half_cycle_times[self.np_random.choice(list(range(4,N)), size=N//2-3)] = 60
-            # half_cycle_times[3] = 60
+            half_cycle_times[self.np_random.choice(list(range(3,N)), size=N//2-3)] = 50
+            # half_cycle_times[2] = 50
         elif curriculum == 1:
             half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
         else:
@@ -1595,12 +1595,16 @@ class Walker3DStepperEnv(EnvBase):
             time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
+        time_left_to_add = np.copy(time_left)
+        if targets[1, 7] != targets[2, 7]:
+            time_left_to_add[0], time_left_to_add[1], time_left_to_add[2], time_left_to_add[3] = time_left_to_add[2], time_left_to_add[3], time_left_to_add[0], time_left_to_add[1]
+
         time_left_future = np.array([
             targets[2, 8],
             targets[2, 9],
             targets[2, 10],
             targets[2, 11]
-        ])
+        ]) + time_left_to_add
 
         # time_left_0 = np.array([targets[0, 8], time_left[0], targets[2, 8]])
         # time_left_1 = np.array([targets[0, 9], time_left[1], targets[2, 9]])
