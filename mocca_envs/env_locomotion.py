@@ -1600,7 +1600,7 @@ class Walker3DStepperEnv(EnvBase):
             axis=1,
         )
 
-        return deltas # , time_left
+        return deltas, None # , time_left
 
     def get_mirror_indices(self):
 
