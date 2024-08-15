@@ -344,8 +344,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
-        self.max_behavior_curriculum = 1
+        self.behaviors = ["to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.max_behavior_curriculum = 2
 
         self.heading_errors = []
         self.met_times = []
@@ -989,30 +989,24 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-        if self.behavior_curriculum == 1:
-            self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum + 1], p=[0.3,0.7])
+        factor = 0 if self.determine else 0.2
+        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
+
+        if self.behaviors[self.behavior_curriculum] == "combine_all":
+            self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+            self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+        elif self.determine:
+            self.selected_curriculum = self.curriculum
+            self.selected_behavior = self.behaviors[self.behavior_curriculum]
         else:
-            self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum + 1])
-
-        # factor = 0 if self.determine else 0.2
-        # train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
-
-        # if self.behaviors[self.behavior_curriculum] == "combine_all":
-        #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-        #     self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-        # elif self.determine:
-        #     self.selected_curriculum = self.curriculum
-        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        # else:
-        #     if train_on_past:
-        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-        #         self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-        #     else:
-        #         weights = np.linspace(1,10,self.curriculum+1)
-        #         weights /= sum(weights)
-        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-        #         self.selected_behavior = self.behaviors[self.behavior_curriculum]
+            if train_on_past:
+                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+            else:
+                weights = np.linspace(1,10,self.curriculum+1)
+                weights /= sum(weights)
+                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+                self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         if self.selected_behavior in self.generated_paths_cache and self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
