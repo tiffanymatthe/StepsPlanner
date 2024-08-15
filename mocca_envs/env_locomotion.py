@@ -554,8 +554,8 @@ class Walker3DStepperEnv(EnvBase):
             timing_2 = timing_2.astype(int)
             timing_3 = timing_3.astype(int)
         elif method == "hopping":
-            timing_0 = half_cycle_times * 0.5
-            timing_1 = half_cycle_times * 0.5
+            timing_0 = half_cycle_times * 0.7
+            timing_1 = half_cycle_times * 0.3
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
             timing_2 = np.zeros(N)
@@ -564,13 +564,18 @@ class Walker3DStepperEnv(EnvBase):
             for i in np.where(np.diff(swing_legs,prepend=np.nan))[0]:
                 timing_0[i], timing_1[i], timing_2[i], timing_3[i] = timing_2[i], timing_3[i], timing_0[i], timing_1[i]
 
-        # make first step shorter
-        time_to_remove = 25 # timing_0[1] # HARDCODED
-        leftover = max(time_to_remove - timing_2[1], 0)
-        timing_0[1] = 0
-        timing_1[1] -= time_to_remove
-        timing_2[1] -= (time_to_remove - leftover)
-        timing_3[1] -= leftover
+            timing_0[0:4] = 0
+            timing_1[0:4] = 30
+            timing_2[0:4] = 24
+            timing_3[0:4] = 6
+
+        # # make first step shorter
+        # time_to_remove = 25 # timing_0[1] # HARDCODED
+        # leftover = max(time_to_remove - timing_2[1], 0)
+        # timing_0[1] = 0
+        # timing_1[1] -= time_to_remove
+        # timing_2[1] -= (time_to_remove - leftover)
+        # timing_3[1] -= leftover
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
