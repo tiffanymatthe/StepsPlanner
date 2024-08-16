@@ -1327,7 +1327,7 @@ class Walker3DStepperEnv(EnvBase):
                     else:
                         self.left_expected_contact = int(next_next_step_time[2] != 0) if self.terrain_info[self.next_step_index+1, 7] != self.swing_leg else int(next_next_step_time[0] != 0)
                 else:
-                    if self.current_step_time >= next_step_time[0] + next_step_time[1] + 2:
+                    if self.current_step_time >= next_step_time[0] + next_step_time[1] + 2 and self.next_step_index > 2:
                         self.left_expected_contact = -1
                     else:
                         self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
@@ -1339,7 +1339,7 @@ class Walker3DStepperEnv(EnvBase):
                     else:
                         self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
                 else:
-                    if self.current_step_time >= next_step_time[2] + next_step_time[3] + 2:
+                    if self.current_step_time >= next_step_time[2] + next_step_time[3] + 2 and self.next_step_index > 2:
                         self.right_expected_contact = -1
                     else:
                         self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
@@ -1460,7 +1460,7 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.next_step_index, 10],
             self.terrain_info[self.next_step_index, 11]
         ]
-        if self.target_reached and self.current_step_time < next_step_time[0] + next_step_time[1]:
+        if self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
             self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
