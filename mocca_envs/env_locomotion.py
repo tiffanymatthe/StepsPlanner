@@ -1454,7 +1454,13 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
-        if self.current_step_time < next_step_time[0] + next_step_time[1]:
+        next_step_time = [
+            self.terrain_info[self.next_step_index, 8],
+            self.terrain_info[self.next_step_index, 9],
+            self.terrain_info[self.next_step_index, 10],
+            self.terrain_info[self.next_step_index, 11]
+        ]
+        if self.target_reached and self.current_step_time < next_step_time[0] + next_step_time[1]:
             self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
