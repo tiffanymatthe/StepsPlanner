@@ -534,8 +534,8 @@ class Walker3DStepperEnv(EnvBase):
             half_cycle_times[0:3] = 30 # to start properly
 
         if method == "walking":
-            timing_0 = half_cycle_times * 0.7
-            timing_1 = half_cycle_times * 0.3
+            timing_0 = half_cycle_times * 0.4
+            timing_1 = half_cycle_times * 0.6
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
             timing_2 = np.ones(N) * (timing_0[0] + timing_1[0])
