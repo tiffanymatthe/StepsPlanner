@@ -1327,7 +1327,10 @@ class Walker3DStepperEnv(EnvBase):
                     else:
                         self.left_expected_contact = int(next_next_step_time[2] != 0) if self.terrain_info[self.next_step_index+1, 7] != self.swing_leg else int(next_next_step_time[0] != 0)
                 else:
-                    self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
+                    if self.current_step_time >= next_step_time[0] + next_step_time[1] + 2:
+                        self.left_expected_contact = -1
+                    else:
+                        self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
                 if self.next_step_index < self.num_steps - 1:
                     if self.current_step_time < next_step_time[2]:
                         self.right_expected_contact = 1
@@ -1336,7 +1339,10 @@ class Walker3DStepperEnv(EnvBase):
                     else:
                         self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
                 else:
-                    self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
+                    if self.current_step_time >= next_step_time[2] + next_step_time[3] + 2:
+                        self.right_expected_contact = -1
+                    else:
+                        self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
             else:
                 self.left_expected_contact = 1
                 self.right_expected_contact = 1
@@ -1447,6 +1453,9 @@ class Walker3DStepperEnv(EnvBase):
         self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
+
+        if self.current_step_time < next_step_time[0] + next_step_time[1]:
+            self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
