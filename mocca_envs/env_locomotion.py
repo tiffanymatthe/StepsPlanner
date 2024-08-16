@@ -339,7 +339,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 0
+        self.max_curriculum = 1
         self.advance_threshold = min(8, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
@@ -526,17 +526,22 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         if curriculum == 0:
-            half_cycle_times = np.ones(N) * 30
+            half_cycle_times = np.ones(N) * 20
             half_cycle_times[self.np_random.choice(list(range(3,19)), size=10)] = 60
         elif curriculum == 1:
-            half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
-        else:
-            half_cycle_times = self.np_random.choice([10,20,30,40,50,60], size=N)
-            half_cycle_times[0:3] = 30 # to start properly
+            if self.np_random.rand() < 0.5:
+                half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60,70])
+            else:
+                half_cycle_times = self.np_random.choice([10,20,30,40,50,60,70], size=N)
+        
+        half_cycle_times[0:3] = 30 # to start properly
 
         if method == "walking":
             timing_0 = half_cycle_times * 0.4
             timing_1 = half_cycle_times * 0.6
+            if curriculum > 0 and self.np_random.rand() < 0.5:
+                timing_0 = half_cycle_times * 0.3
+                timing_1 = half_cycle_times * 0.7
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
             timing_2 = timing_0 + timing_1
