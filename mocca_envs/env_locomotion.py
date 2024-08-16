@@ -479,7 +479,7 @@ class Walker3DStepperEnv(EnvBase):
         if method != "hopping":
             swing_legs = np.ones(N, dtype=np.int8)
             swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
-            swing_legs[4:] = 1
+            # swing_legs[4:] = 1
         else:
             swing_legs = np.zeros(N, dtype=np.int8)
             swing_legs[1] = 1
@@ -527,6 +527,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if curriculum == 0:
             half_cycle_times = np.ones(N) * 30
+            half_cycle_times[self.np_random.choice(list(range(3,19)), size=10)] = 60
         elif curriculum == 1:
             half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
         else:
@@ -538,7 +539,7 @@ class Walker3DStepperEnv(EnvBase):
             timing_1 = half_cycle_times * 0.6
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
-            timing_2 = np.ones(N) * (timing_0[0] + timing_1[0])
+            timing_2 = timing_0 + timing_1
             timing_3 = np.zeros(N)
 
             # make first step shorter
@@ -548,18 +549,18 @@ class Walker3DStepperEnv(EnvBase):
             timing_2[1] -= timing_0[1]
             timing_0[1] = 0
 
-            # add hopping only on left leg after 5 steps
-            timing_0[4:] = 13 + 8
-            timing_1[4:] = 7 + 8
-            timing_2[4:] = 0
-            timing_3[4:] = 20 + 16
+            # # add hopping only on left leg after 5 steps
+            # timing_0[4:] = 13 + 8
+            # timing_1[4:] = 7 + 8
+            # timing_2[4:] = 0
+            # timing_3[4:] = 20 + 16
 
-            timing_0[4] = 13 + 5
-            timing_1[4] = 7 + 8
-            timing_2[4] = 6
-            timing_3[4] = 20 + 7
+            # timing_0[4] = 13 + 5
+            # timing_1[4] = 7 + 8
+            # timing_2[4] = 6
+            # timing_3[4] = 20 + 7
 
-            assert (timing_0 + timing_1 == timing_2 + timing_3).all()
+            assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
 
         elif method == "running":
             timing_0 = np.zeros(N)
