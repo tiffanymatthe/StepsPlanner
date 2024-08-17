@@ -392,6 +392,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": None,
             "backward": None,
             "heading_var": np.linspace(0, np.pi / 3, N),
+            "timing_gaits": None,
         }
         self.dist_range = {
             "to_standstill": np.array([0.65, 0.0]),
@@ -400,6 +401,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": np.array([0.2, 0.5]),
             "backward": np.array([0.5, 0.0]),
             "heading_var": np.array([0.65, 0.65]),
+            "timing_gaits": np.array([0.65, 0.65]),
         }
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
         self.pitch_range = np.array([0, 0])  # degrees
@@ -411,6 +413,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": np.array([0.0, 0.0]),
             "backward": np.array([0.0, 0.0]),
             "heading_var": np.array([0.0, 0.0]),
+            "timing_gaits": np.array([0.0, 0.0]),
         }
 
         self.generated_paths_cache = {
