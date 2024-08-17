@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["timing_gaits"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 0
 
         self.heading_errors = []
@@ -502,7 +502,6 @@ class Walker3DStepperEnv(EnvBase):
         if method != "hopping":
             swing_legs = np.ones(N, dtype=np.int8)
             swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
-            swing_legs[4:] = 1
         else:
             swing_legs = np.zeros(N, dtype=np.int8)
             swing_legs[1] = 1
@@ -549,22 +548,23 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         if curriculum == 0:
-            half_cycle_times = np.ones(N) * 30
+            half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
             # half_cycle_times[self.np_random.choice(list(range(3,19)), size=10)] = 60
         elif curriculum == 1:
             if self.np_random.rand() < 0.5:
-                half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60,70])
+                half_cycle_times = np.ones(N) * self.np_random.choice([20,30,40,50,60,70])
             else:
-                half_cycle_times = self.np_random.choice([10,20,30,40,50,60,70], size=N)
+                half_cycle_times = self.np_random.choice([20,30,40,50,60,70], size=N)
         
         half_cycle_times[0:3] = 30 # to start properly
 
         if method == "walking":
             timing_0 = half_cycle_times * 0.4
             timing_1 = half_cycle_times * 0.6
-            if curriculum > 0 and self.np_random.rand() < 0.5:
-                timing_0 = half_cycle_times * 0.3
-                timing_1 = half_cycle_times * 0.7
+            if curriculum > 0:
+                ratio = self.np_random.choice([0.3, 0.4, 0.5])
+                timing_0 = half_cycle_times * ratio
+                timing_1 = half_cycle_times * (1-ratio)
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
             timing_2 = timing_0 + timing_1
