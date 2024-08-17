@@ -444,7 +444,7 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        half_cycle_times = np.ones(N) * 30
+        half_cycle_times = np.ones(N) * 24
         
         timing_0 = half_cycle_times * 0.4
         timing_1 = half_cycle_times * 0.6
