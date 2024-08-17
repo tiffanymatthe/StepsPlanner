@@ -136,6 +136,7 @@ def main():
         expected_other_foot = []
         actual_start_foot = []
         actual_other_foot = []
+        index_switch = []
 
         foot_heading_targets = env.terrain_info[:, 6]
         foot_position_targets = env.terrain_info[:, 0:2]
@@ -170,10 +171,11 @@ def main():
             ep_reward += reward
 
             if args.timing:
-                expected_start_foot.append(env.start_expected_contact)
-                expected_other_foot.append(env.other_expected_contact)
-                actual_start_foot.append(env.robot.feet_contact[env.starting_leg])
-                actual_other_foot.append(env.robot.feet_contact[1-env.starting_leg])
+                expected_start_foot.append(env.left_expected_contact)
+                expected_other_foot.append(env.right_expected_contact)
+                actual_start_foot.append(env.left_actual_contact)
+                actual_other_foot.append(env.right_actual_contact)
+                index_switch.append(env.current_step_time == 0)
 
             if done:
                 if args.heading:
@@ -197,19 +199,37 @@ def main():
                     right_foot_positions = []
                     target_indices = []
                 if args.timing:
-                    fig, axs = plt.subplots(3)
+                    fig, axs = plt.subplots(4)
                     fig.suptitle('Timing')
-                    axs[0].plot(expected_start_foot)
+                    axs[0].plot(expected_start_foot, label="Expected Left Foot")
                     axs[1].plot(expected_other_foot)
-                    axs[0].plot(actual_start_foot)
+                    axs[0].plot(actual_start_foot, label="Actual Left Foot")
                     axs[1].plot(actual_other_foot)
-                    axs[2].plot(env.start_leg_expected_contact_probabilities)
-                    axs[2].plot(env.other_leg_expected_contact_probabilities)
+                    axs[2].plot(index_switch)
+                    left_leg_contacts = []
+                    right_leg_contacts = []
+                    for i in range(env.num_steps):
+                        if env.terrain_info[i, 7] == 1:
+                            left_leg_contacts.extend([1] * int(env.terrain_info[i, 8]))
+                            left_leg_contacts.extend([0] * int(env.terrain_info[i, 9]))
+                            right_leg_contacts.extend([1] * int(env.terrain_info[i, 10]))
+                            right_leg_contacts.extend([0] * int(env.terrain_info[i, 11]))
+                        else:
+                            right_leg_contacts.extend([1] * int(env.terrain_info[i, 8]))
+                            right_leg_contacts.extend([0] * int(env.terrain_info[i, 9]))
+                            left_leg_contacts.extend([1] * int(env.terrain_info[i, 10]))
+                            left_leg_contacts.extend([0] * int(env.terrain_info[i, 11]))
+                        axs[3].axvline(x=len(left_leg_contacts))
+                    axs[3].plot(left_leg_contacts, label="left")
+                    axs[3].plot(right_leg_contacts)
+                    axs[3].legend()
+                    axs[0].legend()
                     plt.show()
                     expected_start_foot = []
                     expected_other_foot = []
                     actual_start_foot = []
                     actual_other_foot = []
+                    index_switch = []
                 print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
                 obs = env.reset(reset_runner=False)
                 if args.heading:
