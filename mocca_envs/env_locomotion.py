@@ -444,7 +444,7 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        half_cycle_times = np.ones(N) * 24
+        half_cycle_times = np.ones(N) * 30
         
         timing_0 = half_cycle_times * 0.4
         timing_1 = half_cycle_times * 0.6
@@ -1635,7 +1635,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.right_expected_contact = 1
                 elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
                     self.right_expected_contact = 0
-                elif self.target_reached and self.target_reached_count > 2: # self.current_step_time >= next_step_time[2] + next_step_time[3] + 2: # too far
+                elif self.current_step_time >= next_step_time[2] + next_step_time[3] + 2: # too far
                     self.right_expected_contact = -1
                 else:
                     self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
