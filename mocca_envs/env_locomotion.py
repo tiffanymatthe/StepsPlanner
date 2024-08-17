@@ -580,16 +580,16 @@ class Walker3DStepperEnv(EnvBase):
             timing_2[1] -= timing_0[1]
             timing_0[1] = 0
 
-            # add hopping only on left leg after 5 steps
-            timing_0[4:] = 13 + 8
-            timing_1[4:] = 7 + 8
-            timing_2[4:] = 0
-            timing_3[4:] = 20 + 16
+            # # add hopping only on left leg after 5 steps
+            # timing_0[4:] = 13 + 8
+            # timing_1[4:] = 7 + 8
+            # timing_2[4:] = 0
+            # timing_3[4:] = 20 + 16
 
-            timing_0[4] = 13 + 5
-            timing_1[4] = 7 + 8
-            timing_2[4] = 6
-            timing_3[4] = 20 + 7
+            # timing_0[4] = 13 + 5
+            # timing_1[4] = 7 + 8
+            # timing_2[4] = 6
+            # timing_3[4] = 20 + 7
 
             assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
 
