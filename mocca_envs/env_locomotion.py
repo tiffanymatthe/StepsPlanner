@@ -340,7 +340,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 9
-        self.advance_threshold = min(16, self.num_steps)
+        self.advance_threshold = min(15, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
@@ -357,55 +357,16 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
 
+        self.current_step_time = 0
+
         self.foot_angle_weight = kwargs.pop("foot_angle_weight", 0.1)
 
-        self.frozen_clock_signal = None
         self.past_last_step = False
         self.reached_last_step = False
 
         self.determine = kwargs.pop("determine", False)
 
-        self.time_offset = 0
-        self.cycle_time = kwargs.pop("cycle_time", 60)
-        # half_stand_time = 4
-        uncertainty_range = 5
-
-        def interpolate_between_indices(array, start_index, end_index):
-            # end index is inclusive
-            # Get the values at the start and end indices
-            start_value = array[start_index]
-            end_value = array[end_index]
-            
-            # Number of elements to interpolate
-            num_elements = end_index - start_index + 1
-            
-            # Create interpolated values
-            interpolated_values = np.linspace(start_value, end_value, num_elements)
-            
-            # Replace the elements in the array with interpolated values
-            array[start_index:end_index + 1] = interpolated_values
-        
-        def get_left_right_indices(middle_index, width):
-            offset = (width - 1) // 2
-            return (middle_index - offset, middle_index + offset)
-
-        SS_phase = int(self.cycle_time * 0.4)
-        DS_phase = int((self.cycle_time - 2 * SS_phase) // 2)
-        assert SS_phase * 2 + DS_phase * 2 == self.cycle_time, f"2 * SS_phase {2 * SS_phase} and 2 * DS_phase {2 * DS_phase} do not make {self.cycle_time}"
-        self.start_leg_expected_contact_probabilities = np.zeros(self.cycle_time)
-        self.start_leg_expected_contact_probabilities[SS_phase:] = 1
-        self.other_leg_expected_contact_probabilities = np.ones(self.cycle_time)
-        self.other_leg_expected_contact_probabilities[SS_phase + DS_phase:SS_phase*2 + DS_phase] = 0
-
-        # smooth out transitions
-        self.start_leg_expected_contact_probabilities[0] = 0.5
-        interpolate_between_indices(self.start_leg_expected_contact_probabilities, 0, uncertainty_range // 2)
-        interpolate_between_indices(self.start_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase, uncertainty_range))
-        self.start_leg_expected_contact_probabilities[-1] = 0.75
-        interpolate_between_indices(self.start_leg_expected_contact_probabilities, self.cycle_time - uncertainty_range // 2, self.cycle_time - 1)
-
-        interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase+DS_phase, uncertainty_range))
-        interpolate_between_indices(self.other_leg_expected_contact_probabilities, *get_left_right_indices(SS_phase*2+DS_phase, uncertainty_range))
+        self.selected_curriculum = 0
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -419,11 +380,9 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         self.elbow_penalty = 0
-        self.elbow_weight = 0.1
+        self.elbow_weight = 0.4
 
-        self.clock_started = False
-
-        self.selected_behavior = "to_standstill"
+        self.selected_behavior = self.behaviors[0]
 
         # Terrain info
         self.angle_curriculum = {
@@ -458,18 +417,15 @@ class Walker3DStepperEnv(EnvBase):
             "backward": [[None, None] for _ in range(self.max_curriculum+1)],
         }
 
-        self.step_param_dim = 6
+        self.step_param_dim = 7
         # Important to do this once before reset!
         self.swing_leg = 0
-        self.starting_leg = self.swing_leg
         self.terrain_info = self.generate_step_placements()
-
-        self.next_step_start_timestep = 0
 
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 2
+        self.extra_step_dim = 4
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -481,6 +437,180 @@ class Walker3DStepperEnv(EnvBase):
         self._foot_target_contacts = np.zeros((F, 1), dtype=np.float32)
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
+    def get_timing(self, N):
+        half_cycle_times = np.ones(N) * 30
+        
+        timing_0 = half_cycle_times * 0.4
+        timing_1 = half_cycle_times * 0.6
+        timing_0 = timing_0.astype(int)
+        timing_1 = timing_1.astype(int)
+        timing_2 = timing_0 + timing_1
+        timing_3 = np.zeros(N)
+
+        # make first step shorter
+        timing_2[0] -= timing_0[0]
+        timing_0[0] = 0
+
+        timing_2[1] -= timing_0[1]
+        timing_0[1] = 0
+
+        assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
+
+        return timing_0, timing_1, timing_2, timing_3
+
+    def generate_timing_gaits_step_placements(self, curriculum):
+        # Check just in case
+        curriculum = min(curriculum, self.max_curriculum)
+        ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
+
+        method = "walking"
+
+        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD
+
+        self.path_angle = 0
+
+        N = self.num_steps
+        
+        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        dr = np.zeros(N) + self.dr_spacing
+
+        dphi = self.np_random.uniform(*yaw_range, size=N)
+        dtheta = self.np_random.uniform(*pitch_range, size=N)
+        x_tilt = self.np_random.uniform(*tilt_range, size=N)
+        y_tilt = self.np_random.uniform(*tilt_range, size=N)
+
+        # make first step below feet
+        dr[0] = 0.0
+        dphi[0] = 0.0
+        dtheta[0] = np.pi / 2
+
+        dr[1] = self.init_step_separation
+        dphi[1] = 0.0
+        dtheta[1] = np.pi / 2
+
+        dphi[2] = 0.0
+
+        x_tilt[0:2] = 0
+        y_tilt[0:2] = 0
+
+        # Update x and y arrays
+        if method != "hopping":
+            swing_legs = np.ones(N, dtype=np.int8)
+            swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
+            swing_legs[4:] = 1
+        else:
+            swing_legs = np.zeros(N, dtype=np.int8)
+            swing_legs[1] = 1
+            swing_legs[3] = 1
+            swing_legs[6:10] = 1
+            swing_legs[15:] = 1
+
+        dphi[self.stop_steps[1::2]] = 0
+        dphi = np.cumsum(dphi)
+
+        dy = dr * np.sin(dtheta) * np.cos(dphi)
+        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dz = dr * np.cos(dtheta)
+
+        dy[self.stop_steps[1::2]] = 0
+        dx[self.stop_steps[1::2]] = 0
+
+        heading_targets = np.copy(dphi)
+
+        x = np.cumsum(dx)
+        y = np.cumsum(dy)
+        z = np.cumsum(dz)
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)]) * self.foot_sep
+        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)]) * self.foot_sep
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
+        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
+
+        if self.robot.mirrored:
+            x *= -1
+        else:
+            swing_legs = 1 - swing_legs
+            heading_targets *= -1
+
+        # switched dy and dx before, so need to rectify
+        heading_targets += 90 * DEG2RAD
+
+        dphi *= 0
+
+        if curriculum == 0:
+            half_cycle_times = np.ones(N) * 30
+            # half_cycle_times[self.np_random.choice(list(range(3,19)), size=10)] = 60
+        elif curriculum == 1:
+            if self.np_random.rand() < 0.5:
+                half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60,70])
+            else:
+                half_cycle_times = self.np_random.choice([10,20,30,40,50,60,70], size=N)
+        
+        half_cycle_times[0:3] = 30 # to start properly
+
+        if method == "walking":
+            timing_0 = half_cycle_times * 0.4
+            timing_1 = half_cycle_times * 0.6
+            if curriculum > 0 and self.np_random.rand() < 0.5:
+                timing_0 = half_cycle_times * 0.3
+                timing_1 = half_cycle_times * 0.7
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2 = timing_0 + timing_1
+            timing_3 = np.zeros(N)
+
+            # make first step shorter
+            timing_2[0] -= timing_0[0]
+            timing_0[0] = 0
+
+            timing_2[1] -= timing_0[1]
+            timing_0[1] = 0
+
+            # add hopping only on left leg after 5 steps
+            timing_0[4:] = 13 + 8
+            timing_1[4:] = 7 + 8
+            timing_2[4:] = 0
+            timing_3[4:] = 20 + 16
+
+            timing_0[4] = 13 + 5
+            timing_1[4] = 7 + 8
+            timing_2[4] = 6
+            timing_3[4] = 20 + 7
+
+            assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
+
+        elif method == "running":
+            timing_0 = np.zeros(N)
+            timing_1 = half_cycle_times
+            timing_2 = half_cycle_times * 0.8
+            timing_3 = half_cycle_times * 0.2
+            timing_2 = timing_2.astype(int)
+            timing_3 = timing_3.astype(int)
+        elif method == "hopping":
+            timing_0 = half_cycle_times * 0.7
+            timing_1 = half_cycle_times * 0.3
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2 = np.zeros(N)
+            timing_3 = half_cycle_times
+
+            for i in np.where(np.diff(swing_legs,prepend=np.nan))[0]:
+                timing_0[i], timing_1[i], timing_2[i], timing_3[i] = timing_2[i], timing_3[i], timing_0[i], timing_1[i]
+
+            timing_0[0:4] = 0
+            timing_1[0:4] = 30
+            timing_2[0:4] = 24
+            timing_3[0:4] = 6
+        
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
     def generate_to_standstill_step_placements(self, curriculum):
         # Check just in case
@@ -562,7 +692,9 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+        timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
     
     def generate_backward_step_placements(self, curriculum):
         # Check just in case
@@ -648,7 +780,9 @@ class Walker3DStepperEnv(EnvBase):
 
         y += 0.3
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+        timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
         
     def generate_random_walks_step_placements(self, curriculum):
         # Check just in case
@@ -731,7 +865,9 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+        timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
     def get_random_flip_array_every_5(self, N):
         flip_array = np.zeros(N + 1, dtype=np.int8)
@@ -839,7 +975,9 @@ class Walker3DStepperEnv(EnvBase):
         z[-2] = z[-4]
         heading_targets[-2] = heading_targets[-4]
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+        timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
     def generate_side_step_step_placements(self, curriculum):
         # Check just in case
@@ -937,7 +1075,9 @@ class Walker3DStepperEnv(EnvBase):
         z[-2] = z[-4]
         heading_targets[-2] = heading_targets[-4]
 
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs), axis=1)
+        timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
     
     def generate_transition_all_step_placements(self, curriculum):
         # Check just in case
@@ -948,6 +1088,7 @@ class Walker3DStepperEnv(EnvBase):
             (self.generate_turn_in_place_step_placements, "turn_in_place"),
             (self.generate_side_step_step_placements, "side_step"),
             (self.generate_random_walks_step_placements, "random_walks"),
+            # (self.generate_timing_gaits_step_placements, "timing_gaits"),
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
@@ -1024,6 +1165,8 @@ class Walker3DStepperEnv(EnvBase):
         elif self.selected_behavior in {"transition_all", "combine_all"}:
             self.selected_behavior = "transition_all"
             path = self.generate_transition_all_step_placements(self.selected_curriculum)
+        elif self.selected_behavior == "timing_gaits":
+            path = self.generate_timing_gaits_step_placements(self.selected_curriculum)
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
         
@@ -1098,7 +1241,7 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted = False
         self.body_stationary_count = 0
 
-        self.next_step_start_timestep = 0
+        self.current_step_time = 0
 
         self.heading_errors = []
         self.met_times = []
@@ -1120,7 +1263,6 @@ class Walker3DStepperEnv(EnvBase):
             mirror=0 # if self.behavior_curriculum == 0 else 1 # 0 if random, 1 if force True, 2 if force False
         )
         self.prev_leg = self.swing_leg
-        self.clock_started = False
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
@@ -1141,12 +1283,15 @@ class Walker3DStepperEnv(EnvBase):
 
         self.targets, self.extra_param = self.delta_to_k_targets()
         assert self.targets.shape[-1] == self.step_param_dim
-        assert self.extra_param.shape[0] == self.extra_step_dim
+        assert (self.extra_step_dim == 0 and self.extra_param is None) or (self.extra_param.shape[0] == self.extra_step_dim)
 
         # Order is important because walk_target is set up above
         self.calc_potential()
 
-        state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
+        if self.extra_step_dim == 0:
+            state = concatenate((self.robot_state, self.targets.flatten()))
+        else:
+            state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
 
         if not self.state_id >= 0:
             self.state_id = self._p.saveState()
@@ -1155,6 +1300,7 @@ class Walker3DStepperEnv(EnvBase):
 
     def step(self, action):
         self.timestep += 1
+        self.current_step_time += 1
 
         self.robot.apply_action(action)
         self.scene.global_step()
@@ -1173,12 +1319,11 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.heading_bonus * self.heading_bonus_weight
         reward += self.timing_bonus * self.timing_bonus_weight
 
-        # if self.progress != 0:
-        #     print(f"{self.next_step_index}: {self.progress}, -{self.energy_penalty}, {self.step_bonus}, {self.target_bonus}, {self.tall_bonus}, -{self.posture_penalty}, -{self.joints_penalty}, {self.legs_bonus}, -{self.heading_bonus}")
-
         # targets is calculated by calc_env_state()
-        state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
-        # print(f"{self.next_step_index}: timing observation {self.extra_param} with timing bonus {self.timing_bonus}")
+        if self.extra_step_dim == 0:
+            state = concatenate((self.robot_state, self.targets.flatten()))
+        else:
+            state = concatenate((self.robot_state, self.targets.flatten(), self.extra_param))
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard(callback=self.handle_keyboard)
@@ -1242,9 +1387,6 @@ class Walker3DStepperEnv(EnvBase):
         self.linear_potential = -(body_distance_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
-        # angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
-        # self.linear_potential += -(angle_delta * self.foot_angle_weight) / self.scene.dt
-
     def calc_base_reward(self, action):
 
         # Bookkeeping stuff
@@ -1253,13 +1395,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2
-
-        # if self.next_step_index != self._prev_next_step_index:
-        #     print(f"{self.next_step_index}: progress {self.progress} with swing leg {self.swing_leg} at {self.robot.feet_xyz} with target {self.terrain_info[self.next_step_index]}")
-        #     print(f"Foot distance to target in 3D: {self.foot_dist_to_target[self.swing_leg]}")
-        #     print(f"Vertical errors: {self.robot.feet_xyz[self.swing_leg, 2] - self.terrain_info[self.next_step_index, 2]}")
-        #     print(f"Next step position: {self.terrain_info[self.next_step_index]}")
+        self.progress = linear_progress
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1317,68 +1453,82 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
         
-        cycle_time_elapsed = (self.timestep + self.time_offset) % self.cycle_time
-
-        if not self.past_last_step:
-            self.start_expected_contact = self.start_leg_expected_contact_probabilities[cycle_time_elapsed]
-            self.other_expected_contact = self.other_leg_expected_contact_probabilities[cycle_time_elapsed]
-        else:
-            self.start_expected_contact = 1
-            self.other_expected_contact = 1
-
-        met_time = 0
-
-        if self._foot_target_contacts[self.starting_leg, 0] == 1:
-            start_bonus = 2 * self.start_expected_contact - 1
-            if self.start_expected_contact >= 0.5:
-                met_time += 1
-        else:
-            start_bonus = - (2 * self.start_expected_contact - 1)
-            if self.start_expected_contact <= 0.5:
-                met_time += 1
-
-        if self._foot_target_contacts[1-self.starting_leg, 0] == 1:
-            other_bonus = 2 * self.other_expected_contact - 1
-            if self.other_expected_contact >= 0.5:
-                met_time += 1
-        else:
-            other_bonus = - (2 * self.other_expected_contact - 1)
-            if self.other_expected_contact <= 0.5:
-                met_time += 1
-
-        if not self.clock_started:
-            self.timing_bonus = 0
-            self.start_expected_contact = -1
-            self.other_expected_contact = -1
-        else:
-            self.timing_bonus = start_bonus + other_bonus
-
-        if not self.past_last_step and self.clock_started:
-            self.met_times.append(met_time)
+        self.calc_timing_reward()
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
 
+    def calc_timing_reward(self):
+        self.left_actual_contact = self._foot_target_contacts[1,0]
+        self.right_actual_contact = self._foot_target_contacts[0,0]
+
+        next_step_time = [
+            self.terrain_info[self.next_step_index, 8],
+            self.terrain_info[self.next_step_index, 9],
+            self.terrain_info[self.next_step_index, 10],
+            self.terrain_info[self.next_step_index, 11]
+        ]
+
+        if self.next_step_index < self.num_steps - 1:
+            next_next_step_time = [
+                self.terrain_info[self.next_step_index+1, 8],
+                self.terrain_info[self.next_step_index+1, 9],
+                self.terrain_info[self.next_step_index+1, 10],
+                self.terrain_info[self.next_step_index+1, 11]
+        ]
+
+        if not self.past_last_step:
+            # assumes swing leg == 1 (will swap later)
+            if self.next_step_index < self.num_steps - 1:
+                if self.current_step_time < next_step_time[0]:
+                    self.left_expected_contact = 1
+                elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]):
+                    self.left_expected_contact = 0
+                else:
+                    self.left_expected_contact = int(next_next_step_time[2] != 0) if self.terrain_info[self.next_step_index+1, 7] != self.swing_leg else int(next_next_step_time[0] != 0)
+            else:
+                if self.current_step_time >= next_step_time[0] + next_step_time[1] + 2:
+                    self.left_expected_contact = -1
+                else:
+                    self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
+            if self.next_step_index < self.num_steps - 1:
+                if self.current_step_time < next_step_time[2]:
+                    self.right_expected_contact = 1
+                elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]):
+                    self.right_expected_contact = 0
+                else:
+                    self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
+            else:
+                if self.current_step_time >= next_step_time[2] + next_step_time[3] + 2:
+                    self.right_expected_contact = -1
+                else:
+                    self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
+        else:
+            self.left_expected_contact = 1
+            self.right_expected_contact = 1
+
+        if self.swing_leg == 0:
+            # swap happens here if needed
+            self.left_expected_contact, self.right_expected_contact = self.right_expected_contact, self.left_expected_contact
+            
+        expected_contacts = [self.right_expected_contact, self.left_expected_contact]
+
+        met_time = np.sum(expected_contacts == self._foot_target_contacts[:, 0])
+
+        self.timing_bonus = np.sum(2 * (expected_contacts == self._foot_target_contacts[:, 0]) - 1)
+
+        if not self.past_last_step:
+            self.met_times.append(met_time)
+
     def smallest_angle_between(self, angle1, angle2):
-        # Normalize the angles to the range [0, 2pi)
         angle1 = angle1 % (2 * np.pi)
         angle2 = angle2 % (2 * np.pi)
-        
-        # Calculate the absolute difference between the two angles
         diff = abs(angle1 - angle2)
-        
-        # The smallest angle is the minimum of the difference and (2 * np.pi) - difference
         smallest_angle = min(diff, (2 * np.pi) - diff)
-
         if smallest_angle >= np.pi:
             smallest_angle -= 2 * np.pi
-        
         return smallest_angle
 
     def calc_feet_state(self):
-        # Calculate contact separately for step
-        # target_cover_index = self.next_step_index % self.rendered_step_count
-        # next_step = self.steps[0]
-
         self.foot_dist_to_target = np.sqrt(
             ss(
                 self.robot.feet_xyz[:, 0:2]
@@ -1387,16 +1537,11 @@ class Walker3DStepperEnv(EnvBase):
             )
         )
 
-        # # allow horizontal step to extend + if swing leg is 1 else neg if swing leg is 0 for x direction
-        # padding_x = self.step_radius if self.swing_leg == 1 else -self.step_radius
-        # x_dist_to_target = np.abs(self.robot.feet_xyz[:, 0] - (self.terrain_info[self.next_step_index, 0] + padding_x))
-        # y_dist_to_target = np.abs(self.robot.feet_xyz[:, 1] - self.terrain_info[self.next_step_index, 1])
-
         robot_id = self.robot.id
         client_id = self._p._client
         ground_ids = next(iter(self.ground_ids))
-        target_id_list = [ground_ids[0]] # [next_step.id]
-        target_cover_id_list = [ground_ids[1]] # [next_step.cover_id]
+        target_id_list = [ground_ids[0]]
+        target_cover_id_list = [ground_ids[1]]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -1453,12 +1598,16 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
-        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
+        next_step_time = [
+            self.terrain_info[self.next_step_index, 8],
+            self.terrain_info[self.next_step_index, 9],
+            self.terrain_info[self.next_step_index, 10],
+            self.terrain_info[self.next_step_index, 11]
+        ]
+        if self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
+            self.target_reached = False
 
-        if self.next_step_index == 2 and self.target_reached and self.target_reached_count == 0 and not self.clock_started:
-            self.clock_started = True
-            self.time_offset = -self.timestep
-            self.starting_leg = 1 - self.swing_leg
+        self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
         if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
@@ -1569,6 +1718,7 @@ class Walker3DStepperEnv(EnvBase):
             targets = self._targets
 
         if self.selected_behavior in {"turn_in_place", "side_step"}:
+            # TODO: bad for mixing everything together
             walk_target_full = self.terrain_info[self.next_step_index]
         else:
             walk_target_full = targets[self.walk_target_index]
@@ -1599,15 +1749,19 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_legs_at_targets = np.where(targets[:, 7] == 0, -1, 1)
 
-        if not self.past_last_step:
-            clock_signal = np.array([np.sin(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time), np.cos(2*np.pi*(self.timestep+self.time_offset) / self.cycle_time)])
-            if self.starting_leg == 0:
-                clock_signal = np.flip(clock_signal)
+        time_left = np.array([
+            targets[1, 8],
+            targets[1, 9],
+            targets[1, 10],
+            targets[1, 11]
+        ])
+        if self.current_step_time <= time_left[0]:
+            time_left[0] -= self.current_step_time
+            time_left[2] -= self.current_step_time
         else:
-            clock_signal = np.array([1,1])
-
-        if not self.clock_started:
-            clock_signal = np.array([0,0])
+            time_left[0] = 0
+            time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
+            time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
         deltas = concatenate(
             (
@@ -1617,12 +1771,12 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
-                # (swing_legs_at_targets)[:, None],  # swing_legs
+                (swing_legs_at_targets)[:, None],  # swing_legs
             ),
             axis=1,
         )
 
-        return deltas, clock_signal
+        return deltas, time_left
 
     def get_mirror_indices(self):
 
@@ -1639,9 +1793,6 @@ class Walker3DStepperEnv(EnvBase):
                     6 + 2 * action_dim + 2 * i
                     for i in range(len(self.robot.foot_names) // 2)
                 ],
-                [
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 0 + self.robot_obs_dim
-                ],
             )
         )
 
@@ -1653,9 +1804,6 @@ class Walker3DStepperEnv(EnvBase):
                 [
                     6 + 2 * action_dim + 2 * i + 1
                     for i in range(len(self.robot.foot_names) // 2)
-                ],
-                [
-                    (self.lookahead + self.lookbehind) * self.step_param_dim + 1 + self.robot_obs_dim
                 ],
             )
         )
@@ -1677,7 +1825,7 @@ class Walker3DStepperEnv(EnvBase):
                     i * self.step_param_dim + 0,  # sin(-x) = -sin(x)
                     i * self.step_param_dim + 3,  # x_tilt
                     i * self.step_param_dim + 5, # heading
-                    # i * self.step_param_dim + 6, # swing legs
+                    i * self.step_param_dim + 6, # swing legs
                 )
                 for i in range(self.lookahead + self.lookbehind)
             ],

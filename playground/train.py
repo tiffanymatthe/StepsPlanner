@@ -52,8 +52,7 @@ def configs():
     gauss_width = 0.5
     start_curriculum = 0
     start_behavior_curriculum = 0
-    cycle_time = 60
-
+    use_wandb = True
     foot_angle_weight = 0.1
 
     # Network settings
@@ -99,10 +98,11 @@ def configs():
 def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
 
-    run = wandb.init(
-        project="WalkerStepperEnv-v0 - All Training",
-        config=args
-    )
+    if args.use_wandb:
+        run = wandb.init(
+            project="WalkerStepperEnv-v0 - All Training",
+            config=args
+        )
 
     env_name = args.env
 
@@ -115,7 +115,6 @@ def main(_seed, _config, _run):
         "gauss_width": args.gauss_width,
         "timing_bonus_weight": args.timing_bonus_weight,
         "start_curriculum": args.start_curriculum,
-        "cycle_time": args.cycle_time,
         "start_behavior_curriculum": args.start_behavior_curriculum,
         "foot_angle_weight": args.foot_angle_weight,
     }
@@ -321,7 +320,7 @@ def main(_seed, _config, _run):
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
                 },
-                wandb
+                wandb if args.use_wandb else None
             )
 
     envs.close()
