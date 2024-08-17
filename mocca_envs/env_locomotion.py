@@ -1536,7 +1536,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1
+        self.progress = linear_progress * 1.5
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1622,7 +1622,7 @@ class Walker3DStepperEnv(EnvBase):
             if self.next_step_index < self.num_steps - 1:
                 if self.current_step_time < next_step_time[0]: # first contact
                     self.left_expected_contact = 1
-                elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
+                elif next_step_time[0] < self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
                     self.left_expected_contact = 0
                 elif self.current_step_time >= next_step_time[0] + next_step_time[1] + 2: # too far
                     self.left_expected_contact = -1
