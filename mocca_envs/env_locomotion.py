@@ -1764,6 +1764,7 @@ class Walker3DStepperEnv(EnvBase):
             delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
+                    self.current_step_time = 0
                     self.current_target_count = 0
                     self.in_air_count = 0
                     self.prev_leg_pos[self.swing_leg] = self.terrain_info[self.next_step_index, 0:2]
