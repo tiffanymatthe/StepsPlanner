@@ -100,7 +100,7 @@ def main(_seed, _config, _run):
 
     if args.use_wandb:
         run = wandb.init(
-            project="WalkerStepperEnv-v0 - All Training",
+            project="WalkerStepperEnv-v0 - Everything",
             config=args
         )
 
