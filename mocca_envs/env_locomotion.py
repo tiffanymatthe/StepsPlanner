@@ -469,7 +469,7 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "walking"
+        method = "hopping"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -506,11 +506,19 @@ class Walker3DStepperEnv(EnvBase):
             swing_legs = np.ones(N, dtype=np.int8)
             swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
         else:
-            swing_legs = np.zeros(N, dtype=np.int8)
-            swing_legs[1] = 1
-            swing_legs[3] = 1
-            swing_legs[6:10] = 1
-            swing_legs[15:] = 1
+            swing_legs = np.ones(N, dtype=np.int8)
+            swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
+            # start hopping at index 4
+            swing_legs[4:6] = swing_legs[3]
+            # walking
+            swing_legs[[6,8]] = 1 - swing_legs[3]
+            swing_legs[7] = swing_legs[3]
+            # hopping
+            swing_legs[9:13] = swing_legs[8]
+            # walking
+            swing_legs[13] = 1 - swing_legs[8]
+            # hopping
+            swing_legs[14:] = swing_legs[13]
 
         dphi[self.stop_steps[1::2]] = 0
         dphi = np.cumsum(dphi)
@@ -580,19 +588,6 @@ class Walker3DStepperEnv(EnvBase):
             timing_2[1] -= timing_0[1]
             timing_0[1] = 0
 
-            # # add hopping only on left leg after 5 steps
-            # timing_0[4:] = 13 + 8
-            # timing_1[4:] = 7 + 8
-            # timing_2[4:] = 0
-            # timing_3[4:] = 20 + 16
-
-            # timing_0[4] = 13 + 5
-            # timing_1[4] = 7 + 8
-            # timing_2[4] = 6
-            # timing_3[4] = 20 + 7
-
-            assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
-
         elif method == "running":
             timing_0 = np.zeros(N)
             timing_1 = half_cycle_times
@@ -601,20 +596,71 @@ class Walker3DStepperEnv(EnvBase):
             timing_2 = timing_2.astype(int)
             timing_3 = timing_3.astype(int)
         elif method == "hopping":
-            timing_0 = half_cycle_times * 0.7
-            timing_1 = half_cycle_times * 0.3
+            walking_cycle = 30
+            hopping_cycle = 40
+
+            timing_0 = np.zeros(N)
+            timing_1 = np.zeros(N)
+            timing_2 = np.zeros(N)
+            timing_3 = np.zeros(N)
+
+            # walking
+            timing_0[0:4] = (walking_cycle * 0.4)
+            timing_1[0:4] = (walking_cycle * 0.6)
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
-            timing_2 = np.zeros(N)
-            timing_3 = half_cycle_times
+            timing_2[0:4] = timing_0[0:4] + timing_1[0:4]
 
-            for i in np.where(np.diff(swing_legs,prepend=np.nan))[0]:
-                timing_0[i], timing_1[i], timing_2[i], timing_3[i] = timing_2[i], timing_3[i], timing_0[i], timing_1[i]
+            # hopping
+            timing_0[4:6] = (hopping_cycle * 0.6)
+            timing_1[4:6] = (hopping_cycle * 0.4)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[4:6] = 0
+            timing_2[4] = 4
 
-            timing_0[0:4] = 0
-            timing_1[0:4] = 30
-            timing_2[0:4] = 24
-            timing_3[0:4] = 6
+            # walking
+            timing_0[6] = 0
+            timing_1[6] = walking_cycle
+            timing_0[7:9] = (walking_cycle * 0.4)
+            timing_1[7:9] = (walking_cycle * 0.6)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[6:9] = timing_0[6:9] + timing_1[6:9]
+
+            # hopping
+            timing_0[9:13] = (hopping_cycle * 0.6)
+            timing_1[9:13] = (hopping_cycle * 0.4)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[9:13] = 0
+            timing_2[9] = 4
+
+            # walking
+            timing_0[13] = 0
+            timing_1[13] = walking_cycle
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[13] = timing_0[13] + timing_1[13]
+
+            # hopping
+            timing_0[14:] = (hopping_cycle * 0.6)
+            timing_1[14:] = (hopping_cycle * 0.4)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[14:] = 0
+            timing_2[14] = 4
+
+            # make first step shorter
+            timing_2[0] -= timing_0[0]
+            timing_0[0] = 0
+
+            timing_2[1] -= timing_0[1]
+            timing_0[1] = 0
+
+            timing_3 = timing_0 + timing_1 - timing_2
+
+        assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
