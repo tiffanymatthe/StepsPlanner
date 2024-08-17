@@ -344,8 +344,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
-        self.max_behavior_curriculum = 2
+        self.behaviors = ["random_walks"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.max_behavior_curriculum = 0
 
         self.heading_errors = []
         self.met_times = []
@@ -394,7 +394,7 @@ class Walker3DStepperEnv(EnvBase):
         }
         self.dist_range = {
             "to_standstill": np.array([0.65, 0.0]),
-            "random_walks": np.array([0.55, 0.85]),
+            "random_walks": np.array([0.55, 0.75]),
             "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.5]),
             "backward": np.array([0.5, 0.0]),
@@ -404,7 +404,7 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_range = np.array([0, 0])
         self.yaw_range = {
             "to_standstill": np.array([0.0, 0.0]),
-            "random_walks": np.array([-55.0, 55.0]),
+            "random_walks": np.array([-90.0, 90.0]),
             "turn_in_place": np.array([0.0, 0.0]),
             "side_step": np.array([0.0, 0.0]),
             "backward": np.array([0.0, 0.0]),
@@ -1717,11 +1717,11 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        if self.selected_behavior in {"turn_in_place", "side_step"}:
-            # TODO: bad for mixing everything together
-            walk_target_full = self.terrain_info[self.next_step_index]
-        else:
-            walk_target_full = targets[self.walk_target_index]
+        # if self.selected_behavior in {"turn_in_place", "side_step"}:
+        #     # TODO: bad for mixing everything together
+        #     walk_target_full = self.terrain_info[self.next_step_index]
+        # else:
+        walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
         if int(walk_target_full[7]) == 1:
@@ -1784,7 +1784,7 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         dr = np.array([0,0])
-        time_and_dr_mask = np.array([0,0])
+        time_and_dr_mask = np.array([0,1])
 
         return deltas, np.concatenate([time_left, dr, time_and_dr_mask])
 
