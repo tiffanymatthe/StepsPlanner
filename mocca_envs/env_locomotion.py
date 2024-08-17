@@ -417,7 +417,7 @@ class Walker3DStepperEnv(EnvBase):
             "backward": [[None, None] for _ in range(self.max_curriculum+1)],
         }
 
-        self.step_param_dim = 7
+        self.step_param_dim = 7 + 3 # steps and mask
         # Important to do this once before reset!
         self.swing_leg = 0
         self.terrain_info = self.generate_step_placements()
@@ -425,7 +425,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 4
+        self.extra_step_dim = 4 + 2 + 2 # timing + direction 2d vec + mask
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -1763,6 +1763,10 @@ class Walker3DStepperEnv(EnvBase):
             time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
+        xy_mask = np.zeros(k + j)
+        heading_mask = np.zeros(k + j)
+        swing_leg_mask = np.zeros(k + j)
+
         deltas = concatenate(
             (
                 (np.sin(angle_to_targets) * distance_to_targets)[:, None],  # x
@@ -1772,11 +1776,17 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets)[:, None],  # swing_legs
+                (xy_mask)[:, None],
+                (heading_mask)[:, None],
+                (swing_leg_mask)[:, None],
             ),
             axis=1,
         )
 
-        return deltas, time_left
+        dr = np.array([0,0])
+        time_and_dr_mask = np.array([0,0])
+
+        return deltas, np.concatenate([time_left, dr, time_and_dr_mask])
 
     def get_mirror_indices(self):
 
