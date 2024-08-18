@@ -263,7 +263,7 @@ def main(_seed, _config, _run):
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
                 > advance_threshold
-                and nanmean(avg_heading_errs) < 10 * DEG2RAD
+                and nanmean(avg_heading_errs) < 8 * DEG2RAD
                 and nanmean(avg_timing_mets) >= 1.8
             ):
                 if current_curriculum < max_curriculum:
