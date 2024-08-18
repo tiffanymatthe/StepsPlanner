@@ -1299,70 +1299,63 @@ class Walker3DStepperEnv(EnvBase):
             self.heading_bonus = 0
         
         if not self.timing_mask_on and self.current_step_time < 30 + 2:
-            self.left_actual_contact = self._foot_target_contacts[1,0]
-            self.right_actual_contact = self._foot_target_contacts[0,0]
-
-            next_step_time = [
-                self.terrain_info[self.next_step_index, 8],
-                self.terrain_info[self.next_step_index, 9],
-                self.terrain_info[self.next_step_index, 10],
-                self.terrain_info[self.next_step_index, 11]
-            ]
-
-            if self.next_step_index < self.num_steps - 1:
-                next_next_step_time = [
-                    self.terrain_info[self.next_step_index+1, 8],
-                    self.terrain_info[self.next_step_index+1, 9],
-                    self.terrain_info[self.next_step_index+1, 10],
-                    self.terrain_info[self.next_step_index+1, 11]
-            ]
-
-            if not self.past_last_step:
-                # assumes swing leg == 1 (will swap later)
-                if self.next_step_index < self.num_steps - 1:
-                    if self.current_step_time < next_step_time[0]:
-                        self.left_expected_contact = 1
-                    elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]):
-                        self.left_expected_contact = 0
-                    else:
-                        self.left_expected_contact = int(next_next_step_time[2] != 0) if self.terrain_info[self.next_step_index+1, 7] != self.swing_leg else int(next_next_step_time[0] != 0)
-                else:
-                    if self.current_step_time >= next_step_time[0] + next_step_time[1] + 2:
-                        self.left_expected_contact = -1
-                    else:
-                        self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
-                if self.next_step_index < self.num_steps - 1:
-                    if self.current_step_time < next_step_time[2]:
-                        self.right_expected_contact = 1
-                    elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]):
-                        self.right_expected_contact = 0
-                    else:
-                        self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
-                else:
-                    if self.current_step_time >= next_step_time[2] + next_step_time[3] + 2:
-                        self.right_expected_contact = -1
-                    else:
-                        self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
-            else:
-                self.left_expected_contact = 1
-                self.right_expected_contact = 1
-
-            if self.swing_leg == 0:
-                # swap happens here if needed
-                self.left_expected_contact, self.right_expected_contact = self.right_expected_contact, self.left_expected_contact
-                
-            expected_contacts = [self.right_expected_contact, self.left_expected_contact]
-
-            met_time = np.sum(expected_contacts == self._foot_target_contacts[:, 0])
-
-            self.timing_bonus = np.sum(2 * (expected_contacts == self._foot_target_contacts[:, 0]) - 1)
-
-            if not self.past_last_step:
-                self.met_times.append(met_time)
+            self.timing_bonus = self.calc_timing_reward()
         else:
             self.timing_bonus = 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
+
+    def calc_timing_reward(self):
+        self.left_actual_contact = self._foot_target_contacts[1,0]
+        self.right_actual_contact = self._foot_target_contacts[0,0]
+
+        next_step_time = [
+            self.terrain_info[self.next_step_index, 8],
+            self.terrain_info[self.next_step_index, 9],
+            self.terrain_info[self.next_step_index, 10],
+            self.terrain_info[self.next_step_index, 11]
+        ]
+
+        if not self.past_last_step:
+            # assumes swing leg == 1 (will swap later)
+            if self.next_step_index < self.num_steps - 1:
+                if self.current_step_time < next_step_time[0]: # first contact
+                    self.left_expected_contact = 1
+                elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
+                    self.left_expected_contact = 0
+                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 2):
+                    self.left_expected_contact = 1
+                else:
+                    self.left_expected_contact = -1 if self.next_step_index > 2 else 1
+            else:
+                self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
+            if self.next_step_index < self.num_steps - 1:
+                if self.current_step_time < next_step_time[2]: # first contact
+                    self.right_expected_contact = 1
+                elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
+                    self.right_expected_contact = 0
+                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 2):
+                    self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
+                else:
+                    self.right_expected_contact = -1 if self.next_step_index > 2 else 1
+            else:
+                self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
+        else:
+            self.left_expected_contact = 1
+            self.right_expected_contact = 1
+
+        if self.swing_leg == 0:
+            # swap happens here if needed
+            self.left_expected_contact, self.right_expected_contact = self.right_expected_contact, self.left_expected_contact
+            
+        expected_contacts = [self.right_expected_contact, self.left_expected_contact]
+
+        met_time = np.sum(expected_contacts == self._foot_target_contacts[:, 0])
+
+        self.timing_bonus = np.sum(2 * (expected_contacts == self._foot_target_contacts[:, 0]) - 1)
+
+        if not self.past_last_step:
+            self.met_times.append(met_time)
 
     def smallest_angle_between(self, angle1, angle2):
         # Normalize the angles to the range [0, 2pi)
