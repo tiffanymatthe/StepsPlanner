@@ -561,7 +561,7 @@ class Walker3DStepperEnv(EnvBase):
         if curriculum == 0:
             half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
             # half_cycle_times[self.np_random.choice(list(range(3,19)), size=10)] = 60
-        elif curriculum > 1:
+        else:
             if self.np_random.rand() < 0.5:
                 half_cycle_times = np.ones(N) * self.np_random.choice([20,30,40,50,60,70])
             else:
