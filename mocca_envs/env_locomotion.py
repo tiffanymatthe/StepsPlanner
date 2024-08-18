@@ -1609,6 +1609,8 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.next_step_index, 11]
         ]
 
+        require_swing_leg_tilt = False
+
         if not self.past_last_step:
             # assumes swing leg == 1 (will swap later)
             if self.next_step_index < self.num_steps - 1:
@@ -1617,8 +1619,10 @@ class Walker3DStepperEnv(EnvBase):
                 elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
                     self.left_expected_contact = 0
                 elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 2):
+                    require_swing_leg_tilt = True
                     self.left_expected_contact = 1
                 else:
+                    require_swing_leg_tilt = True
                     self.left_expected_contact = -1 if self.next_step_index > 2 else 1
             else:
                 self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
@@ -1642,6 +1646,12 @@ class Walker3DStepperEnv(EnvBase):
             self.left_expected_contact, self.right_expected_contact = self.right_expected_contact, self.left_expected_contact
             
         expected_contacts = [self.right_expected_contact, self.left_expected_contact]
+
+        actual_contacts = np.copy(self._foot_target_contacts[:, 0])
+
+        if require_swing_leg_tilt:
+            swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+            actual_contacts[self.swing_leg] = 0 if swing_foot_tilt > 5 * DEG2RAD else actual_contacts[self.swing_leg]
 
         met_time = np.sum(expected_contacts == self._foot_target_contacts[:, 0])
 
@@ -1726,8 +1736,10 @@ class Walker3DStepperEnv(EnvBase):
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
+
+        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step) and swing_foot_tilt < 5 * DEG2RAD
 
         next_step_time = [
             self.terrain_info[self.next_step_index, 8],
