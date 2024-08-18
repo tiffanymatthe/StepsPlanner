@@ -1536,7 +1536,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1.5
+        self.progress = linear_progress * 1
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1609,25 +1609,17 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.next_step_index, 11]
         ]
 
-        if self.next_step_index < self.num_steps - 1:
-            next_next_step_time = [
-                self.terrain_info[self.next_step_index+1, 8],
-                self.terrain_info[self.next_step_index+1, 9],
-                self.terrain_info[self.next_step_index+1, 10],
-                self.terrain_info[self.next_step_index+1, 11]
-        ]
-
         if not self.past_last_step:
             # assumes swing leg == 1 (will swap later)
             if self.next_step_index < self.num_steps - 1:
                 if self.current_step_time < next_step_time[0]: # first contact
                     self.left_expected_contact = 1
-                elif next_step_time[0] < self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
+                elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
                     self.left_expected_contact = 0
-                elif self.current_step_time >= next_step_time[0] + next_step_time[1] + 2: # too far
-                    self.left_expected_contact = -1 if self.next_step_index > 2 else 1
-                else: # on touch down and not too far
+                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 2):
                     self.left_expected_contact = 1
+                else:
+                    self.left_expected_contact = -1 if self.next_step_index > 2 else 1
             else:
                 self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
             if self.next_step_index < self.num_steps - 1:
@@ -1635,10 +1627,10 @@ class Walker3DStepperEnv(EnvBase):
                     self.right_expected_contact = 1
                 elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
                     self.right_expected_contact = 0
-                elif self.current_step_time >= next_step_time[2] + next_step_time[3] + 2: # too far
-                    self.right_expected_contact = -1 if self.next_step_index > 2 else 1
+                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 2):
+                    self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
                 else:
-                    self.right_expected_contact = int(next_next_step_time[0] != 0) if self.terrain_info[self.next_step_index + 1, 7] != self.swing_leg else int(next_next_step_time[2] != 0)
+                    self.right_expected_contact = -1 if self.next_step_index > 2 else 1
             else:
                 self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
         else:
