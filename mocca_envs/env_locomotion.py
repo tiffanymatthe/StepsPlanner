@@ -444,7 +444,7 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        half_cycle_times = np.ones(N) * 24
+        half_cycle_times = np.ones(N) * 30
         
         timing_0 = half_cycle_times * 0.4
         timing_1 = half_cycle_times * 0.6
@@ -469,7 +469,7 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "walking"
+        method = "hopping"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -1719,12 +1719,14 @@ class Walker3DStepperEnv(EnvBase):
             foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius
             other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
+        else:
+            swing_leg_not_on_steps = self.foot_dist_to_target[self.swing_leg] >= self.step_radius
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
         other_leg_in_air = self._foot_target_contacts[1-self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
-        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
+        self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps # self.next_step_index > 1
         self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
