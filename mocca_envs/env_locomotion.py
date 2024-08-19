@@ -1510,7 +1510,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.terrain_info[self.next_step_index, 2] + 0.4
                 ], heading=self.terrain_info[self.next_step_index, 6]
             )
-        else:
+        elif self.is_rendered or self.use_egl:
             self.target.set_position(pos=self.walk_target)
 
         info = {}
