@@ -370,7 +370,7 @@ class Walker3DStepperEnv(EnvBase):
         self.is_mask_on = [True, False, False, False, False]
 
         self.current_step_time = 0
-        self.current_time_index = 0
+        self.current_time_index = 1
 
         self.foot_angle_weight = kwargs.pop("foot_angle_weight", 0.1)
 
@@ -1569,7 +1569,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1
+        self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
