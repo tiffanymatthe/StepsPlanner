@@ -339,12 +339,12 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 3
+        self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["timing_gaits"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 0
 
         self.heading_errors = []
@@ -356,6 +356,18 @@ class Walker3DStepperEnv(EnvBase):
         self.tilt_bonus_weight = 1
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
+
+        self.masking_indices = {
+            "xy": 0,
+            "heading": 1,
+            "timing": 2,
+            "leg": 3,
+            "dir": 4,
+        }
+
+        self.allow_masking = [False, False, True, False, True]
+        self.masking_prob = [0.4, 0.4, 0.4, 0.4, 1]
+        self.is_mask_on = [False, False, False, False, True]
 
         self.current_step_time = 0
 
@@ -1409,6 +1421,9 @@ class Walker3DStepperEnv(EnvBase):
             mirror=0 # if self.behavior_curriculum == 0 else 1 # 0 if random, 1 if force True, 2 if force False
         )
         self.prev_leg = self.swing_leg
+        
+        if self.allow_masking[self.masking_indices["timing"]]:
+            self.is_mask_on[self.masking_indices["timing"]] = self.np_random.rand() < self.masking_prob[self.masking_indices["timing"]]
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
@@ -1463,7 +1478,8 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
-        reward += self.timing_bonus * self.timing_bonus_weight
+        if not self.is_mask_on[self.masking_indices["timing"]]:
+            reward += self.timing_bonus * self.timing_bonus_weight
 
         # targets is calculated by calc_env_state()
         if self.extra_step_dim == 0:
@@ -1599,7 +1615,10 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
         
-        self.calc_timing_reward()
+        if self.is_mask_on[self.masking_indices["timing"]]:
+            self.timing_bonus = 0
+        else:
+            self.calc_timing_reward()
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
 
@@ -1924,7 +1943,11 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         dr = np.array([0,0])
-        time_and_dr_mask = np.array([0,1])
+        if self.is_mask_on[self.masking_indices["timing"]]:
+            time_and_dr_mask = np.array([1,1])
+            time_left *= 0
+        else:
+            time_and_dr_mask = np.array([0,1])
 
         return deltas, np.concatenate([time_left, dr, time_and_dr_mask])
 
