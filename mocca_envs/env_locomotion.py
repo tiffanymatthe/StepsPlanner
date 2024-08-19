@@ -365,9 +365,9 @@ class Walker3DStepperEnv(EnvBase):
             "dir": 4,
         }
 
-        self.allow_masking = [True, False, True, False, False]
-        self.masking_prob = [1, 0.4, 1, 0.4, 0] # prob. of mask on
-        self.is_mask_on = [True, False, True, False, False]
+        self.allow_masking = [True, True, True, True, False]
+        self.masking_prob = [1, 1, 1, 1, 0] # prob. of mask on
+        self.is_mask_on = [True, True, True, True, False]
 
         self.current_step_time = 0
         self.current_time_index = 1
@@ -1482,7 +1482,8 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
-        reward += self.heading_bonus * self.heading_bonus_weight
+        if not self.is_mask_on[self.masking_indices["heading"]]:
+            reward += self.heading_bonus * self.heading_bonus_weight
         if not self.is_mask_on[self.masking_indices["timing"]]:
             reward += self.timing_bonus * self.timing_bonus_weight
 
@@ -1569,7 +1570,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2
+        self.progress = linear_progress * 1
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
