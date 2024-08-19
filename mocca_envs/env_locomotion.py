@@ -678,7 +678,7 @@ class Walker3DStepperEnv(EnvBase):
         dir_x = np.zeros(N)
         dir_y = np.ones(N)
         dir_y = np.cumsum(dir_y)
-        dir_y += 0.3
+        dir_y += 0.3 - 1
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, dir_x, dir_y), axis=1)
 
@@ -1796,23 +1796,26 @@ class Walker3DStepperEnv(EnvBase):
                 )
             )
             self.foot_dist_to_target = np.ones(2) * self.foot_dist_to_target
-            self.target_reached = self.foot_dist_to_target[0] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
+            self.target_reached = self.foot_dist_to_target[0] < self.step_radius
+            if self.target_reached:
+                self.next_step_index += 1
 
-        next_step_time = [
-            self.terrain_info[self.next_step_index, 8],
-            self.terrain_info[self.next_step_index, 9],
-            self.terrain_info[self.next_step_index, 10],
-            self.terrain_info[self.next_step_index, 11]
-        ]
-        if self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
-            self.target_reached = False
+        if not self.is_mask_on[self.masking_indices["xy"]]:
+            next_step_time = [
+                self.terrain_info[self.next_step_index, 8],
+                self.terrain_info[self.next_step_index, 9],
+                self.terrain_info[self.next_step_index, 10],
+                self.terrain_info[self.next_step_index, 11]
+            ]
+            if self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
+                self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
         if self.target_reached and not self.past_last_step:
             self.heading_errors.append(abs(self.heading_rad_to_target))
 
-        if self.target_reached:
+        if self.target_reached and not self.is_mask_on[self.masking_indices["xy"]]:
             self.target_reached_count += 1
 
             # Advance after has stopped for awhile
