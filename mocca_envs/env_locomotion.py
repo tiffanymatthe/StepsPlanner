@@ -674,9 +674,10 @@ class Walker3DStepperEnv(EnvBase):
 
         assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
 
-        dir_angle = np.ones(N) * np.pi / 2
+        dir_x = np.zeros(N)
+        dir_y = np.linspace(1, 20, N)
         
-        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, dir_angle), axis=1)
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, dir_x, dir_y), axis=1)
 
     def generate_to_standstill_step_placements(self, curriculum):
         # Check just in case
@@ -1476,8 +1477,8 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_env_state(action)
 
         reward = self.progress - self.energy_penalty
-        if not self.is_mask_on[self.masking_indices["xy"]]:
-            reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
+        # if not self.is_mask_on[self.masking_indices["xy"]]:
+        reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         reward += self.heading_bonus * self.heading_bonus_weight
@@ -1546,16 +1547,16 @@ class Walker3DStepperEnv(EnvBase):
         self.arrow = VArrow(self._p)
 
     def calc_potential(self):
-        if not self.is_mask_on[self.masking_indices["xy"]]:
-            walk_target_delta = self.walk_target - self.robot.body_xyz
-            body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-            self.linear_potential = -(body_distance_to_target) / self.scene.dt
-            self.distance_to_target = body_distance_to_target
-        else:
-            walk_target_delta = self.terrain_info[self.next_step_index][12] - self.robot.body_rpy[2]
-            body_angle_to_target = walk_target_delta
-            self.linear_potential = -(body_angle_to_target) / self.scene.dt
-            self.angle_to_target = body_angle_to_target
+        # if not self.is_mask_on[self.masking_indices["xy"]]:
+        walk_target_delta = self.walk_target - self.robot.body_xyz
+        body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+        self.linear_potential = -(body_distance_to_target) / self.scene.dt
+        self.distance_to_target = body_distance_to_target
+        # else:
+        # walk_target_delta = self.terrain_info[self.next_step_index][12] - self.robot.body_rpy[2]
+        # body_angle_to_target = walk_target_delta
+        # self.linear_potential = -(body_angle_to_target) / self.scene.dt
+        # self.angle_to_target = body_angle_to_target
 
     def calc_base_reward(self, action):
 
@@ -1618,10 +1619,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if self.target_reached and not self.past_last_step:
-            self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
-        else:
-            self.heading_bonus = 0
+        # if self.target_reached and not self.past_last_step:
+        #     self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
+        # else:
+        self.heading_bonus = 0
         
         if self.is_mask_on[self.masking_indices["timing"]]:
             self.timing_bonus = 0
@@ -1758,14 +1759,21 @@ class Walker3DStepperEnv(EnvBase):
         other_leg_in_air = self._foot_target_contacts[1-self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
-        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
+        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps and not self.is_mask_on[self.masking_indices["xy"]]
         # self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps # self.next_step_index > 1
-        self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
+        self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target and not self.is_mask_on[self.masking_indices["xy"]]
         
         if not self.is_mask_on[self.masking_indices["xy"]]:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
         else:
-            self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and (self.swing_leg_lifted or self.reached_last_step)
+            self.foot_dist_to_target = np.sqrt(
+                ss(
+                    self.robot.body_xyz[0:2]
+                    - self.terrain_info[self.next_step_index, 12:14],
+                )
+            )
+            self.foot_dist_to_target = np.ones(2) * self.foot_dist_to_target
+            self.target_reached = self.foot_dist_to_target[0] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
         next_step_time = [
             self.terrain_info[self.next_step_index, 8],
@@ -1937,12 +1945,11 @@ class Walker3DStepperEnv(EnvBase):
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
         xy_mask = np.ones(k + j) if self.is_mask_on[self.masking_indices["xy"]] else np.zeros(k + j)
-        heading_mask = np.zeros(k + j)
-        swing_leg_mask = np.zeros(k + j)
+        heading_mask = np.ones(k + j)
+        swing_leg_mask = np.ones(k + j)
 
         if not self.is_mask_on[self.masking_indices["dir"]]:
-            dr = np.ones(2) * (targets[1,12] - self.robot.body_rpy[2])
-            center_angles(dr)
+            dr = np.array([targets[1,12] - self.robot.body_xyz[0], targets[1,12] - self.robot.body_xyz[1]])
         else:
             dr = np.array([0,0])
 
@@ -1962,8 +1969,8 @@ class Walker3DStepperEnv(EnvBase):
                 (z)[:, None],  # z
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
-                (heading_angle_to_targets)[:, None], # heading
-                (swing_legs_at_targets)[:, None],  # swing_legs
+                (heading_angle_to_targets * 0)[:, None], # heading
+                (swing_legs_at_targets * 0)[:, None],  # swing_legs
                 (xy_mask)[:, None],
                 (heading_mask)[:, None],
                 (swing_leg_mask)[:, None],
