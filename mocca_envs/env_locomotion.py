@@ -318,7 +318,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.25
+    step_radius = 0.1
     foot_sep = 0.16
     rendered_step_count = 20
     init_step_separation = 0.70
@@ -676,7 +676,9 @@ class Walker3DStepperEnv(EnvBase):
         assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
 
         dir_x = np.zeros(N)
-        dir_y = np.linspace(1, 20, N)
+        dir_y = np.ones(N)
+        dir_y = np.cumsum(dir_y)
+        dir_y += 0.3
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, dir_x, dir_y), axis=1)
 
@@ -1478,8 +1480,10 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_env_state(action)
 
         reward = self.progress - self.energy_penalty
-        # if not self.is_mask_on[self.masking_indices["xy"]]:
-        reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
+        if not self.is_mask_on[self.masking_indices["xy"]]:
+            reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
+        else:
+            reward += - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         if not self.is_mask_on[self.masking_indices["heading"]]:
@@ -1570,7 +1574,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1
+        self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1610,10 +1614,10 @@ class Walker3DStepperEnv(EnvBase):
         self.legs_bonus = 0
         self.heading_bonus = 0
 
-        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt < 5 * DEG2RAD:
-            self.legs_bonus += self.tilt_bonus_weight
+        # if self.target_reached and swing_foot_tilt < 5 * DEG2RAD:
+        #     self.legs_bonus += self.tilt_bonus_weight
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
@@ -2043,6 +2047,7 @@ class Walker3DStepperEnv(EnvBase):
                 6 + self.robot._negation_joint_indices,
                 # negate part of robot (velocity)
                 6 + self.robot._negation_joint_indices + action_dim,
+                [(self.lookahead + self.lookbehind) * self.step_param_dim + 4 + self.robot_obs_dim], # x part of dr
             )
         )
 
