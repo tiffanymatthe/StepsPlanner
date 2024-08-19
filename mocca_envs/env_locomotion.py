@@ -391,7 +391,7 @@ class Walker3DStepperEnv(EnvBase):
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": None,
-            "heading_var": np.linspace(0, np.pi / 2, N),
+            "heading_var": np.linspace(np.pi / 8, np.pi / 2, N),
             "timing_gaits": None,
         }
         self.dist_range = {
@@ -1724,14 +1724,15 @@ class Walker3DStepperEnv(EnvBase):
             foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius
             other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
-        else:
-            swing_leg_not_on_steps = self.foot_dist_to_target[self.swing_leg] >= self.step_radius
+        # else:
+        #     swing_leg_not_on_steps = self.foot_dist_to_target[self.swing_leg] >= self.step_radius
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
         other_leg_in_air = self._foot_target_contacts[1-self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
-        self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps # self.next_step_index > 1
+        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
+        # self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps # self.next_step_index > 1
         self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
