@@ -339,12 +339,12 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 9
+        self.max_curriculum = 3
         self.advance_threshold = min(15, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["backward"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 0
 
         self.heading_errors = []
@@ -391,7 +391,7 @@ class Walker3DStepperEnv(EnvBase):
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": None,
-            "heading_var": np.linspace(0, np.pi / 2, N),
+            "heading_var": np.linspace(np.pi / 8, np.pi / 2, N),
             "timing_gaits": None,
         }
         self.dist_range = {
@@ -1000,7 +1000,9 @@ class Walker3DStepperEnv(EnvBase):
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
 
-        heading_targets[3:] += self.np_random.uniform(low=-self.path_angle, high=self.path_angle, size=(N-3))
+        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
+
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
 
         dphi *= 0
 
