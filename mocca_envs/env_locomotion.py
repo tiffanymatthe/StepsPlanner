@@ -370,6 +370,7 @@ class Walker3DStepperEnv(EnvBase):
         self.is_mask_on = [True, False, False, False, False]
 
         self.current_step_time = 0
+        self.current_time_index = 0
 
         self.foot_angle_weight = kwargs.pop("foot_angle_weight", 0.1)
 
@@ -481,7 +482,7 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "hopping"
+        method = "walking"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -1509,6 +1510,8 @@ class Walker3DStepperEnv(EnvBase):
                     self.terrain_info[self.next_step_index, 2] + 0.4
                 ], heading=self.terrain_info[self.next_step_index, 6]
             )
+        else:
+            self.target.set_position(pos=self.walk_target)
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
@@ -1635,16 +1638,29 @@ class Walker3DStepperEnv(EnvBase):
         self.left_actual_contact = self._foot_target_contacts[1,0]
         self.right_actual_contact = self._foot_target_contacts[0,0]
 
+        if not self.is_mask_on[self.masking_indices["xy"]]:
+            self.current_time_index = self.next_step_index
+        else:
+            if self.current_step_time > (self.terrain_info[self.current_time_index, 8] + self.terrain_info[self.current_time_index, 9]):
+                self.current_step_time = 0
+                self.current_time_index += 1
+                self.current_time_index = self.current_time_index % self.num_steps
+
         next_step_time = [
-            self.terrain_info[self.next_step_index, 8],
-            self.terrain_info[self.next_step_index, 9],
-            self.terrain_info[self.next_step_index, 10],
-            self.terrain_info[self.next_step_index, 11]
+            self.terrain_info[self.current_time_index, 8],
+            self.terrain_info[self.current_time_index, 9],
+            self.terrain_info[self.current_time_index, 10],
+            self.terrain_info[self.current_time_index, 11]
         ]
 
         if not self.past_last_step:
             # assumes swing leg == 1 (will swap later)
-            if self.next_step_index < self.num_steps - 1:
+            if self.is_mask_on[self.masking_indices["xy"]]:
+                if self.current_step_time > (next_step_time[0] + next_step_time[1]):
+                    self.current_step_time = 0
+
+            initialize_cond = self.current_time_index > 2 or self.is_mask_on[self.masking_indices["xy"]]
+            if self.current_time_index < self.num_steps - 1:
                 if self.current_step_time < next_step_time[0]: # first contact
                     self.left_expected_contact = 1
                 elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
@@ -1652,10 +1668,10 @@ class Walker3DStepperEnv(EnvBase):
                 elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 2):
                     self.left_expected_contact = 1
                 else:
-                    self.left_expected_contact = -1 if self.next_step_index > 2 else 1
+                    self.left_expected_contact = -1 if initialize_cond else 1
             else:
                 self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
-            if self.next_step_index < self.num_steps - 1:
+            if self.current_time_index < self.num_steps - 1:
                 if self.current_step_time < next_step_time[2]: # first contact
                     self.right_expected_contact = 1
                 elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
@@ -1663,14 +1679,14 @@ class Walker3DStepperEnv(EnvBase):
                 elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 2):
                     self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
                 else:
-                    self.right_expected_contact = -1 if self.next_step_index > 2 else 1
+                    self.right_expected_contact = -1 if initialize_cond else 1
             else:
                 self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
         else:
             self.left_expected_contact = 1
             self.right_expected_contact = 1
 
-        if self.swing_leg == 0:
+        if self.terrain_info[self.current_time_index, 7]:
             # swap happens here if needed
             self.left_expected_contact, self.right_expected_contact = self.right_expected_contact, self.left_expected_contact
             
@@ -1802,7 +1818,8 @@ class Walker3DStepperEnv(EnvBase):
             delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
-                    self.current_step_time = 0
+                    if not self.is_mask_on[self.masking_indices["xy"]]:
+                        self.current_step_time = 0
                     self.current_target_count = 0
                     self.in_air_count = 0
                     self.prev_leg_pos[self.swing_leg] = self.terrain_info[self.next_step_index, 0:2]
