@@ -1686,7 +1686,9 @@ class Walker3DStepperEnv(EnvBase):
             self.left_expected_contact = 1
             self.right_expected_contact = 1
 
-        if self.terrain_info[self.current_time_index, 7]:
+        self.swing_leg = int(self.terrain_info[self.current_time_index, 7])
+
+        if self.terrain_info[self.current_time_index, 7] == 0:
             # swap happens here if needed
             self.left_expected_contact, self.right_expected_contact = self.right_expected_contact, self.left_expected_contact
             
@@ -1827,7 +1829,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
                     self.next_step_start_timestep = self.timestep
-                    if self.next_step_index < self.num_steps:
+                    if self.next_step_index < self.num_steps and not self.is_mask_on[self.masking_indices["xy"]]:
                         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
                     self.target_reached_count = 0
                     self.swing_leg_lifted = False
