@@ -365,9 +365,9 @@ class Walker3DStepperEnv(EnvBase):
             "dir": 4,
         }
 
-        self.allow_masking = [True, False, False, False, False]
-        self.masking_prob = [1, 0.4, 0.4, 0.4, 0] # prob. of mask on
-        self.is_mask_on = [True, False, False, False, False]
+        self.allow_masking = [True, False, True, False, False]
+        self.masking_prob = [1, 0.4, 1, 0.4, 0] # prob. of mask on
+        self.is_mask_on = [True, False, True, False, False]
 
         self.current_step_time = 0
         self.current_time_index = 1
