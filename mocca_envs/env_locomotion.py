@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["timing_gaits"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["random_walks"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 0
 
         self.heading_errors = []
@@ -365,9 +365,9 @@ class Walker3DStepperEnv(EnvBase):
             "dir": 4,
         }
 
-        self.allow_masking = [True, True, False, True, False]
-        self.masking_prob = [1, 1, 0, 1, 0] # prob. of mask on
-        self.is_mask_on = [True, True, False, True, False]
+        self.allow_masking = [False, False, True, False, True]
+        self.masking_prob = [1, 1, 1, 1, 1] # prob. of mask on
+        self.is_mask_on = [True, True, True, True, True]
 
         self.current_step_time = 0
         self.current_time_index = 1
@@ -1589,7 +1589,10 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2
+        if not self.is_mask_on[self.masking_indices["dir"]]:
+            self.progress = linear_progress * 2
+        else:
+            self.progress = linear_progress
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1629,10 +1632,10 @@ class Walker3DStepperEnv(EnvBase):
         self.legs_bonus = 0
         self.heading_bonus = 0
 
-        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        # if self.target_reached and swing_foot_tilt < 5 * DEG2RAD:
-        #     self.legs_bonus += self.tilt_bonus_weight
+        if self.is_mask_on[self.masking_indices["dir"]] and self.target_reached and swing_foot_tilt < 5 * DEG2RAD:
+            self.legs_bonus += self.tilt_bonus_weight
 
         if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
@@ -1642,10 +1645,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        # if self.target_reached and not self.past_last_step:
-        #     self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
-        # else:
-        self.heading_bonus = 0
+        if self.is_mask_on[self.masking_indices["dir"]] and self.target_reached and not self.past_last_step:
+            self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
+        else:
+            self.heading_bonus = 0
         
         if self.is_mask_on[self.masking_indices["timing"]]:
             self.timing_bonus = 0
@@ -2014,6 +2017,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.is_mask_on[self.masking_indices["heading"]]:
             heading_angle_to_targets *= 0
 
+        if self.is_mask_on[self.masking_indices["leg"]]:
+            swing_legs_at_targets *= 0
+
         deltas = concatenate(
             (
                 (x)[:, None],  # x
@@ -2022,7 +2028,7 @@ class Walker3DStepperEnv(EnvBase):
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
-                (swing_legs_at_targets * 0)[:, None],  # swing_legs
+                (swing_legs_at_targets)[:, None],  # swing_legs
                 (xy_mask)[:, None],
                 (heading_mask)[:, None],
                 (swing_leg_mask)[:, None],
