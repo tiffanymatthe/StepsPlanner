@@ -1530,9 +1530,9 @@ class Walker3DStepperEnv(EnvBase):
         walk_target_delta = self.walk_target - self.robot.body_xyz
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
 
-        angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6]) if self.next_step_index > 2 else 0
+        angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        self.linear_potential = -(body_distance_to_target + angle_delta * 0.5) / self.scene.dt
+        self.linear_potential = -(body_distance_to_target + angle_delta * 0.1) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
     def calc_base_reward(self, action):
@@ -1597,7 +1597,7 @@ class Walker3DStepperEnv(EnvBase):
             self.legs_bonus -= 100
 
         if self.target_reached and not self.past_last_step:
-            self.heading_bonus = -np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2) + 1
+            self.heading_bonus = -( -np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2) + 1)
         else:
             self.heading_bonus = 0
         
