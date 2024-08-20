@@ -365,9 +365,9 @@ class Walker3DStepperEnv(EnvBase):
             "dir": 4,
         }
 
-        self.allow_masking = [False, False, False, False, True]
+        self.allow_masking = [False, False, True, False, True]
         self.masking_prob = [1, 1, 1, 1, 1] # prob. of mask on
-        self.is_mask_on = [False, False, False, False, True]
+        self.is_mask_on = [False, False, True, False, True]
 
         self.current_step_time = 0
         self.current_time_index = 1
@@ -1592,7 +1592,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.is_mask_on[self.masking_indices["dir"]]:
             self.progress = linear_progress * 2
         else:
-            self.progress = linear_progress * 1
+            self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
