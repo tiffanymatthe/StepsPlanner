@@ -1794,11 +1794,11 @@ class Walker3DStepperEnv(EnvBase):
                     self.robot.body_xyz[0:2]
                     - self.terrain_info[self.next_step_index, 12:14],
                 )
-            )
-            self.foot_dist_to_target = np.ones(2) * self.foot_dist_to_target
+            ) * np.ones(2)
             self.target_reached = self.foot_dist_to_target[0] < self.step_radius
             if self.target_reached:
                 self.next_step_index += 1
+                self.calc_potential()
 
         if not self.is_mask_on[self.masking_indices["xy"]]:
             next_step_time = [
