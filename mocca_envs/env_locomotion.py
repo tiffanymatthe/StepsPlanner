@@ -1594,14 +1594,14 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
 
-        if self.target_reached and self.next_step_index > 1 and not self.past_last_step:
+        if self.target_reached and not self.past_last_step:
             self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
         else:
             self.heading_bonus = 0
         
         self.calc_timing_reward()
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count or (self.target_reached and self.target_reached_count == 0 and self.next_step_index > 1 and np.abs(self.heading_rad_to_target) > 10 * DEG2RAD)
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
 
     def calc_timing_reward(self):
         self.left_actual_contact = self._foot_target_contacts[1,0]
