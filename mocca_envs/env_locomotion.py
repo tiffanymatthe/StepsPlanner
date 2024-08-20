@@ -420,6 +420,31 @@ class Walker3DStepperEnv(EnvBase):
 
         info = {}
 
+        if self.is_rendered or self.use_egl:
+            x_axis = self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
+                                                                    lineToXYZ            = [1, 0, 0],
+                                                                    lineColorRGB         = [1, 0, 0]  ,
+                                                                    lineWidth            = 10        ,
+                                                                    lifeTime             = 0          ,
+                                                                    parentObjectUniqueId = self.robot.id     ,
+                                                                    parentLinkIndex      = self.robot.robot_body.bodyPartIndex     )
+
+            y_axis = self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
+                                                                    lineToXYZ            = [0, 1, 0],
+                                                                    lineColorRGB         = [0, 1, 0]  ,
+                                                                    lineWidth            = 10        ,
+                                                                    lifeTime             = 0          ,
+                                                                    parentObjectUniqueId = self.robot.id     ,
+                                                                    parentLinkIndex      = self.robot.robot_body.bodyPartIndex     )
+
+            z_axis = self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
+                                                                    lineToXYZ            = [0, 0, 1],
+                                                                    lineColorRGB         = [0, 0, 1]  ,
+                                                                    lineWidth            = 10        ,
+                                                                    lifeTime             = 0          ,
+                                                                    parentObjectUniqueId = self.robot.id     ,
+                                                                    parentLinkIndex      = self.robot.robot_body.bodyPartIndex     )
+
         return state, reward, self.done, info
     
     def calc_potential(self):
