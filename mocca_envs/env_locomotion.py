@@ -318,7 +318,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.3
+    step_radius = 0.8
     foot_sep = 0.16
     rendered_step_count = 20
     init_step_separation = 0.70
@@ -676,12 +676,14 @@ class Walker3DStepperEnv(EnvBase):
         assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
 
         dir_x = np.zeros(N)
-        dir_y = np.ones(N)
+        dir_y = np.ones(N) * 2
+        dir_y[[0, 1]] = 1
         dir_y = np.cumsum(dir_y)
-        dir_y += 0.3 - 1
+        dir_y[1] = 1.3 + 0.5
 
-        for i in range(5,N):
-            dir_x[i] += 1 - 4
+        for i in range(5,10):
+            dir_x[i] += i - 4
+        dir_x[10:] = dir_x[9]
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, dir_x, dir_y), axis=1)
 
@@ -1562,7 +1564,16 @@ class Walker3DStepperEnv(EnvBase):
         # if not self.is_mask_on[self.masking_indices["xy"]]:
         walk_target_delta = self.walk_target - self.robot.body_xyz
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
-        self.linear_potential = -(body_distance_to_target) / self.scene.dt
+
+        if not self.is_mask_on[self.masking_indices["dir"]]:
+            body_angle_to_target = atan2(
+                self.terrain_info[self.next_step_index][13] - self.robot.body_xyz[1],
+                self.terrain_info[self.next_step_index][12] - self.robot.body_xyz[0],
+            )
+        else:
+            body_angle_to_target = 0
+
+        self.linear_potential = -(body_distance_to_target + 0.5 * body_angle_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
         # else:
         # walk_target_delta = self.terrain_info[self.next_step_index][12] - self.robot.body_rpy[2]
@@ -1983,8 +1994,8 @@ class Walker3DStepperEnv(EnvBase):
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
         xy_mask = np.ones(k + j) if self.is_mask_on[self.masking_indices["xy"]] else np.zeros(k + j)
-        heading_mask = np.ones(k + j)
-        swing_leg_mask = np.ones(k + j)
+        heading_mask = np.ones(k + j) if self.is_mask_on[self.masking_indices["heading"]] else np.zeros(k + j)
+        swing_leg_mask = np.ones(k + j) if self.is_mask_on[self.masking_indices["leg"]] else np.zeros(k + j)
 
         if not self.is_mask_on[self.masking_indices["dir"]]:
             dr = np.array([targets[1,12] - self.robot.body_xyz[0], targets[1,12] - self.robot.body_xyz[1]])
@@ -2000,6 +2011,9 @@ class Walker3DStepperEnv(EnvBase):
             y = np.cos(angle_to_targets) * distance_to_targets
             z = delta_pos[:, 2]
 
+        if self.is_mask_on[self.masking_indices["heading"]]:
+            heading_angle_to_targets *= 0
+
         deltas = concatenate(
             (
                 (x)[:, None],  # x
@@ -2007,7 +2021,7 @@ class Walker3DStepperEnv(EnvBase):
                 (z)[:, None],  # z
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
-                (heading_angle_to_targets * 0)[:, None], # heading
+                (heading_angle_to_targets)[:, None], # heading
                 (swing_legs_at_targets * 0)[:, None],  # swing_legs
                 (xy_mask)[:, None],
                 (heading_mask)[:, None],
