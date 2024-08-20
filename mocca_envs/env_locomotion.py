@@ -1583,7 +1583,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             body_angle_to_target = 0
 
-        self.linear_potential = -(body_distance_to_target + 0.1 * np.abs(body_angle_to_target)) / self.scene.dt
+        self.linear_potential = -(body_distance_to_target + 0.01 * np.abs(body_angle_to_target)) / self.scene.dt
         self.distance_to_target = body_distance_to_target
         # else:
         # walk_target_delta = self.terrain_info[self.next_step_index][12] - self.robot.body_rpy[2]
