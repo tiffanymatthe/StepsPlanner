@@ -1592,7 +1592,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.is_mask_on[self.masking_indices["dir"]]:
             self.progress = linear_progress * 2
         else:
-            self.progress = linear_progress
+            self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1847,8 +1847,7 @@ class Walker3DStepperEnv(EnvBase):
             delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
-                    if not self.is_mask_on[self.masking_indices["xy"]]:
-                        self.current_step_time = 0
+                    self.current_step_time = 0
                     self.current_target_count = 0
                     self.in_air_count = 0
                     self.prev_leg_pos[self.swing_leg] = self.terrain_info[self.next_step_index, 0:2]
@@ -1856,7 +1855,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.prev_leg = self.swing_leg
                     self.next_step_index += 1
                     self.next_step_start_timestep = self.timestep
-                    if self.next_step_index < self.num_steps and not self.is_mask_on[self.masking_indices["xy"]]:
+                    if self.next_step_index < self.num_steps:
                         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
                     self.target_reached_count = 0
                     self.swing_leg_lifted = False
