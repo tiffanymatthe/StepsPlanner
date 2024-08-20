@@ -679,6 +679,9 @@ class Walker3DStepperEnv(EnvBase):
         dir_y = np.ones(N)
         dir_y = np.cumsum(dir_y)
         dir_y += 0.3 - 1
+
+        for i in range(5,N):
+            dir_x[i] += 1 - 4
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, dir_x, dir_y), axis=1)
 
@@ -1517,6 +1520,7 @@ class Walker3DStepperEnv(EnvBase):
             )
         elif self.is_rendered or self.use_egl:
             self.target.set_position(pos=self.walk_target)
+            self.rendered_steps[0].set_position(pos=self.walk_target)
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
@@ -1789,16 +1793,17 @@ class Walker3DStepperEnv(EnvBase):
         if not self.is_mask_on[self.masking_indices["xy"]]:
             self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
         else:
-            self.foot_dist_to_target = np.sqrt(
+            body_dist_to_target = np.sqrt(
                 ss(
                     self.robot.body_xyz[0:2]
                     - self.terrain_info[self.next_step_index, 12:14],
                 )
-            ) * np.ones(2)
+            )
+            self.foot_dist_to_target = np.ones(2) * body_dist_to_target # min(body_dist_to_target, min(self.foot_dist_to_target))
             self.target_reached = self.foot_dist_to_target[0] < self.step_radius
             if self.target_reached:
                 self.next_step_index += 1
-                self.calc_potential()
+                # self.calc_potential()
 
         if not self.is_mask_on[self.masking_indices["xy"]]:
             next_step_time = [
@@ -1926,15 +1931,21 @@ class Walker3DStepperEnv(EnvBase):
         #     # TODO: bad for mixing everything together
         #     walk_target_full = self.terrain_info[self.next_step_index]
         # else:
-        walk_target_full = targets[self.walk_target_index]
-        self.walk_target = np.copy(walk_target_full[0:3])
-        heading = walk_target_full[6]
-        if int(walk_target_full[7]) == 1:
-            self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
+        if self.is_mask_on[self.masking_indices["xy"]]:
+            self.walk_target_index = 1
+            self.walk_target = np.zeros(3)
+            self.walk_target[0] = targets[self.walk_target_index, 12]
+            self.walk_target[1] = targets[self.walk_target_index, 13]
         else:
-            self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
+            walk_target_full = targets[self.walk_target_index]
+            self.walk_target = np.copy(walk_target_full[0:3])
+            heading = walk_target_full[6]
+            if int(walk_target_full[7]) == 1:
+                self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
+                self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
+            else:
+                self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
+                self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
