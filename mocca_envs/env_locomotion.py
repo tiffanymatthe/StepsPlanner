@@ -383,7 +383,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Robot settings
         N = self.max_curriculum + 1
-        self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
+        self.terminal_height_curriculum = np.linspace(1.03, 1.03, N)
         self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
@@ -1574,7 +1574,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1.4
+        self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
