@@ -572,7 +572,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         if curriculum == 0:
-            half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
+            half_cycle_times = np.ones(N) * 30 #  self.np_random.choice([30,40,50])
             # half_cycle_times[self.np_random.choice(list(range(3,19)), size=10)] = 60
         else:
             if self.np_random.rand() < 0.5:
@@ -585,10 +585,10 @@ class Walker3DStepperEnv(EnvBase):
         if method == "walking":
             timing_0 = half_cycle_times * 0.4
             timing_1 = half_cycle_times * 0.6
-            if curriculum > 0:
-                ratio = self.np_random.choice([0.3, 0.4, 0.5])
-                timing_0 = half_cycle_times * ratio
-                timing_1 = half_cycle_times * (1-ratio)
+            # if curriculum > 0:
+            #     ratio = self.np_random.choice([0.3, 0.4, 0.5])
+            #     timing_0 = half_cycle_times * ratio
+            #     timing_1 = half_cycle_times * (1-ratio)
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
             timing_2 = timing_0 + timing_1
@@ -1565,13 +1565,13 @@ class Walker3DStepperEnv(EnvBase):
         walk_target_delta = self.walk_target - self.robot.body_xyz
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
 
-        if not self.is_mask_on[self.masking_indices["dir"]]:
-            body_angle_to_target = atan2(
-                self.terrain_info[self.next_step_index][13] - self.robot.body_xyz[1],
-                self.terrain_info[self.next_step_index][12] - self.robot.body_xyz[0],
-            )
-        else:
-            body_angle_to_target = 0
+        # if not self.is_mask_on[self.masking_indices["dir"]]:
+        #     body_angle_to_target = atan2(
+        #         self.terrain_info[self.next_step_index][13] - self.robot.body_xyz[1],
+        #         self.terrain_info[self.next_step_index][12] - self.robot.body_xyz[0],
+        #     )
+        # else:
+        body_angle_to_target = 0
 
         self.linear_potential = -(body_distance_to_target + 0.5 * body_angle_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
@@ -1661,7 +1661,8 @@ class Walker3DStepperEnv(EnvBase):
         if not self.is_mask_on[self.masking_indices["xy"]]:
             self.current_time_index = self.next_step_index
         else:
-            if self.current_step_time > (self.terrain_info[self.current_time_index, 8] + self.terrain_info[self.current_time_index, 9]):
+            # move on the next index when time has passed and swing leg has lifted
+            if self.current_step_time > (self.terrain_info[self.current_time_index, 8] + self.terrain_info[self.current_time_index, 9]) and (self.swing_leg_lifted_count > self.terrain_info[self.current_time_index, 9] - 5 or self.current_time_index == 1):
                 self.current_step_time = 0
                 self.current_time_index += 1
                 self.current_time_index = self.current_time_index % self.num_steps
@@ -1675,9 +1676,9 @@ class Walker3DStepperEnv(EnvBase):
 
         if not self.past_last_step:
             # assumes swing leg == 1 (will swap later)
-            if self.is_mask_on[self.masking_indices["xy"]]:
-                if self.current_step_time > (next_step_time[0] + next_step_time[1]):
-                    self.current_step_time = 0
+            # if self.is_mask_on[self.masking_indices["xy"]]:
+            #     if self.current_step_time > (next_step_time[0] + next_step_time[1]):
+            #         self.current_step_time = 0
 
             initialize_cond = self.current_time_index > 2 or self.is_mask_on[self.masking_indices["xy"]]
             if self.current_time_index < self.num_steps - 1:
