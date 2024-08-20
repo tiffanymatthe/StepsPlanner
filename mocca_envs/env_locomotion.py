@@ -1597,7 +1597,7 @@ class Walker3DStepperEnv(EnvBase):
             self.legs_bonus -= 100
 
         if self.target_reached and not self.past_last_step:
-            self.heading_bonus = -( -np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2) + 1)
+            self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
         else:
             self.heading_bonus = 0
         
