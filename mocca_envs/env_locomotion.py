@@ -1592,7 +1592,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.is_mask_on[self.masking_indices["dir"]]:
             self.progress = linear_progress * 2
         else:
-            self.progress = linear_progress * 2
+            self.progress = linear_progress * 0.5
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
