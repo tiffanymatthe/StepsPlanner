@@ -318,7 +318,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.8
+    step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 20
     init_step_separation = 0.70
