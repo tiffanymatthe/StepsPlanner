@@ -1566,24 +1566,7 @@ class Walker3DStepperEnv(EnvBase):
         walk_target_delta = self.walk_target - self.robot.body_xyz
         body_distance_to_target = sqrt(ss(walk_target_delta[0:2]))
 
-        def center_angles(angle_arr):
-            # reduce the angle  
-            angle_arr =  angle_arr % (2 * np.pi)
-            # force it to be the positive remainder, so that 0 <= angle_arr < 2 * np.pi  
-            angle_arr = (angle_arr + 2 * np.pi) % (2 * np.pi)
-            # force into the minimum absolute value residue class, so that -180 < angle_arr <= 180  
-            angle_arr[angle_arr > np.pi] -= (2 * np.pi)
-            return angle_arr
-
-        if not self.is_mask_on[self.masking_indices["dir"]]:
-            body_angle_to_target = center_angles(np.array([atan2(
-                self.terrain_info[self.next_step_index][13] - self.robot.body_xyz[1],
-                self.terrain_info[self.next_step_index][12] - self.robot.body_xyz[0],
-            ) - self.robot.body_rpy[2]]))[0]
-        else:
-            body_angle_to_target = 0
-
-        self.linear_potential = -(body_distance_to_target + 0.01 * np.abs(body_angle_to_target)) / self.scene.dt
+        self.linear_potential = -(body_distance_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
         # else:
         # walk_target_delta = self.terrain_info[self.next_step_index][12] - self.robot.body_rpy[2]
@@ -1656,6 +1639,27 @@ class Walker3DStepperEnv(EnvBase):
         #     self.heading_bonus = np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2)
         # else:
         self.heading_bonus = 0
+
+        def center_angles(angle_arr):
+            # reduce the angle  
+            angle_arr =  angle_arr % (2 * np.pi)
+            # force it to be the positive remainder, so that 0 <= angle_arr < 2 * np.pi  
+            angle_arr = (angle_arr + 2 * np.pi) % (2 * np.pi)
+            # force into the minimum absolute value residue class, so that -180 < angle_arr <= 180  
+            angle_arr[angle_arr > np.pi] -= (2 * np.pi)
+            return angle_arr
+
+        if not self.is_mask_on[self.masking_indices["dir"]]:
+            body_angle_to_target = center_angles(np.array([atan2(
+                self.terrain_info[self.next_step_index][13] - self.robot.body_xyz[1],
+                self.terrain_info[self.next_step_index][12] - self.robot.body_xyz[0],
+            ) - self.robot.body_rpy[2]]))[0]
+        else:
+            body_angle_to_target = 0
+
+        body_angle_to_target = np.abs(body_angle_to_target)
+
+        self.heading_bonus = -body_angle_to_target if body_angle_to_target > 20 * DEG2RAD else 0
         
         if self.is_mask_on[self.masking_indices["timing"]]:
             self.timing_bonus = 0
