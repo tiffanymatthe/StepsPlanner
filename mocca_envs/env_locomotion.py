@@ -393,7 +393,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         self.elbow_penalty = 0
-        self.elbow_weight = 0
+        self.elbow_weight = 0.4
 
         self.selected_behavior = self.behaviors[0]
 
@@ -1575,6 +1575,11 @@ class Walker3DStepperEnv(EnvBase):
 
         self.linear_potential = -(body_distance_to_target + 0.5 * body_angle_to_target) / self.scene.dt
         self.distance_to_target = body_distance_to_target
+        # else:
+        # walk_target_delta = self.terrain_info[self.next_step_index][12] - self.robot.body_rpy[2]
+        # body_angle_to_target = walk_target_delta
+        # self.linear_potential = -(body_angle_to_target) / self.scene.dt
+        # self.angle_to_target = body_angle_to_target
 
     def calc_base_reward(self, action):
 
@@ -1587,7 +1592,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.is_mask_on[self.masking_indices["dir"]]:
             self.progress = linear_progress * 2
         else:
-            self.progress = linear_progress * 1
+            self.progress = linear_progress * 0.65
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
