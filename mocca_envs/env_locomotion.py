@@ -339,7 +339,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 3
+        self.max_curriculum = 9
         self.advance_threshold = min(15, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
@@ -1532,7 +1532,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        self.linear_potential = -(body_distance_to_target + angle_delta * 0.3) / self.scene.dt
+        self.linear_potential = -(body_distance_to_target + angle_delta * 0.4) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
     def calc_base_reward(self, action):
