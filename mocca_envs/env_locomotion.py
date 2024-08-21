@@ -391,7 +391,7 @@ class Walker3DStepperEnv(EnvBase):
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": None,
-            "heading_var": np.linspace(np.pi / 8, np.pi / 2, N),
+            "heading_var": np.linspace(0, np.pi / 2, N),
             "timing_gaits": None,
         }
         self.dist_range = {
