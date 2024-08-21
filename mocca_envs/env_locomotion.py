@@ -366,8 +366,8 @@ class Walker3DStepperEnv(EnvBase):
         }
 
         self.allow_masking = [False, False, True, False, True]
-        self.masking_prob = [1, 1, 1, 1, 1] # prob. of mask on
-        self.is_mask_on = [False, False, True, False, True]
+        self.masking_prob = [1, 1, 0, 1, 1] # prob. of mask on
+        self.is_mask_on = [False, False, False, False, True]
 
         self.current_step_time = 0
         self.current_time_index = 1
@@ -1400,6 +1400,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.state_id >= 0:
             self._p.restoreState(self.state_id)
 
+        if self.curriculum > 0:
+            self.is_mask_on[self.masking_indices["timing"]] = True
+
         self.timestep = 0
         self.done = False
         self.target_reached_count = 0
@@ -1433,8 +1436,8 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
         
-        if self.allow_masking[self.masking_indices["timing"]]:
-            self.is_mask_on[self.masking_indices["timing"]] = self.np_random.rand() < self.masking_prob[self.masking_indices["timing"]]
+        # if self.allow_masking[self.masking_indices["timing"]]:
+        #     self.is_mask_on[self.masking_indices["timing"]] = self.np_random.rand() < self.masking_prob[self.masking_indices["timing"]]
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
@@ -1592,7 +1595,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.is_mask_on[self.masking_indices["dir"]]:
             self.progress = linear_progress * 2
         else:
-            self.progress = linear_progress * 0.65
+            self.progress = linear_progress * 1
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
