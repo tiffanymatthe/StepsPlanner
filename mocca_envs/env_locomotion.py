@@ -399,7 +399,7 @@ class Walker3DStepperEnv(EnvBase):
             "random_walks": np.array([0.55, 0.75]),
             "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.5]),
-            "backward": np.array([0.5, 0.0]),
+            "backward": np.array([0.45, 0.65]),
             "heading_var": np.array([0.65, 0.65]),
             "timing_gaits": np.array([0.65, 0.65]),
         }
@@ -411,7 +411,7 @@ class Walker3DStepperEnv(EnvBase):
             "random_walks": np.array([-90.0, 90.0]),
             "turn_in_place": np.array([0.0, 0.0]),
             "side_step": np.array([0.0, 0.0]),
-            "backward": np.array([0.0, 0.0]),
+            "backward": np.array([-90.0, 90.0]),
             "heading_var": np.array([0.0, 0.0]),
             "timing_gaits": np.array([0.0, 0.0]),
         }
