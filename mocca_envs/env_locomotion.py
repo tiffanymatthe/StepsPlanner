@@ -319,7 +319,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
-    foot_sep = 0.18
+    foot_sep = 0.16
     rendered_step_count = 20
     init_step_separation = 0.70
 
@@ -1600,7 +1600,6 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.target_reached and not self.past_last_step:
             self.heading_bonus = -( -np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2) + 1)
-            # print(f"{self.next_step_index} reached, heading bonus {self.heading_bonus} and {self.swing_leg}")
         else:
             self.heading_bonus = 0
 
