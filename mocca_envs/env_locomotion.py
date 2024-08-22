@@ -1631,7 +1631,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.left_expected_contact = 1
                 elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
                     self.left_expected_contact = 0
-                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 2):
+                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 6):
                     self.left_expected_contact = 1
                 else:
                     self.left_expected_contact = -1 if self.next_step_index > 2 else 1
@@ -1642,7 +1642,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.right_expected_contact = 1
                 elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
                     self.right_expected_contact = 0
-                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 2):
+                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 6):
                     self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
                 else:
                     self.right_expected_contact = -1 if self.next_step_index > 2 else 1
