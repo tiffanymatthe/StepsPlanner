@@ -431,7 +431,7 @@ class Walker3DStepperEnv(EnvBase):
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
         K = self.lookahead + self.lookbehind
-        self.extra_step_dim = 4 + 2 + 2 # timing + direction 2d vec + mask
+        self.extra_step_dim = 4 + 2 + 1 + 3 # timing + direction 2d vec + general velocity + mask
         high = np.inf * np.ones(
             self.robot_obs_dim + K * self.step_param_dim + self.extra_step_dim, dtype=np.float32
         )
@@ -1928,9 +1928,9 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         dr = np.array([0,0])
-        time_and_dr_mask = np.array([0,1])
+        time_and_dr_mask = np.array([0,1,1])
 
-        return deltas, np.concatenate([time_left, dr, time_and_dr_mask])
+        return deltas, np.concatenate([time_left, dr, [0], time_and_dr_mask])
 
     def get_mirror_indices(self):
 
