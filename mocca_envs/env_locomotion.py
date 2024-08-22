@@ -479,7 +479,7 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "hopping"
+        method = "walking"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -583,7 +583,7 @@ class Walker3DStepperEnv(EnvBase):
             timing_0 = half_cycle_times * 0.4
             timing_1 = half_cycle_times * 0.6
             if curriculum > 0:
-                ratio = self.np_random.choice([0.3, 0.4, 0.5])
+                ratio = self.np_random.choice([0.3, 0.4, 0.5, 0.6], size=N)
                 timing_0 = half_cycle_times * ratio
                 timing_1 = half_cycle_times * (1-ratio)
             timing_0 = timing_0.astype(int)
@@ -1546,7 +1546,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 0.4 if self.curriculum > 0 else 0.1
+        multiplier = 0.4 # if self.curriculum > 0 else 0.1
 
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier) / self.scene.dt
         self.distance_to_target = body_distance_to_target

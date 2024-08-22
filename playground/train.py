@@ -262,9 +262,9 @@ def main(_seed, _config, _run):
                 args.use_curriculum
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
-                > (advance_threshold if current_curriculum > 0 else 5)
-                and nanmean(avg_heading_errs) < (7 * DEG2RAD if current_curriculum > 0 else 25 * DEG2RAD)
-                and nanmean(avg_timing_mets) >= 1.75
+                > advance_threshold # if current_curriculum > 0 else 5)
+                and nanmean(avg_heading_errs) < 7 * DEG2RAD # if current_curriculum > 0 else 25 * DEG2RAD)
+                and nanmean(avg_timing_mets) >= 1.8
             ):
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
