@@ -1603,9 +1603,11 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        if self.current_step_time < self.terrain_info[self.next_step_index, 10] - 8: # for liftoff purposes
-            self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)
+        # if self.current_step_time < self.terrain_info[self.next_step_index, 10] - 8: # for liftoff purposes
+        #     self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)
             # print(f"{self.next_step_index}: prev foot should still be on step, with error: {self.prev_heading_rad_to_target * RAD2DEG}, so penalty of {-( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)}")
+        
+        # print(f"swing leg {self.swing_leg} and foot tilts: {self.robot.feet_rpy[:, 1] * RAD2DEG}")
         
         self.calc_timing_reward()
 
@@ -1746,8 +1748,10 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
         # self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps # self.next_step_index > 1
         self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
+
+        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
         
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step) and abs(swing_foot_tilt) < 1 * DEG2RAD
 
         next_step_time = [
             self.terrain_info[self.next_step_index, 8],
