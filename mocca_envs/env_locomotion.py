@@ -362,12 +362,12 @@ class Walker3DStepperEnv(EnvBase):
 
         # (allow masking switch, prob of mask on, initial mask state)
         self.mask_info = {
-            "xy": (False, 0.5, False),
-            "heading": (False, 0.5, False),
-            "timing": (True, 1, True),
-            "leg": (False, 0.5, False),
-            "dir": (False, 0.5, True),
-            "vel": (False, 0.5, True),
+            "xy": [False, 0.5, False],
+            "heading": [False, 0.5, False],
+            "timing": [True, 1, True],
+            "leg": [False, 0.5, False],
+            "dir": [False, 0.5, True],
+            "vel": [False, 0.5, True],
         }
 
         self.foot_angle_weight = kwargs.pop("foot_angle_weight", 0.1)
