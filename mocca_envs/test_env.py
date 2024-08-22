@@ -7,10 +7,11 @@ os.sys.path.insert(0, parent_dir)
 
 import gym
 import numpy as np
+import mocca_envs
 
 DEG2RAD = np.pi / 180
 
-env_name = sys.argv[1] if len(sys.argv) > 1 else "mocca_envs:Monkey3DCustomEnv-v0"
+env_name = sys.argv[1] if len(sys.argv) > 1 else "Walker3DStepperEnv-v0"
 render = sys.argv[2] in ["True", "true", "1", 1] if len(sys.argv) > 2 else True
 
 env = gym.make(env_name, render=render)
@@ -72,5 +73,5 @@ while True:
 
     obs, reward, done, info = env.step(env.action_space.sample() * 0)
 
-    if done:
-        env.reset()
+    # if done:
+    #     env.reset()
