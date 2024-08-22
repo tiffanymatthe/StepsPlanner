@@ -446,8 +446,8 @@ class Walker3DStepperEnv(EnvBase):
     def get_timing(self, N):
         half_cycle_times = np.ones(N) * 30
         
-        timing_0 = half_cycle_times * 0.4
-        timing_1 = half_cycle_times * 0.6
+        timing_0 = half_cycle_times * 0.3
+        timing_1 = half_cycle_times * 0.7
         timing_0 = timing_0.astype(int)
         timing_1 = timing_1.astype(int)
         timing_2 = timing_0 + timing_1
@@ -1603,7 +1603,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        if self.current_step_time < self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1: # for liftoff purposes
+        if self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and self.curriculum > 0: # for liftoff purposes
             # penalty for foot sliding, get foot yaw at beginning and penalize deviations
             # yaw_diff = np.array([self.prev_foot_yaw - self.robot.feet_rpy[1-self.swing_leg,2]])
             # yaw_diff =  yaw_diff % (2 * np.pi)
