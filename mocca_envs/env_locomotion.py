@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["random_walks"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 0
 
         self.heading_errors = []
@@ -1745,17 +1745,14 @@ class Walker3DStepperEnv(EnvBase):
             )
             foot_in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
             foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius
-            other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius
+            other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius + 0.1
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
-        # else:
-        #     swing_leg_not_on_steps = self.foot_dist_to_target[self.swing_leg] >= self.step_radius
 
         swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
         other_leg_in_air = self._foot_target_contacts[1-self.swing_leg, 0] == 0
 
         # if swing leg is not on previous step and not on current step and not in air, should terminate
         self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
-        # self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps # self.next_step_index > 1
         self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
