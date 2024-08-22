@@ -358,6 +358,16 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
 
         self.current_step_time = 0
+        self.current_time_index = 1
+
+        self.mask_info = {
+            "xy": (False, 0.5, False),
+            "heading": (False, 0.5, False),
+            "timing": (False, 0.5, False),
+            "leg": (False, 0.5, False),
+            "dir": (False, 0.5, True),
+            "vel": (False, 0.5, True),
+        }
 
         self.foot_angle_weight = kwargs.pop("foot_angle_weight", 0.1)
 
@@ -1405,6 +1415,7 @@ class Walker3DStepperEnv(EnvBase):
         self.body_stationary_count = 0
 
         self.current_step_time = 0
+        self.current_time_index = 1
 
         self.heading_errors = []
         self.met_times = []
@@ -1476,11 +1487,14 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_env_state(action)
 
         reward = self.progress - self.energy_penalty
-        reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
+        if not self.mask_info["xy"][2]:
+            reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
-        reward += self.heading_bonus * self.heading_bonus_weight
-        reward += self.timing_bonus * self.timing_bonus_weight
+        if not self.mask_info["heading"][2]:
+            reward += self.heading_bonus * self.heading_bonus_weight
+        if not self.mask_info["timing"][2]:
+            reward += self.timing_bonus * self.timing_bonus_weight
 
         # targets is calculated by calc_env_state()
         if self.extra_step_dim == 0:
@@ -1632,7 +1646,10 @@ class Walker3DStepperEnv(EnvBase):
         
         # print(f"swing leg {self.swing_leg} and foot tilts: {self.robot.feet_rpy[:, 1] * RAD2DEG}")
         
-        self.calc_timing_reward()
+        if self.mask_info["timing"][2]:
+            self.timing_bonus = 0
+        else:
+            self.calc_timing_reward()
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
 
@@ -1640,16 +1657,18 @@ class Walker3DStepperEnv(EnvBase):
         self.left_actual_contact = self._foot_target_contacts[1,0]
         self.right_actual_contact = self._foot_target_contacts[0,0]
 
+        self.current_time_index = self.next_step_index
+
         next_step_time = [
-            self.terrain_info[self.next_step_index, 8],
-            self.terrain_info[self.next_step_index, 9],
-            self.terrain_info[self.next_step_index, 10],
-            self.terrain_info[self.next_step_index, 11]
+            self.terrain_info[self.current_time_index, 8],
+            self.terrain_info[self.current_time_index, 9],
+            self.terrain_info[self.current_time_index, 10],
+            self.terrain_info[self.current_time_index, 11]
         ]
 
         if not self.past_last_step:
             # assumes swing leg == 1 (will swap later)
-            if self.next_step_index < self.num_steps - 1:
+            if self.current_time_index < self.num_steps - 1:
                 if self.current_step_time < next_step_time[0]: # first contact
                     self.left_expected_contact = 1
                 elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
@@ -1657,10 +1676,10 @@ class Walker3DStepperEnv(EnvBase):
                 elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 6):
                     self.left_expected_contact = 1
                 else:
-                    self.left_expected_contact = -1 if self.next_step_index > 2 else 1
+                    self.left_expected_contact = -1 if self.current_time_index > 2 else 1
             else:
                 self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
-            if self.next_step_index < self.num_steps - 1:
+            if self.current_time_index < self.num_steps - 1:
                 if self.current_step_time < next_step_time[2]: # first contact
                     self.right_expected_contact = 1
                 elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
@@ -1668,7 +1687,7 @@ class Walker3DStepperEnv(EnvBase):
                 elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 6):
                     self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
                 else:
-                    self.right_expected_contact = -1 if self.next_step_index > 2 else 1
+                    self.right_expected_contact = -1 if self.current_time_index > 2 else 1
             else:
                 self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
         else:
@@ -1943,15 +1962,33 @@ class Walker3DStepperEnv(EnvBase):
             time_left[1] = max(time_left[1] - (self.current_step_time - targets[1, 8]), 0)
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
-        xy_mask = np.zeros(k + j)
-        heading_mask = np.zeros(k + j)
-        swing_leg_mask = np.zeros(k + j)
+        xy_mask = np.ones(k + j) if self.mask_info["xy"][2] else np.zeros(k + j)
+        heading_mask = np.ones(k + j) if self.mask_info["heading"][2] else np.zeros(k + j)
+        swing_leg_mask = np.ones(k + j) if self.mask_info["leg"][2] else np.zeros(k + j)
+
+        if self.mask_info["xy"][2]:
+            x = np.zeros(k + j)
+            y = np.zeros(k + j)
+            z = np.zeros(k + j)
+        else:
+            x = np.sin(angle_to_targets) * distance_to_targets
+            y = np.cos(angle_to_targets) * distance_to_targets
+            z = delta_pos[:, 2]
+
+        if self.mask_info["heading"][2]:
+            heading_angle_to_targets *= 0
+
+        if self.mask_info["leg"][2]:
+            swing_legs_at_targets *= 0
+
+        if self.mask_info["timing"][2]:
+            time_left *= 0
 
         deltas = concatenate(
             (
-                (np.sin(angle_to_targets) * distance_to_targets)[:, None],  # x
-                (np.cos(angle_to_targets) * distance_to_targets)[:, None],  # y
-                (delta_pos[:, 2])[:, None],  # z
+                (x)[:, None],  # x
+                (y)[:, None],  # y
+                (z)[:, None],  # z
                 (targets[:, 4])[:, None],  # x_tilt
                 (targets[:, 5])[:, None],  # y_tilt
                 (heading_angle_to_targets)[:, None], # heading
@@ -1964,7 +2001,7 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         dr = np.array([0,0])
-        time_and_dr_mask = np.array([0,1,1])
+        time_and_dr_mask = np.array([self.mask_info["timing"][2],self.mask_info["dir"][2],self.mask_info["vel"][2]]).astype(int)
 
         return deltas, np.concatenate([time_left, dr, [0], time_and_dr_mask])
 
