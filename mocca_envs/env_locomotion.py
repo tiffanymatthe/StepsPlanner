@@ -1602,6 +1602,10 @@ class Walker3DStepperEnv(EnvBase):
             self.heading_bonus = -( -np.exp(-self.gauss_width * abs(self.heading_rad_to_target) ** 2) + 1)
         else:
             self.heading_bonus = 0
+
+        if self.current_step_time < self.terrain_info[self.next_step_index, 10] - 8: # for liftoff purposes
+            self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)
+            # print(f"{self.next_step_index}: prev foot should still be on step, with error: {self.prev_heading_rad_to_target * RAD2DEG}, so penalty of {-( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)}")
         
         self.calc_timing_reward()
 
@@ -1700,6 +1704,10 @@ class Walker3DStepperEnv(EnvBase):
         self.current_target_count += 1
 
         self.heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
+        if self.next_step_index > 1:
+            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[self.next_step_index-1, 6])
+        else:
+            self.prev_heading_rad_to_target = 0
 
         if self.next_step_index == 1 or self.swing_leg_lifted:
             # if first step or already lifted, say true
