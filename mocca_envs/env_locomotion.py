@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["timing_gaits"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["random_walks"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 0
 
         self.heading_errors = []
@@ -360,10 +360,11 @@ class Walker3DStepperEnv(EnvBase):
         self.current_step_time = 0
         self.current_time_index = 1
 
+        # (allow masking switch, prob of mask on, initial mask state)
         self.mask_info = {
             "xy": (False, 0.5, False),
             "heading": (False, 0.5, False),
-            "timing": (False, 0.5, False),
+            "timing": (True, 1, True),
             "leg": (False, 0.5, False),
             "dir": (False, 0.5, True),
             "vel": (False, 0.5, True),
@@ -479,7 +480,7 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "hopping"
+        method = "walking"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -1420,6 +1421,10 @@ class Walker3DStepperEnv(EnvBase):
             mirror=0 # if self.behavior_curriculum == 0 else 1 # 0 if random, 1 if force True, 2 if force False
         )
         self.prev_leg = self.swing_leg
+
+
+        if self.mask_info["timing"][0]:
+            self.mask_info["timing"][2] = self.np_random.rand() < self.mask_info["timing"][1]
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
