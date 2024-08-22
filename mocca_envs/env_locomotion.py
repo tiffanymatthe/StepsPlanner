@@ -1603,7 +1603,13 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        # if self.current_step_time < self.terrain_info[self.next_step_index, 10] - 8: # for liftoff purposes
+        if self.current_step_time < self.terrain_info[self.next_step_index, 10] and self._foot_target_contacts[1-self.swing_leg,0] == 1 and self.next_step_index > 1: # for liftoff purposes
+            # penalty for foot sliding, get foot yaw at beginning and penalize deviations
+            yaw_diff = np.array([self.prev_foot_yaw - self.robot.feet_rpy[1-self.swing_leg,2]])
+            yaw_diff =  yaw_diff % (2 * np.pi)
+            yaw_diff = (yaw_diff + 2 * np.pi) % (2 * np.pi)
+            yaw_diff[yaw_diff > np.pi] -= (2 * np.pi)
+            self.heading_bonus += - np.abs(yaw_diff[0])
         #     self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)
             # print(f"{self.next_step_index}: prev foot should still be on step, with error: {self.prev_heading_rad_to_target * RAD2DEG}, so penalty of {-( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)}")
         
@@ -1780,6 +1786,7 @@ class Walker3DStepperEnv(EnvBase):
             delay = 6 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
+                    self.prev_foot_yaw = self.robot.feet_rpy[self.swing_leg,2]
                     self.current_step_time = 0
                     self.current_target_count = 0
                     self.in_air_count = 0
