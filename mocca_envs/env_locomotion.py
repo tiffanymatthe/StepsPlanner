@@ -444,10 +444,20 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        half_cycle_times = np.ones(N) * 30
-        
-        timing_0 = half_cycle_times * 0.3
-        timing_1 = half_cycle_times * 0.7
+
+        if self.curriculum == 0:
+            half_cycle_times = np.ones(N) * 30
+            timing_0 = half_cycle_times * 0.3
+            timing_1 = half_cycle_times * 0.7
+        else:
+            half_cycle_times = self.np_random.choice([20,30,40,50], size=N)
+            ground_ratio = self.np_random.choice([0.2,0.3,0.4], size=N)
+            timing_0 = half_cycle_times * ground_ratio
+            timing_1 = half_cycle_times * (1-ground_ratio)
+            half_cycle_times[0:3] = 30
+            timing_0[0:3] = half_cycle_times[0:3] * 0.3
+            timing_1[0:3] = half_cycle_times[0:3] * 0.7
+
         timing_0 = timing_0.astype(int)
         timing_1 = timing_1.astype(int)
         timing_2 = timing_0 + timing_1
@@ -1637,7 +1647,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.left_expected_contact = 1
                 elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
                     self.left_expected_contact = 0
-                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 2):
+                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 6):
                     self.left_expected_contact = 1
                 else:
                     self.left_expected_contact = -1 if self.next_step_index > 2 else 1
@@ -1648,7 +1658,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.right_expected_contact = 1
                 elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
                     self.right_expected_contact = 0
-                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 2):
+                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 6):
                     self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
                 else:
                     self.right_expected_contact = -1 if self.next_step_index > 2 else 1
@@ -1783,7 +1793,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 # 10 if self.next_step_index > 4 else 2
+            delay = 6 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
                     self.prev_foot_yaw = self.robot.feet_rpy[self.swing_leg,2]
