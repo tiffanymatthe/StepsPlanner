@@ -364,7 +364,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.mask_info = {
             "xy": [False, 0.5, False],
-            "heading": [False, 0.5, True],
+            "heading": [False, 0.5, False],
             "timing": [False, 1, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
