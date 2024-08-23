@@ -344,7 +344,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["random_walks"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 0
 
         self.heading_errors = []
@@ -445,18 +445,18 @@ class Walker3DStepperEnv(EnvBase):
 
     def get_timing(self, N):
 
-        # if self.curriculum == 0:
-        half_cycle_times = np.ones(N) * 30
-        timing_0 = half_cycle_times * 0.3
-        timing_1 = half_cycle_times * 0.7
-        # else:
-        #     half_cycle_times = self.np_random.choice([20,30,40,50], size=N)
-        #     ground_ratio = self.np_random.choice([0.2,0.3,0.4], size=N)
-        #     timing_0 = half_cycle_times * ground_ratio
-        #     timing_1 = half_cycle_times * (1-ground_ratio)
-        #     half_cycle_times[0:3] = 30
-        #     timing_0[0:3] = half_cycle_times[0:3] * 0.3
-        #     timing_1[0:3] = half_cycle_times[0:3] * 0.7
+        if self.curriculum == 0:
+            half_cycle_times = np.ones(N) * 30
+            timing_0 = half_cycle_times * 0.3
+            timing_1 = half_cycle_times * 0.7
+        else:
+            half_cycle_times = self.np_random.choice([20,30,40,50], size=N)
+            ground_ratio = self.np_random.choice([0.2,0.3,0.4], size=N)
+            timing_0 = half_cycle_times * ground_ratio
+            timing_1 = half_cycle_times * (1-ground_ratio)
+            half_cycle_times[0:3] = 30
+            timing_0[0:3] = half_cycle_times[0:3] * 0.3
+            timing_1[0:3] = half_cycle_times[0:3] * 0.7
 
         timing_0 = timing_0.astype(int)
         timing_1 = timing_1.astype(int)
