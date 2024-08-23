@@ -148,7 +148,7 @@ def main(_seed, _config, _run):
             controller = actor_class(dummy_env)
             actor_critic = Policy(controller)
             for (weight, bias, _), (trained_weight, trained_bias, _) in zip(
-                actor_critic.critic.layers, trained_critic.layers
+                actor_critic.critic.children(), trained_critic.children()
             ):
                 weight.data[:] = trained_weight.data
                 bias.data[:] = trained_bias.data
