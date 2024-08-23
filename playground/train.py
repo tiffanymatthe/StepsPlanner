@@ -47,9 +47,9 @@ def configs():
     use_mirror = True
     use_curriculum = False
     plank_class = "VeryLargePlank"
-    heading_bonus_weight = 1
-    timing_bonus_weight = 1
-    gauss_width = 0.5
+    heading_bonus_weight = 8
+    timing_bonus_weight = 1.5
+    gauss_width = 12
     start_curriculum = 0
     start_behavior_curriculum = 0
     use_wandb = True
@@ -58,6 +58,7 @@ def configs():
     # Network settings
     actor_class = "SoftsignActor"
     fix_experts = False
+    only_use_critic = False
 
     # Sampling parameters
     num_frames = 6e7
@@ -138,7 +139,16 @@ def main(_seed, _config, _run):
 
     if args.net is not None:
         print(f"Loading model {args.net}")
-        actor_critic = torch.load(args.net, map_location=torch.device(args.device))
+        if args.only_use_critic:
+            # only using critic
+            critic = torch.load(args.net, map_location=torch.device(args.device)).critic
+            actor_class = globals().get(args.actor_class)
+            print(f"Using pre-existing critic with new Actor Class: {actor_class}")
+            controller = actor_class(dummy_env)
+            actor_critic = Policy(controller)
+            actor_critic.critic = critic
+        else:
+            actor_critic = torch.load(args.net, map_location=torch.device(args.device))
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
