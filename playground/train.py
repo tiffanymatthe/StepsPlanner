@@ -268,14 +268,17 @@ def main(_seed, _config, _run):
 
             next_value = actor_critic.get_value(rollouts.observations[-1]).detach()
 
+            avg_heading_err_nanmean = nanmean(avg_heading_errs)
+            avg_timing_met_nanmean = nanmean(avg_timing_mets)
+
             # Update curriculum after roll-out
             if (
                 args.use_curriculum
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
                 > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
-                and nanmean(avg_heading_errs) < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD)
-                and nanmean(avg_timing_mets) >= 1.75
+                and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
+                and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.75)
             ):
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
