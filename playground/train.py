@@ -142,15 +142,16 @@ def main(_seed, _config, _run):
         print(f"Loading model {args.net}")
         if args.only_use_critic:
             # only using critic
-            trained_critic = torch.load(args.net, map_location=torch.device(args.device)).critic
+            trained_actor = torch.load(args.net, map_location=torch.device(args.device)).actor
             actor_class = globals().get(args.actor_class)
-            print(f"Using pre-existing critic with new Actor Class: {actor_class}")
+            print(f"Using pre-existing actor with new Actor Class: {actor_class}")
             controller = actor_class(dummy_env)
             actor_critic = Policy(controller)
-            for parameter, trained_parameter in zip(
-                actor_critic.critic.parameters(), trained_critic.parameters()
+            for (weight, bias, _), (trained_weight, trained_bias, _) in zip(
+                actor_critic.actor.layers, trained_actor.layers
             ):
-                parameter.data = trained_parameter.data
+                weight.data[:] = trained_weight.data
+                bias.data[:] = trained_bias.data
         else:
             actor_critic = torch.load(args.net, map_location=torch.device(args.device))
     else:
