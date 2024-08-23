@@ -1805,7 +1805,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
 
-        if self.target_reached and not self.past_last_step:
+        if self.target_reached and not self.past_last_step and not self.mask_info["heading"][2]:
             self.heading_errors.append(abs(self.heading_rad_to_target))
 
         if self.target_reached:
