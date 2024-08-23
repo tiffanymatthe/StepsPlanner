@@ -344,8 +344,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
-        self.max_behavior_curriculum = 0
+        self.behaviors = ["to_standstill", "transition_all"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.max_behavior_curriculum = 1
 
         self.heading_errors = []
         self.met_times = []
@@ -386,8 +386,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # Terrain info
         self.angle_curriculum = {
-            "to_standstill": None,
-            "random_walks": None,
+            "to_standstill": np.linspace(np.pi / 8, np.pi / 2, N),
+            "random_walks": np.linspace(np.pi / 8, np.pi / 2, N),
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": None,
@@ -685,7 +685,8 @@ class Walker3DStepperEnv(EnvBase):
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        self.path_angle = 0
+        self.path_angle = self.angle_curriculum[behavior][curriculum]
+        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
 
         N = self.num_steps
         
@@ -751,6 +752,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
 
         dphi *= 0
 
@@ -857,7 +859,8 @@ class Walker3DStepperEnv(EnvBase):
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        self.path_angle = 0
+        self.path_angle = self.angle_curriculum[behavior][curriculum]
+        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
 
         N = self.num_steps
 
@@ -924,6 +927,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
 
         dphi *= 0
 
@@ -1304,7 +1308,10 @@ class Walker3DStepperEnv(EnvBase):
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
 
         if self.selected_behavior == "to_standstill":
-            path = self.generate_to_standstill_step_placements(self.selected_curriculum)
+            if self.np_random.rand() < 0.8:
+                path = self.generate_to_standstill_step_placements(self.selected_curriculum)
+            else:
+                path = self.generate_random_walks_step_placements(min(self.selected_curriculum + 1, self.max_curriculum))
         elif self.selected_behavior == "heading_var":
             path = self.generate_heading_var_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "turn_in_place":
@@ -1542,7 +1549,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 2 if self.curriculum > 0 else 0.1
+        multiplier = 2 # if self.curriculum > 0 else 0.1
 
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier) / self.scene.dt
         self.distance_to_target = body_distance_to_target
