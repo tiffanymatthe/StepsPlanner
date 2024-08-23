@@ -147,11 +147,10 @@ def main(_seed, _config, _run):
             print(f"Using pre-existing actor with new Actor Class: {actor_class}")
             controller = actor_class(dummy_env)
             actor_critic = Policy(controller)
-            for (weight, bias, _), (trained_weight, trained_bias, _) in zip(
-                actor_critic.actor.layers, trained_actor.layers
+            for parameter, trained_parameter in zip(
+                actor_critic.actor.parameters(), trained_actor.parameters()
             ):
-                weight.data[:] = trained_weight.data
-                bias.data[:] = trained_bias.data
+                parameter.data = trained_parameter.data
         else:
             actor_critic = torch.load(args.net, map_location=torch.device(args.device))
     else:
