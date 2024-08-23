@@ -347,6 +347,8 @@ class Walker3DStepperEnv(EnvBase):
         self.behaviors = ["to_standstill", "transition_all"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 1
 
+        self.from_net = kwargs.pop("from_net", False)
+
         self.heading_errors = []
         self.met_times = []
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 8)
@@ -1438,6 +1440,9 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
+        if self.mask_info["timing"][0]:
+            self.mask_info["timing"][2] = self.np_random.rand() < self.mask_info["timing"][1]
+
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
         self.next_step_index = self.lookbehind
@@ -1563,7 +1568,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 2 # if self.curriculum > 0 else 0.1
+        multiplier = 2 if (self.curriculum > 0 or self.from_net) else 0.1
 
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier) / self.scene.dt
         self.distance_to_target = body_distance_to_target
@@ -1634,17 +1639,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.heading_bonus = 0
 
-        if self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and self.curriculum > 0: # for liftoff purposes
-            # penalty for foot sliding, get foot yaw at beginning and penalize deviations
-            # yaw_diff = np.array([self.prev_foot_yaw - self.robot.feet_rpy[1-self.swing_leg,2]])
-            # yaw_diff =  yaw_diff % (2 * np.pi)
-            # yaw_diff = (yaw_diff + 2 * np.pi) % (2 * np.pi)
-            # yaw_diff[yaw_diff > np.pi] -= (2 * np.pi)
-            # self.heading_bonus += - np.abs(yaw_diff[0])
+        if self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and (self.curriculum > 0 or self.from_net):
             self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1) * 0.5
-            # print(f"{self.next_step_index}: prev foot should still be on step, with error: {self.prev_heading_rad_to_target * RAD2DEG}, so penalty of {-( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1)}")
-        
-        # print(f"swing leg {self.swing_leg} and foot tilts: {self.robot.feet_rpy[:, 1] * RAD2DEG}")
         
         if self.mask_info["timing"][2]:
             self.timing_bonus = 0
