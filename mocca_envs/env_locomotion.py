@@ -398,8 +398,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # Terrain info
         self.angle_curriculum = {
-            "to_standstill": np.linspace(np.pi / 8, np.pi / 2, N),
-            "random_walks": np.linspace(np.pi / 8, np.pi / 2, N),
+            "to_standstill": np.linspace(0, 0, N),
+            "random_walks": np.linspace(0, np.pi / 3, N),
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": None,
