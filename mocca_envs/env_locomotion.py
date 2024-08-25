@@ -364,8 +364,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.mask_info = {
             "xy": [False, 0.5, False],
-            "heading": [True, 0.5, True],
-            "timing": [True, 0.5, True],
+            "heading": [False, 0.5, False],
+            "timing": [False, 0.5, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -1495,13 +1495,18 @@ class Walker3DStepperEnv(EnvBase):
 
         reward = self.progress - self.energy_penalty
         if not self.mask_info["xy"][2]:
-            reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
+            reward += self.step_bonus + self.target_bonus # - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         if not self.mask_info["heading"][2]:
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
+        else:
+            reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
+
+        # print(f"REWARDS for {self.next_step_index}: progress {self.progress}, energy penalty {self.energy_penalty}, step bonus {self.step_bonus}, target {self.target_bonus}, speed penalty {self.speed_penalty}")
+        # print(f"tall {self.tall_bonus}, posture penalty {self.posture_penalty}, joints penalty {self.joints_penalty}, legs {self.legs_bonus}, elbow {self.elbow_penalty * self.elbow_weight}, heading {self.heading_bonus * self.heading_bonus_weight}, timing {self.timing_bonus * self.timing_bonus_weight}")
 
         # targets is calculated by calc_env_state()
         if self.extra_step_dim == 0:
@@ -1874,6 +1879,10 @@ class Walker3DStepperEnv(EnvBase):
 
         # detects contact and set next step
         self.calc_feet_state()
+
+        if cur_step_index != self.next_step_index:
+            self.calc_potential()
+
         self.calc_base_reward(action)
         self.calc_step_reward()
         # use next step to calculate next k steps
