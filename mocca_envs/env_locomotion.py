@@ -1865,7 +1865,7 @@ class Walker3DStepperEnv(EnvBase):
         self.step_bonus = 0
         if (
             self.target_reached
-            and self.target_reached_count > 0
+            and self.target_reached_count == 1
             and self.next_step_index != len(self.terrain_info) - 1  # exclude last step
         ):
             dist = nanmin(self.foot_dist_to_target)
