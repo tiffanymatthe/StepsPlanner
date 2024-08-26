@@ -324,6 +324,7 @@ def main(_seed, _config, _run):
             heading_metric = nanmean(avg_heading_errs)
             logger.log_epoch(
                 {
+                    "iter": iteration,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,

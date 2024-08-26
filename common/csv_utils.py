@@ -41,19 +41,19 @@ class ConsoleCSVLogger(CSVLogger):
     def log_epoch(self, data, wandb_module=None):
         super().log_epoch(data, wandb_module)
 
-        # flush = data["iter"] % self.console_log_interval == 0
-        # print(
-        #     (
-        #         f'Updates {data["iter"]}, '
-        #         f'curriculum {data["curriculum"]}, '
-        #         f'curriculum metric {data["curriculum_metric"]:.2f}, '
-        #         f'num timesteps {data["total_num_steps"]}, '
-        #         f'FPS {data["fps"]}, '
-        #         f'mean/median reward {data["mean_rew"]:.1f}/{data["median_rew"]:.1f}, '
-        #         f'min/max reward {data["min_rew"]:.1f}/{data["max_rew"]:.1f}, '
-        #         f'entropy {data["entropy"]:.2f}, '
-        #         f'value loss {data["value_loss"]:.2f}, '
-        #         f'policy loss {data["action_loss"]:.3f}'
-        #     ),
-        #     flush=flush,
-        # )
+        flush = data["iter"] % self.console_log_interval == 0
+        print(
+            (
+                f'Updates {data["iter"]}, '
+                f'curriculum {data["curriculum"]}, '
+                f'curriculum metric {data["curriculum_metric"]:.2f}, '
+                f'num timesteps {data["total_num_steps"]}, '
+                f'FPS {data["fps"]}, '
+                f'mean/median reward {data["mean_rew"]:.1f}/{data["median_rew"]:.1f}, '
+                f'min/max reward {data["min_rew"]:.1f}/{data["max_rew"]:.1f}, '
+                f'entropy {data["entropy"]:.2f}, '
+                f'value loss {data["value_loss"]:.2f}, '
+                f'policy loss {data["action_loss"]:.3f}'
+            ),
+            flush=flush,
+        )
