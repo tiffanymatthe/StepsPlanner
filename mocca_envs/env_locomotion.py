@@ -1525,7 +1525,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
 
-        # print(f"Speed penalty {self.speed_penalty} and direction bonus {self.velocity_direction_bonus}, {self.direction_error * RAD2DEG}")
+        # print(f"Speed penalty {self.speed_penalty} and direction penalty {self.velocity_direction_penalty}, {self.direction_error * RAD2DEG}")
 
         # targets is calculated by calc_env_state()
         if self.extra_step_dim == 0:
@@ -1622,10 +1622,11 @@ class Walker3DStepperEnv(EnvBase):
         if self.mask_info["vel"][2]:
             self.speed_penalty = max(speed - 1.2, 0)
         else:
-            if not -0.1 < self.speed_error < 0.1:
-                self.speed_penalty = abs(self.speed_error)
-            else:
-                self.speed_penalty = 0
+            self.speed_penalty = abs(self.speed_error) - 0.1
+            # if not -0.1 < self.speed_error < 0.1:
+            #     self.speed_penalty = abs(self.speed_error)
+            # else:
+            #     self.speed_penalty = 0
 
         electricity_cost = self.electricity_cost * nansum(
             abs(action * self.robot.joint_speeds)
@@ -1686,14 +1687,15 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 self.calc_timing_reward()
 
-        # # a = self.robot.body_vel[0:2]
-        # # a /= np.linalg.norm(a)
-        # # b = np.array([np.cos(self.terrain_info[:, 0][self.next_step_index]), np.sin(self.terrain_info[:, 0][self.next_step_index])])
-        # # b /= np.linalg.norm(b)
-        # # self.velocity_direction_bonus = np.dot(a, b)
-        # # print(f"Body velocity: {a} vs expected direction {b}, so velocity direction bonus is {self.velocity_direction_bonus}")
+        # a = self.robot.body_vel[0:2]
+        # a /= np.linalg.norm(a)
+        # b = np.array([np.cos(self.terrain_info[:, 0][self.next_step_index]), np.sin(self.terrain_info[:, 0][self.next_step_index])])
+        # b /= np.linalg.norm(b)
+        # self.velocity_direction_bonus = np.dot(a, b)
+        # print(f"Body velocity: {a} vs expected direction {b}, so velocity direction bonus is {self.velocity_direction_bonus}")
         # # print(np.arctan2(self.robot.body_vel[1], self.robot.body_vel[0]) * RAD2DEG)
-        self.velocity_direction_penalty = np.abs(self.direction_error)
+        # if direction error is small, we get a bonus instead
+        self.velocity_direction_penalty = np.abs(self.direction_error) - 10 * DEG2RAD
 
         steps_termination_condition = self.mask_info["dir"][2] and (self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count)
 
