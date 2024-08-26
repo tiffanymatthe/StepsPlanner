@@ -1255,7 +1255,8 @@ class Walker3DStepperEnv(EnvBase):
         self.max_timestep = 1200
 
         # 90 since robot is initialized at 90 degrees
-        global_angle_directions = np.array([90,90,100,120,80]) * DEG2RAD
+        # global_angle_directions = np.array([90,90,100,120,80]) * DEG2RAD
+        global_angle_directions = np.array([90,90,90,90,90]) * DEG2RAD
         speeds = np.array([1.2,1.2,1.2,1.2,1.2])
         timestamps = np.array([0,300,600,900,self.max_timestep])
 
@@ -1516,14 +1517,15 @@ class Walker3DStepperEnv(EnvBase):
         if not self.mask_info["xy"][2]:
             reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         else:
-            reward += - self.speed_penalty
-            reward += self.velocity_direction_bonus
+            reward += - self.speed_penalty - self.velocity_direction_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         if not self.mask_info["heading"][2]:
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
+
+        # print(f"Speed penalty {self.speed_penalty} and direction bonus {self.velocity_direction_bonus}, {self.direction_error * RAD2DEG}")
 
         # targets is calculated by calc_env_state()
         if self.extra_step_dim == 0:
@@ -1684,11 +1686,14 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 self.calc_timing_reward()
 
-        a = self.robot.body_vel[0:2]
-        a /= np.linalg.norm(a)
-        b = np.array([np.cos(self.terrain_info[:, 0][self.next_step_index]), np.sin(self.terrain_info[:, 0][self.next_step_index])])
-        b /= np.linalg.norm(b)
-        self.velocity_direction_bonus = np.dot(a, b)
+        # # a = self.robot.body_vel[0:2]
+        # # a /= np.linalg.norm(a)
+        # # b = np.array([np.cos(self.terrain_info[:, 0][self.next_step_index]), np.sin(self.terrain_info[:, 0][self.next_step_index])])
+        # # b /= np.linalg.norm(b)
+        # # self.velocity_direction_bonus = np.dot(a, b)
+        # # print(f"Body velocity: {a} vs expected direction {b}, so velocity direction bonus is {self.velocity_direction_bonus}")
+        # # print(np.arctan2(self.robot.body_vel[1], self.robot.body_vel[0]) * RAD2DEG)
+        self.velocity_direction_penalty = np.abs(self.direction_error)
 
         steps_termination_condition = self.mask_info["dir"][2] and (self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count)
 
@@ -1763,7 +1768,7 @@ class Walker3DStepperEnv(EnvBase):
             speed = sqrt(ss(self.robot.body_vel[0:2]))
             self.speed_error = self.terrain_info[:, 1][self.next_step_index] - speed
             target_direction = self.terrain_info[:, 0][self.next_step_index]
-            self.direction_error = target_direction - self.robot.body_rpy[2]
+            self.direction_error = target_direction - np.arctan2(self.robot.body_vel[1], self.robot.body_vel[0])
             self.direction_error = self.direction_error % (2 * np.pi)
             self.direction_error = (self.direction_error + 2 * np.pi) % (2 * np.pi)
             if self.direction_error > np.pi:
