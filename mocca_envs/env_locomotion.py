@@ -1586,7 +1586,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.mask_info["timing"][2] and self.next_step_index <= 2 and not (self.curriculum > 0 or self.behavior_curriculum > 0):
             # add a foot distance potential
-            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.5
+            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
         else:
             foot_delta = 0
 
@@ -1754,7 +1754,7 @@ class Walker3DStepperEnv(EnvBase):
         for i, (foot, contact) in enumerate(
             zip(self.robot.feet, self._foot_target_contacts)
         ):
-            self.robot.feet_contact[i] = pybullet.getContactStates(
+            pybullet.getContactStates(
                 bodyA=robot_id,
                 linkIndexA=foot.bodyPartIndex,
                 bodiesB=target_id_list,
@@ -1762,6 +1762,7 @@ class Walker3DStepperEnv(EnvBase):
                 results=contact,
                 physicsClientId=client_id,
             )
+            self.robot.feet_contact[i] = contact[0]
 
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
