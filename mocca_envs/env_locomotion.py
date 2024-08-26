@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 20
-    init_step_separation = 0.60
+    init_step_separation = 0.70
 
     lookahead = 2
     lookbehind = 1
@@ -398,8 +398,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # Terrain info
         self.angle_curriculum = {
-            "to_standstill": np.linspace(0, np.pi / 3, N),
-            "random_walks": np.linspace(0, np.pi / 2, N),
+            "to_standstill": np.linspace(np.pi / 12, np.pi / 3, N),
+            "random_walks": np.linspace(np.pi / 12, np.pi / 2, N),
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": None,
@@ -1504,6 +1504,7 @@ class Walker3DStepperEnv(EnvBase):
             reward += self.timing_bonus * self.timing_bonus_weight
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
+
         # print(f"REWARDS for {self.next_step_index}: progress {self.progress}, energy penalty {self.energy_penalty}, step bonus {self.step_bonus}, target {self.target_bonus}, speed penalty {self.speed_penalty}")
         # print(f"tall {self.tall_bonus}, posture penalty {self.posture_penalty}, joints penalty {self.joints_penalty}, legs {self.legs_bonus}, elbow {self.elbow_penalty * self.elbow_weight}, heading {self.heading_bonus * self.heading_bonus_weight}, timing {self.timing_bonus * self.timing_bonus_weight}")
 
