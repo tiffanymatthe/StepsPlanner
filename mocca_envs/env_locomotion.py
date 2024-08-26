@@ -1753,7 +1753,7 @@ class Walker3DStepperEnv(EnvBase):
     def calc_feet_state(self):
         if not self.mask_info["dir"][2]:
             self.next_step_index = (self.timestep < self.terrain_info[:, 2]).nonzero()[0][0]
-            speed = sqrt(ss(self.robot.body_vel))
+            speed = sqrt(ss(self.robot.body_vel[0:2]))
             self.speed_error = self.terrain_info[:, 1][self.next_step_index] - speed
             target_direction = self.terrain_info[:, 0][self.next_step_index]
             self.direction_error = target_direction - self.robot.body_rpy[2]
