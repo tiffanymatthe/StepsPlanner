@@ -331,15 +331,19 @@ def main(_seed, _config, _run):
 
         if len(episode_rewards) > 1:
             end = time.time()
-            mean_metric = nanmean(curriculum_metrics)
-            heading_metric = nanmean(avg_heading_errs)
+            mean_metric = [nanmean(m) for m in curriculum_metrics]
+            heading_metric = [nanmean(m) for m in avg_heading_errs]
+            timing_metric = [nanmean(m) for m in avg_timing_mets]
             logger.log_epoch(
                 {
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
-                    "curriculum_metric": mean_metric,
-                    "avg_heading_err": heading_metric,
-                    "avg_timing_met": nanmean(avg_timing_mets),
+                    "curriculum_metric": nanmean(mean_metric),
+                    "avg_heading_err": nanmean(heading_metric),
+                    "avg_timing_met": nanmean(timing_metric),
+                    "curriculum_metric_per_mask": mean_metric,
+                    "avg_heading_err_per_mask": heading_metric,
+                    "avg_timing_met_per_mask": timing_metric,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),
                     "entropy": dist_entropy,
