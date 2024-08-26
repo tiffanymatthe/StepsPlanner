@@ -1502,8 +1502,8 @@ class Walker3DStepperEnv(EnvBase):
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
-        else:
-            reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
+        # else:
+        #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
 
         # print(f"REWARDS for {self.next_step_index}: progress {self.progress}, energy penalty {self.energy_penalty}, step bonus {self.step_bonus}, target {self.target_bonus}, speed penalty {self.speed_penalty}")
         # print(f"tall {self.tall_bonus}, posture penalty {self.posture_penalty}, joints penalty {self.joints_penalty}, legs {self.legs_bonus}, elbow {self.elbow_penalty * self.elbow_weight}, heading {self.heading_bonus * self.heading_bonus_weight}, timing {self.timing_bonus * self.timing_bonus_weight}")
@@ -1823,7 +1823,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 6 # 10 if self.next_step_index > 4 else 2
+            delay = 2 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
                     self.prev_foot_yaw = self.robot.feet_rpy[self.swing_leg,2]
