@@ -1496,7 +1496,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = self.progress - self.energy_penalty
         if not self.mask_info["xy"][2]:
             reward += self.step_bonus + self.target_bonus # - self.speed_penalty * 0
-        reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
+        reward += self.tall_bonus / 2 - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         if not self.mask_info["heading"][2]:
             reward += self.heading_bonus * self.heading_bonus_weight
