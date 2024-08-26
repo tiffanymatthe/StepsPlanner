@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill", "turn_in_place", "side_step", "transition_all"] # "to_standstill","transition_all", "backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["backward"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = 3
 
         self.from_net = kwargs.pop("from_net", False)
@@ -367,7 +367,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [True, 0.5, False],
+            "timing": [False, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -1335,7 +1335,7 @@ class Walker3DStepperEnv(EnvBase):
         elif self.selected_behavior == "random_walks":
             path = self.generate_random_walks_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "backward":
-            if self.np_random.rand() < 0.5:
+            if self.np_random.rand() < 0.3:
                 path = self.generate_to_standstill_step_placements(self.selected_curriculum)
             else:
                 path = self.generate_backward_step_placements(self.selected_curriculum)
