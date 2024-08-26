@@ -138,9 +138,10 @@ def main():
         actual_other_foot = []
         index_switch = []
 
-        foot_heading_targets = env.terrain_info[:, 6]
-        foot_position_targets = env.terrain_info[:, 0:2]
-        swing_targets = env.terrain_info[:, 7]
+        if args.heading:
+            foot_heading_targets = env.terrain_info[:, 6]
+            foot_position_targets = env.terrain_info[:, 0:2]
+            swing_targets = env.terrain_info[:, 7]
 
         controller = actor_critic.actor
 

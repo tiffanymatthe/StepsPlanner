@@ -1407,7 +1407,7 @@ class Walker3DStepperEnv(EnvBase):
     def randomize_terrain(self, replace=True):
         if replace:
             self.terrain_info = self.generate_step_placements()
-        if self.is_rendered or self.use_egl:
+        if (self.is_rendered or self.use_egl) and self.selected_behavior != "joystick":
             for index in range(self.rendered_step_count):
                 self.set_step_state(index, index)
 
@@ -1647,7 +1647,7 @@ class Walker3DStepperEnv(EnvBase):
 
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
-        abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
+        abs_height = self.robot.body_xyz[2] # - self.terrain_info[self.next_step_index, 2] TODO: fix later
 
         self.legs_bonus = 0
         self.heading_bonus = 0
