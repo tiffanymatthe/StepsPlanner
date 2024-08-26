@@ -366,8 +366,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.mask_info = {
             "xy": [False, 0.5, False],
-            "heading": [False, 0.5, False],
-            "timing": [False, 0.5, True],
+            "heading": [True, 0.5, True],
+            "timing": [True, 0.5, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -1322,10 +1322,10 @@ class Walker3DStepperEnv(EnvBase):
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
 
         if self.selected_behavior == "to_standstill":
-            if self.np_random.rand() < 0.8:
+            if self.np_random.rand() < 0.5:
                 path = self.generate_to_standstill_step_placements(self.selected_curriculum)
             else:
-                path = self.generate_random_walks_step_placements(min(self.selected_curriculum + 1, self.max_curriculum))
+                path = self.generate_random_walks_step_placements(min(self.selected_curriculum, self.max_curriculum))
         elif self.selected_behavior == "heading_var":
             path = self.generate_heading_var_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "turn_in_place":
@@ -1586,7 +1586,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.mask_info["timing"][2] and self.next_step_index <= 2 and not (self.curriculum > 0 or self.behavior_curriculum > 0):
             # add a foot distance potential if there is no timing signal
-            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
+            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.5
         else:
             foot_delta = 0
 
