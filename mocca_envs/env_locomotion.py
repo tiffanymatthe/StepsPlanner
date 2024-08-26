@@ -1754,7 +1754,7 @@ class Walker3DStepperEnv(EnvBase):
         for i, (foot, contact) in enumerate(
             zip(self.robot.feet, self._foot_target_contacts)
         ):
-            pybullet.getContactStates(
+            self.robot.feet_contact[i] = pybullet.getContactStates(
                 bodyA=robot_id,
                 linkIndexA=foot.bodyPartIndex,
                 bodiesB=target_id_list,
@@ -1762,7 +1762,6 @@ class Walker3DStepperEnv(EnvBase):
                 results=contact,
                 physicsClientId=client_id,
             )
-            self.robot.feet_contact[i] = contact[0]
 
         self.imaginary_step = self.terrain_info[self.next_step_index,2] > 0.01
         self.current_target_count += 1
