@@ -1577,6 +1577,9 @@ class Walker3DStepperEnv(EnvBase):
 
         multiplier = 2 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
 
+        if self.mask_info["heading"][2]:
+            multiplier = 0
+
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier) / self.scene.dt
         self.distance_to_target = body_distance_to_target
 
@@ -1588,7 +1591,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 1
+        self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
