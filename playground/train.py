@@ -278,10 +278,13 @@ def main(_seed, _config, _run):
                     break
                 avg_heading_err_nanmean = nanmean(avg_heading_errs[i])
                 avg_timing_met_nanmean = nanmean(avg_timing_mets[i])
+                avg_curriculum_nanmean = nanmean(curriculum_metrics[i])
                 if (
-                    # len(curriculum_metrics[i]) > 0
-                    nanmean(curriculum_metrics[i])
-                    > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
+                    iteration > 0
+                    and (
+                        np.isnan(avg_curriculum_nanmean) or 
+                        avg_curriculum_nanmean > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
+                    )
                     and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
                     and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.75)
                 ):
