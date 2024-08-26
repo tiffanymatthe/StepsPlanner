@@ -1582,10 +1582,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.mask_info["heading"][2]:
             multiplier = 0
 
-        progress_multiplier = 1 # if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net or not self.mask_info["timing"][2] or self.next_step_index > 2) else 1.5
+        progress_multiplier = 1
 
         if self.mask_info["timing"][2] and self.next_step_index <= 2 and not (self.curriculum > 0 or self.behavior_curriculum > 0):
-            # add a foot distance potential
+            # add a foot distance potential if there is no timing signal
             foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
         else:
             foot_delta = 0
