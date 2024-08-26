@@ -1517,6 +1517,7 @@ class Walker3DStepperEnv(EnvBase):
             reward += self.step_bonus + self.target_bonus - self.speed_penalty * 0
         else:
             reward += - self.speed_penalty
+            reward += self.velocity_direction_bonus
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         if not self.mask_info["heading"][2]:
@@ -1597,7 +1598,7 @@ class Walker3DStepperEnv(EnvBase):
             self.linear_potential = -(body_distance_to_target + angle_delta * multiplier) / self.scene.dt
             self.distance_to_target = body_distance_to_target
         else:
-            self.linear_potential = -np.abs(self.direction_error) / self.scene.dt
+            self.linear_potential = 0 # -np.abs(self.direction_error) / self.scene.dt
     def calc_base_reward(self, action):
 
         # Bookkeeping stuff
@@ -1682,6 +1683,12 @@ class Walker3DStepperEnv(EnvBase):
                 self.timing_bonus = 0
             else:
                 self.calc_timing_reward()
+
+        a = self.robot.body_vel[0:2]
+        a /= np.linalg.norm(a)
+        b = np.array([np.cos(self.terrain_info[:, 0][self.next_step_index]), np.sin(self.terrain_info[:, 0][self.next_step_index])])
+        b /= np.linalg.norm(b)
+        self.velocity_direction_bonus = np.dot(a, b)
 
         steps_termination_condition = self.mask_info["dir"][2] and (self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count)
 
