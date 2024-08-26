@@ -1826,7 +1826,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 2 # 10 if self.next_step_index > 4 else 2
+            delay = 6 # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
                     self.prev_foot_yaw = self.robot.feet_rpy[self.swing_leg,2]
