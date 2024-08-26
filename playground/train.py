@@ -279,7 +279,7 @@ def main(_seed, _config, _run):
                 args.use_curriculum
                 and len(curriculum_metrics) > 0
                 and nanmean(curriculum_metrics)
-                > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
+                > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 3)
                 and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
                 and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.75)
             ):
