@@ -323,6 +323,8 @@ class Walker3DStepperEnv(EnvBase):
     rendered_step_count = 20
     init_step_separation = 0.70
 
+    step_delay = 6
+
     lookahead = 2
     lookbehind = 1
     walk_target_index = -1
@@ -1683,7 +1685,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.left_expected_contact = 1
                 elif next_step_time[0] <= self.current_step_time < (next_step_time[0] + next_step_time[1]): # first lift
                     self.left_expected_contact = 0
-                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + 6):
+                elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + self.step_delay):
                     self.left_expected_contact = 1
                 else:
                     self.left_expected_contact = -1 if self.current_time_index > 2 else 1
@@ -1694,7 +1696,7 @@ class Walker3DStepperEnv(EnvBase):
                     self.right_expected_contact = 1
                 elif next_step_time[2] <= self.current_step_time < (next_step_time[2] + next_step_time[3]): # first lift
                     self.right_expected_contact = 0
-                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + 6):
+                elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + self.step_delay):
                     self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
                 else:
                     self.right_expected_contact = -1 if self.current_time_index > 2 else 1
@@ -1827,7 +1829,7 @@ class Walker3DStepperEnv(EnvBase):
 
             # Slight delay for target advancement
             # Needed for not over counting step bonus
-            delay = 6 # 10 if self.next_step_index > 4 else 2
+            delay = self.step_delay # 10 if self.next_step_index > 4 else 2
             if self.target_reached_count >= delay:
                 if not self.stop_on_next_step:
                     self.prev_foot_yaw = self.robot.feet_rpy[self.swing_leg,2]
@@ -1860,7 +1862,7 @@ class Walker3DStepperEnv(EnvBase):
         self.step_bonus = 0
         if (
             self.target_reached
-            and self.target_reached_count == 1
+            and self.target_reached_count > 0
             and self.next_step_index != len(self.terrain_info) - 1  # exclude last step
         ):
             dist = nanmin(self.foot_dist_to_target)
