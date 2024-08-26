@@ -1591,7 +1591,8 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2
+        progress_multiplier = 1 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 1.5
+        self.progress = linear_progress * progress_multiplier
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
