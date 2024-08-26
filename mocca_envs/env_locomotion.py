@@ -367,7 +367,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [False, 0.5, True],
+            "timing": [False, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -1935,6 +1935,10 @@ class Walker3DStepperEnv(EnvBase):
         #     # TODO: bad for mixing everything together
         #     walk_target_full = self.terrain_info[self.next_step_index]
         # else:
+        if N > 2:
+            self.walk_target_index = -2
+        else:
+            self.walk_target_index = -1
         walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
