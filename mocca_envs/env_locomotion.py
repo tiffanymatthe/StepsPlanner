@@ -1738,7 +1738,7 @@ class Walker3DStepperEnv(EnvBase):
             )
         )
 
-        self.step_delay = 2 if (self.next_step_index <= 1) else 6
+        self.step_delay = 6
 
         robot_id = self.robot.id
         client_id = self._p._client
