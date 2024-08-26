@@ -367,11 +367,13 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [True, 0.5, False],
+            "timing": [False, 0, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
         }
+
+        self.timing_mask_value = 0
 
         self.foot_angle_weight = kwargs.pop("foot_angle_weight", 0.1)
 
@@ -1299,24 +1301,28 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        factor = 0 if self.determine else 0.2
-        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
+        # factor = 0.5 if self.determine else 0.2
+        # train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
+        # train_on_past = self.np_random.rand() < 0.5
 
-        if self.behaviors[self.behavior_curriculum] == "combine_all":
-            self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-            self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-        elif self.determine:
-            self.selected_curriculum = self.curriculum
-            self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        else:
-            if train_on_past:
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-            else:
-                weights = np.linspace(1,10,self.curriculum+1)
-                weights /= sum(weights)
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-                self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        self.selected_curriculum = self.np_random.choice(list(range(0, self.max_curriculum + 1)))
+        self.selected_behavior = self.behaviors[self.np_random.choice(list(range(0, self.max_behavior_curriculum + 1)))]
+
+        # if self.behaviors[self.behavior_curriculum] == "combine_all":
+        #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+        #     self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+        # elif self.determine:
+        #     self.selected_curriculum = self.curriculum
+        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        # else:
+        #     if train_on_past:
+        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+        #         self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+        #     else:
+        #         weights = np.linspace(1,10,self.curriculum+1)
+        #         weights /= sum(weights)
+        #         self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+        #         self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         if self.selected_behavior in self.generated_paths_cache and self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
@@ -1442,6 +1448,8 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
+        self.timing_mask_value = self.curriculum/self.max_curriculum
+
         if self.mask_info["timing"][0]:
             self.mask_info["timing"][2] = self.np_random.rand() < self.mask_info["timing"][1]
         if self.mask_info["heading"][0]:
@@ -1503,7 +1511,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.mask_info["heading"][2]:
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
-            reward += self.timing_bonus * self.timing_bonus_weight
+            reward += self.timing_bonus * self.timing_bonus_weight * (1 - self.timing_mask_value)
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
 
@@ -1539,11 +1547,12 @@ class Walker3DStepperEnv(EnvBase):
         if self.done or self.timestep == self.max_timestep - 1:
             behavior_str_index = self.behaviors[self.behavior_curriculum]
             if (
-                behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
-                and (
-                    self.curriculum == self.selected_curriculum
-                    or behavior_str_index == "combine_all"
-                )
+                True
+                # behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
+                # and (
+                #     self.curriculum == self.selected_curriculum
+                #     or behavior_str_index == "combine_all"
+                # )
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
@@ -1583,11 +1592,11 @@ class Walker3DStepperEnv(EnvBase):
         if self.mask_info["heading"][2]:
             multiplier = 0
 
-        if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
-            # add a foot distance potential if there is no timing signal
-            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
-        else:
-            foot_delta = 0
+        # if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
+        #     # add a foot distance potential if there is no timing signal
+        #     foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
+        # else:
+        foot_delta = 0
 
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier + foot_delta) / self.scene.dt
         self.distance_to_target = body_distance_to_target
@@ -2021,7 +2030,7 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         dr = np.array([0,0])
-        time_and_dr_mask = np.array([self.mask_info["timing"][2],self.mask_info["dir"][2],self.mask_info["vel"][2]]).astype(int)
+        time_and_dr_mask = np.array([self.timing_mask_value,self.mask_info["dir"][2],self.mask_info["vel"][2]]).astype(int)
 
         return deltas, np.concatenate([time_left, dr, [0], time_and_dr_mask])
 
