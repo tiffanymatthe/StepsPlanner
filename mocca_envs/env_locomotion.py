@@ -1582,7 +1582,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.mask_info["heading"][2]:
             multiplier = 0
 
-        progress_multiplier = 1 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 1.5
+        progress_multiplier = 1 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 1.3
 
         self.linear_potential = -(body_distance_to_target * progress_multiplier + angle_delta * multiplier) / self.scene.dt
         self.distance_to_target = body_distance_to_target
