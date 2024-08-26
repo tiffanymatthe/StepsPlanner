@@ -1551,6 +1551,7 @@ class Walker3DStepperEnv(EnvBase):
                     info["curriculum_metric"] = self.next_step_index
                 info["avg_heading_err"] = nanmean(self.heading_errors)
                 info["avg_timing_met"] = nanmean(self.met_times)
+                info["mask_combo_id"] = 2 * int(self.mask_info["heading"][2]) + int(self.mask_info["timing"][2])
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan

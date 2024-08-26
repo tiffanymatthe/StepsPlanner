@@ -209,9 +209,9 @@ def main(_seed, _config, _run):
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
-    curriculum_metrics = deque(maxlen=args.num_processes)
-    avg_heading_errs = deque(maxlen=args.num_processes)
-    avg_timing_mets = deque(maxlen=args.num_processes)
+    curriculum_metrics = [deque(maxlen=args.num_processes) for _ in range(4)]
+    avg_heading_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
+    avg_timing_mets = [deque(maxlen=args.num_processes) for _ in range(4)]
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -253,11 +253,11 @@ def main(_seed, _config, _run):
                     if "episode" in info:
                         episode_rewards.append(info["episode"]["r"])
                     if "curriculum_metric" in info:
-                        curriculum_metrics.append(info["curriculum_metric"])
+                        curriculum_metrics[info["mask_combo_id"]].append(info["curriculum_metric"])
                     if "avg_heading_err" in info:
-                        avg_heading_errs.append(info["avg_heading_err"])
+                        avg_heading_errs[info["mask_combo_id"]].append(info["avg_heading_err"])
                     if "avg_timing_met" in info:
-                        avg_timing_mets.append(info["avg_timing_met"])
+                        avg_timing_mets[info["mask_combo_id"]].append(info["avg_timing_met"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -271,17 +271,28 @@ def main(_seed, _config, _run):
 
             next_value = actor_critic.get_value(rollouts.observations[-1]).detach()
 
-            avg_heading_err_nanmean = nanmean(avg_heading_errs)
-            avg_timing_met_nanmean = nanmean(avg_timing_mets)
+            update_curriculum = True
+            for i in range(4):
+                if not args.use_curriculum:
+                    update_curriculum = False
+                    break
+                avg_heading_err_nanmean = nanmean(avg_heading_errs[i])
+                avg_timing_met_nanmean = nanmean(avg_timing_mets[i])
+                if (
+                    len(curriculum_metrics[i]) > 0
+                    and nanmean(curriculum_metrics[i])
+                    > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
+                    and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
+                    and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.75)
+                ):
+                    continue
+                else:
+                    update_curriculum = False
+                    break
 
             # Update curriculum after roll-out
             if (
-                args.use_curriculum
-                and len(curriculum_metrics) > 0
-                and nanmean(curriculum_metrics)
-                > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
-                and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
-                and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.75)
+                update_curriculum
             ):
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
