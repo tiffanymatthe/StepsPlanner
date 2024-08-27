@@ -320,7 +320,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 20
+    rendered_step_count = 4
     init_step_separation = 0.70
 
     step_delay = 6
@@ -404,16 +404,16 @@ class Walker3DStepperEnv(EnvBase):
             "random_walks": np.linspace(np.pi / 12, np.pi / 2, N),
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
-            "backward": None,
+            "backward": np.linspace(np.pi / 12, np.pi / 4, N),
             "heading_var": np.linspace(0, np.pi / 2, N),
             "timing_gaits": None,
         }
         self.dist_range = {
-            "to_standstill": np.array([0.65, 0.0]),
+            "to_standstill": np.array([0.65, 0]),
             "random_walks": np.array([0.55, 0.75]),
             "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.5]),
-            "backward": np.array([0.0, 0.65]),
+            "backward": np.array([0.0, -0.65]),
             "heading_var": np.array([0.65, 0.65]),
             "timing_gaits": np.array([0.65, 0.65]),
         }
@@ -777,15 +777,16 @@ class Walker3DStepperEnv(EnvBase):
     def generate_backward_step_placements(self, curriculum):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
-        ratio = curriculum / self.max_curriculum
         behavior = 'backward'
+        ratio = curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
         yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        self.path_angle = 0
+        self.path_angle = self.angle_curriculum[behavior][curriculum]
+        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
 
         N = self.num_steps
         
@@ -802,7 +803,7 @@ class Walker3DStepperEnv(EnvBase):
         dphi[0] = 0.0
         dtheta[0] = np.pi / 2
 
-        dr[1] = self.init_step_separation / 2
+        dr[1] = self.init_step_separation
         dphi[1] = 0.0
         dtheta[1] = np.pi / 2
 
@@ -826,8 +827,6 @@ class Walker3DStepperEnv(EnvBase):
         dy[self.stop_steps[1::2]] = 0
         dx[self.stop_steps[1::2]] = 0
 
-        dy *= -1
-
         heading_targets = np.copy(dphi)
 
         x = np.cumsum(dx)
@@ -845,7 +844,7 @@ class Walker3DStepperEnv(EnvBase):
         x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0])
         y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1])
 
-        if not self.robot.mirrored:
+        if self.robot.mirrored:
             x *= -1
         else:
             swing_legs = 1 - swing_legs
@@ -853,10 +852,9 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
 
         dphi *= 0
-
-        y += 0.4
 
         timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
 
