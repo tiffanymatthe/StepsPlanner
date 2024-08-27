@@ -1509,9 +1509,9 @@ class Walker3DStepperEnv(EnvBase):
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
         if not self.mask_info["heading"][2]:
-            reward += self.heading_bonus * self.heading_bonus_weight
+            reward += self.heading_bonus * self.heading_bonus_weight * (1 - self.timing_mask_value)
         if not self.mask_info["timing"][2]:
-            reward += self.timing_bonus * self.timing_bonus_weight * (1 - self.timing_mask_value)
+            reward += self.timing_bonus * self.timing_bonus_weight # * (1 - self.timing_mask_value)
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
 
@@ -1992,7 +1992,7 @@ class Walker3DStepperEnv(EnvBase):
             time_left[2] = max(time_left[2] - self.current_step_time, 0)
 
         xy_mask = np.ones(k + j) if self.mask_info["xy"][2] else np.zeros(k + j)
-        heading_mask = np.ones(k + j) if self.mask_info["heading"][2] else np.zeros(k + j)
+        heading_mask = np.ones(k + j) * self.timing_mask_value # if self.mask_info["heading"][2] else np.zeros(k + j)
         swing_leg_mask = np.ones(k + j) if self.mask_info["leg"][2] else np.zeros(k + j)
 
         if self.mask_info["xy"][2]:
@@ -2030,7 +2030,7 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         dr = np.array([0,0])
-        time_and_dr_mask = np.array([self.timing_mask_value,self.mask_info["dir"][2],self.mask_info["vel"][2]]).astype(int)
+        time_and_dr_mask = np.array([self.mask_info["timing"][2],self.mask_info["dir"][2],self.mask_info["vel"][2]]).astype(int)
 
         return deltas, np.concatenate([time_left, dr, [0], time_and_dr_mask])
 
