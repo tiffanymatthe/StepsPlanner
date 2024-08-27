@@ -856,7 +856,7 @@ class Walker3DStepperEnv(EnvBase):
 
         dphi *= 0
 
-        y += 0.3
+        y += 0.4
 
         timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
 
