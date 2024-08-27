@@ -1335,7 +1335,7 @@ class Walker3DStepperEnv(EnvBase):
         elif self.selected_behavior == "random_walks":
             path = self.generate_random_walks_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "backward":
-            self.generate_backward_step_placements(self.selected_curriculum)
+            path = self.generate_backward_step_placements(self.selected_curriculum)
         elif self.selected_behavior in {"transition_all", "combine_all"}:
             self.selected_behavior = "transition_all"
             path = self.generate_transition_all_step_placements(self.selected_curriculum)
