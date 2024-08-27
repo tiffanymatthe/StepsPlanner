@@ -1394,7 +1394,10 @@ class Walker3DStepperEnv(EnvBase):
         self.rendered_steps[step_index].set_position(pos=pos) #, quat=quaternion)
         new_pos = np.copy(pos)
         new_pos[2] += 0.005
-        self.rendered_feet[step_index].set_position(pos=new_pos, heading=heading, left=left)
+        if self.mask_info["heading"][2]:
+            self.rendered_feet[step_index].set_position(pos=[-100,-100,0])
+        else:
+            self.rendered_feet[step_index].set_position(pos=new_pos, heading=heading, left=left)
 
     def randomize_terrain(self, replace=True):
         if replace:
