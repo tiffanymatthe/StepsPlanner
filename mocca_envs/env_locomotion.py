@@ -1553,6 +1553,7 @@ class Walker3DStepperEnv(EnvBase):
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
                 info["avg_timing_met"] = np.nan
+                info["mask_combo_id"] = 0
 
         return state, reward, self.done, info
 
