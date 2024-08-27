@@ -341,8 +341,8 @@ class Walker3DStepperEnv(EnvBase):
 
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
-        self.max_curriculum = 9
-        self.advance_threshold = min(15, self.num_steps)
+        self.max_curriculum = 5
+        self.advance_threshold = min(10, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
@@ -1984,8 +1984,8 @@ class Walker3DStepperEnv(EnvBase):
         # detects contact and set next step
         self.calc_feet_state()
 
-        if cur_step_index != self.next_step_index:
-            self.calc_potential()
+        # if cur_step_index != self.next_step_index:
+        #     self.calc_potential()
 
         self.calc_base_reward(action)
         self.calc_step_reward()
