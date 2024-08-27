@@ -9,6 +9,8 @@ python enjoy.py --env <ENV> --net <PATH/TO/NET> --len <STEPS>
 """
 import argparse
 import os
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -85,24 +87,43 @@ def main():
     actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
     actor = actor_critic.actor
 
-    if type(actor) == MixedActor and args.plot:
-        from mocca_utils.plots.visplot import Figure, TimeSeriesPlot
-        import matplotlib.cm as mpl_color
+    if args.plot:
+        # from common.plot_utils import Plot, TimeSeriesPlot
+        # import matplotlib.cm as mpl_color
         import numpy as np
 
-        fig = Figure(size=(400, 400), decorate=True, title="Expert Activations")
-        ts_plot = TimeSeriesPlot(
-            figure=fig,
-            tile_rows=slice(0, 1),
-            tile_cols=slice(0, 1),
-            ylim=[-0.2, 1.2],
-            window_size=500,
-            num_lines=actor.num_experts + 2,
-            y_axis_options={},
-        )
+        fig, ax = plt.subplots(1, 1)
+        ax.set_aspect('equal')
+        ax.set_xlim(0, 255)
+        ax.set_ylim(0, 255)
+        # ax.hold(True)
+        plt.show(block=False)
+        plt.draw()
+        background = fig.canvas.copy_from_bbox(ax.bbox)
+        points = ax.plot(0, 0, 'o')[0]
 
-        cmap = mpl_color.get_cmap("tab20")
-        colours = cmap(np.linspace(0, 1, actor.num_experts))
+    # lp1 = TimeSeriesPlot(
+    #     parent=plot,
+    #     rows=slice(0, 1),
+    #     cols=slice(0, 2),
+    #     num_lines=2,
+    #     # x_axis_options={},
+    #     y_axis_options={},
+    # )
+
+        # fig = Plot(size=(400, 400), decorate=True, title="Expert Activations")
+        # ts_plot = TimeSeriesPlot(
+        #     parent=fig,
+        #     rows=slice(0, 1),
+        #     cols=slice(0, 1),
+        #     ylim=[-0.2, 1.2],
+        #     window_size=500,
+        #     num_lines=1,
+        #     y_axis_options={},
+        # )
+
+        # cmap = mpl_color.get_cmap("tab20")
+        # colours = cmap(np.linspace(0, 1, actor.num_experts))
 
     # Set global no_grad
     torch.set_grad_enabled(False)
@@ -146,17 +167,35 @@ def main():
 
         done = False
 
+        gg = 0
+
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
-            if type(actor) == MixedActor and args.plot:
-                action, expert_activations = controller.forward_with_activations(obs)
-                for eid, (a, c) in enumerate(zip(expert_activations, colours)):
-                    ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
-                ts_plot.add_point(0, len(expert_activations))
-                ts_plot.add_point(1, len(expert_activations) + 1)
-                ts_plot.redraw()
-            else:
-                action = controller(obs)
+            # if type(actor) == MixedActor and args.plot:
+            #     action, expert_activations = controller.forward_with_activations(obs)
+            #     for eid, (a, c) in enumerate(zip(expert_activations, colours)):
+            #         ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
+            #     ts_plot.add_point(0, len(expert_activations))
+            #     ts_plot.add_point(1, len(expert_activations) + 1)
+            #     ts_plot.redraw()
+            # else:
+            #     ts_plot.add_point(0, redraw=False)
+            #     action = controller(obs)
+
+            if args.plot:
+                points.set_data(1, gg)
+                gg += 1
+
+                # restore background
+                fig.canvas.restore_region(background)
+
+                # redraw just the points
+                ax.draw_artist(points)
+
+                # fill in the axes rectangle
+                fig.canvas.blit(ax.bbox)
+
+            action = controller(obs)
 
             if args.heading:
                 left_foot_headings.append(env.robot.feet_rpy[1, 2])
