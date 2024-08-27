@@ -1448,7 +1448,7 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
-        self.timing_mask_value = 1 if self.curriculum != 0 # self.curriculum/self.max_curriculum
+        self.timing_mask_value = 1 if self.curriculum != 0 else 0 #  self.curriculum/self.max_curriculum
         if self.timing_mask_value == 1:
             self.mask_info["heading"][2] = True
 
