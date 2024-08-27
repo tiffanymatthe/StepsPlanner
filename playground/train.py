@@ -302,14 +302,14 @@ def main(_seed, _config, _run):
                     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
-                elif current_behavior_curriculum < max_behavior_curriculum:
-                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
-                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
-                    current_curriculum = 0
-                    current_behavior_curriculum += 1
-                    envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
-                else:
-                    pass
+                # elif current_behavior_curriculum < max_behavior_curriculum:
+                #     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
+                #     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                #     current_curriculum = 0
+                #     current_behavior_curriculum += 1
+                #     envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+                # else:
+                #     pass
 
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
