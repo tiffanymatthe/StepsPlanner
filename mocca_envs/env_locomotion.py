@@ -467,7 +467,7 @@ class Walker3DStepperEnv(EnvBase):
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
         else:
-            half_cycle_times = self.np_random.choice([20,30,40,5,60], size=N)
+            half_cycle_times = self.np_random.choice([20,30,40,50,60], size=N)
             ground_ratio = self.np_random.choice([0.1,0.2,0.3,0.4,0.5], size=N)
             timing_0 = half_cycle_times * ground_ratio
             timing_1 = half_cycle_times * (1-ground_ratio)
