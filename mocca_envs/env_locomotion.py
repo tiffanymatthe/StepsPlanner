@@ -467,7 +467,7 @@ class Walker3DStepperEnv(EnvBase):
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
         else:
-            half_cycle_times = self.np_random.choice([20,30,40,50,60], size=N)
+            half_cycle_times = self.np_random.choice([10,20,30,40,50,60], size=N)
             ground_ratio = self.np_random.choice([0.1,0.2,0.3,0.4,0.5], size=N)
             timing_0 = half_cycle_times * ground_ratio
             timing_1 = half_cycle_times * (1-ground_ratio)
@@ -1786,7 +1786,7 @@ class Walker3DStepperEnv(EnvBase):
                 elif (next_step_time[0] + next_step_time[1]) <= self.current_step_time < (next_step_time[0] + next_step_time[1] + self.step_delay):
                     self.left_expected_contact = 1
                 else:
-                    self.left_expected_contact = -1 if self.current_time_index > 2 else 1
+                    self.left_expected_contact = -1 if (self.current_time_index > 2 or not self.target_reached) else 1
             else:
                 self.left_expected_contact = 1 if (self.current_step_time <= next_step_time[0] or self.current_step_time >= next_step_time[0] + next_step_time[1]) else 0
             if self.current_time_index < self.num_steps - 1:
@@ -1797,7 +1797,7 @@ class Walker3DStepperEnv(EnvBase):
                 elif (next_step_time[2] + next_step_time[3]) <= self.current_step_time < (next_step_time[2] + next_step_time[3] + self.step_delay):
                     self.right_expected_contact = 0 if next_step_time[3] != 0 else 1
                 else:
-                    self.right_expected_contact = -1 if self.current_time_index > 2 else 1
+                    self.right_expected_contact = -1 if (self.current_time_index > 2 or not self.target_reached) else 1
             else:
                 self.right_expected_contact = 1 if (self.current_step_time <= next_step_time[2] or self.current_step_time >= next_step_time[2] + next_step_time[3]) else 0
         else:
