@@ -205,8 +205,6 @@ def main(_seed, _config, _run):
         advance_threshold = dummy_env.unwrapped.advance_threshold
         envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
 
-    current_curriculum_iterations = 0
-
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
@@ -295,17 +293,14 @@ def main(_seed, _config, _run):
                     update_curriculum = False
                     break
 
-            current_curriculum_iterations += 1
-
             # Update curriculum after roll-out
             if (
-                update_curriculum and current_curriculum_iterations > 50
+                update_curriculum
             ):
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
                     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
                     current_curriculum += 1
-                    current_curriculum_iterations = 0
                     envs.set_env_params({"curriculum": current_curriculum})
                 # elif current_behavior_curriculum < max_behavior_curriculum:
                 #     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
@@ -344,7 +339,6 @@ def main(_seed, _config, _run):
             timing_metric = [nanmean(m) for m in avg_timing_mets]
             logger.log_epoch(
                 {
-                    "iter": iteration,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": nanmean(mean_metric),
