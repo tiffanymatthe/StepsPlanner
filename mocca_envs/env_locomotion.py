@@ -2020,7 +2020,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.mask_info["leg"][2]:
             swing_legs_at_targets *= 0
 
-        if self.mask_info["timing"][2]:
+        if self.mask_info["timing"][2] or (self.np_random.rand() < self.timing_mask_value):
             time_left *= 0
 
         deltas = concatenate(
