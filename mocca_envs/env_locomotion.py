@@ -351,6 +351,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.from_net = kwargs.pop("from_net", False)
 
+        self.train_old = False
+
         self.heading_errors = []
         self.met_times = []
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 8)
@@ -1448,7 +1450,9 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
-        self.timing_mask_value = self.curriculum/self.max_curriculum
+        self.train_old = self.np_random.rand() < 0.5
+
+        self.timing_mask_value = self.curriculum/self.max_curriculum if not self.train_old else 0
         if self.timing_mask_value == 1:
             self.mask_info["heading"][2] = True
 
@@ -1549,7 +1553,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.done or self.timestep == self.max_timestep - 1:
             behavior_str_index = self.behaviors[self.behavior_curriculum]
             if (
-                True
+                not self.train_old
                 # behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
                 # and (
                 #     self.curriculum == self.selected_curriculum
