@@ -9,6 +9,8 @@ python enjoy.py --env <ENV> --net <PATH/TO/NET> --len <STEPS>
 """
 import argparse
 import os
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -85,24 +87,31 @@ def main():
     actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
     actor = actor_critic.actor
 
-    if type(actor) == MixedActor and args.plot:
-        from mocca_utils.plots.visplot import Figure, TimeSeriesPlot
-        import matplotlib.cm as mpl_color
-        import numpy as np
-
-        fig = Figure(size=(400, 400), decorate=True, title="Expert Activations")
-        ts_plot = TimeSeriesPlot(
-            figure=fig,
-            tile_rows=slice(0, 1),
-            tile_cols=slice(0, 1),
-            ylim=[-0.2, 1.2],
-            window_size=500,
-            num_lines=actor.num_experts + 2,
-            y_axis_options={},
-        )
-
-        cmap = mpl_color.get_cmap("tab20")
-        colours = cmap(np.linspace(0, 1, actor.num_experts))
+    if args.plot:
+        fig, axes = plt.subplots(1, 2)
+        # ax.set_aspect('equal')
+        for ax in axes:
+            ax.set_xlim(0, 60)
+            ax.set_ylim(-0.2, 1.2)
+        axes[0].set_title("Left Foot Contact")
+        axes[1].set_title("Right Foot Contact")
+        # ax.hold(True)
+        plt.show(block=False)
+        plt.draw()
+        background_left = fig.canvas.copy_from_bbox(axes[0].bbox)
+        background_right = fig.canvas.copy_from_bbox(axes[1].bbox)
+        expected_points_left = axes[0].plot([0,1], [0,1], '-', animated=True)[0]
+        actual_points_left = axes[0].plot([0,1], [0,1], 'o', animated=True)[0]
+        expected_points_right = axes[1].plot([0,1], [0,1], '-', animated=True)[0]
+        actual_points_right = axes[1].plot([0,1], [0,1], 'o', animated=True)[0]
+        actual_x_left = []
+        actual_y_left = []
+        actual_x_right = []
+        actual_y_right = []
+        axes[0].draw_artist(expected_points_left)
+        axes[0].draw_artist(actual_points_left)
+        axes[1].draw_artist(expected_points_right)
+        axes[1].draw_artist(actual_points_right)
 
     # Set global no_grad
     torch.set_grad_enabled(False)
@@ -148,15 +157,7 @@ def main():
 
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
-            if type(actor) == MixedActor and args.plot:
-                action, expert_activations = controller.forward_with_activations(obs)
-                for eid, (a, c) in enumerate(zip(expert_activations, colours)):
-                    ts_plot.add_point(float(a), eid, {"color": c, "width": 2})
-                ts_plot.add_point(0, len(expert_activations))
-                ts_plot.add_point(1, len(expert_activations) + 1)
-                ts_plot.redraw()
-            else:
-                action = controller(obs)
+            action = controller(obs)
 
             if args.heading:
                 left_foot_headings.append(env.robot.feet_rpy[1, 2])
@@ -176,6 +177,47 @@ def main():
                 actual_start_foot.append(env.left_actual_contact)
                 actual_other_foot.append(env.right_actual_contact)
                 index_switch.append(env.current_step_time == 0)
+
+            if args.plot:
+                # restore background
+                fig.canvas.restore_region(background_left)
+                fig.canvas.restore_region(background_right)
+                # update expected times if required
+                if env.current_step_time == 0 and not env.past_last_step:
+                    xdata_left = list(range(int(env.terrain_info[env.current_time_index, 8] + env.terrain_info[env.current_time_index, 9]) + env.step_delay))
+                    ydata_left = [1 for _ in range(int(env.terrain_info[env.current_time_index, 8]))] + [0 for _ in range(int(env.terrain_info[env.current_time_index, 9]))] + [1 for _ in range(env.step_delay)]
+                    xdata_right = list(range(int(env.terrain_info[env.current_time_index, 10] + env.terrain_info[env.current_time_index, 11]) + env.step_delay))
+                    ydata_right = [1 for _ in range(int(env.terrain_info[env.current_time_index, 10]))] + [0 for _ in range(int(env.terrain_info[env.current_time_index, 11]))] + [1 for _ in range(env.step_delay)]
+                    if env.swing_leg == 0:
+                        xdata_left, ydata_left, xdata_right, ydata_right = xdata_right, ydata_right, xdata_left, ydata_left
+                    expected_points_left.set_data(xdata_left, ydata_left)
+                    expected_points_right.set_data(xdata_right, ydata_right)
+                    actual_x_left, actual_y_left, actual_x_right, actual_y_right = [], [], [], []
+                if env.past_last_step:
+                    actual_x_left, actual_y_left, actual_x_right, actual_y_right = [], [], [], []
+                    ydata_left = np.array(ydata_left) * 0 + 1
+                    ydata_right = np.array(ydata_right) * 0 + 1
+                    expected_points_left.set_data(xdata_left, ydata_left)
+                    expected_points_right.set_data(xdata_right, ydata_right)
+
+
+                actual_y_left.append(env.left_actual_contact)
+                actual_y_right.append(env.right_actual_contact)
+                actual_x_left.append(env.current_step_time)
+                actual_x_right.append(env.current_step_time)
+
+                actual_points_left.set_data(actual_x_left, actual_y_left)
+                actual_points_right.set_data(actual_x_right, actual_y_right)
+                
+                axes[0].draw_artist(expected_points_left)
+                axes[0].draw_artist(actual_points_left)
+                axes[1].draw_artist(expected_points_right)
+                axes[1].draw_artist(actual_points_right)
+
+                # fill in the axes rectangle
+                fig.canvas.blit(axes[0].bbox)
+                fig.canvas.blit(axes[1].bbox)
+                # fig.canvas.flush_events()
 
             if done:
                 if args.heading:
