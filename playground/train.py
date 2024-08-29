@@ -324,7 +324,7 @@ def main(_seed, _config, _run):
             next_checkpoint += args.save_every
             torch.save(actor_critic, os.path.join(args.save_dir, model_name))
 
-        mean_ep_reward = sum(episode_rewards) / len(episode_rewards)
+        mean_ep_reward = sum(episode_rewards) / len(episode_rewards) if len(episode_rewards) > 0 else 0
         if len(episode_rewards) > 1 and mean_ep_reward > max_ep_reward:
             max_ep_reward = mean_ep_reward
             model_name = f"{save_name}_best.pt"
