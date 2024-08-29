@@ -342,7 +342,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 9
-        self.advance_threshold = min(12, self.num_steps)
+        self.advance_threshold = min(15, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
@@ -1457,10 +1457,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.train_old:
             self.timing_mask_value = 0
         else:
-            if self.np_random.rand() < self.curriculum/self.max_curriculum:
-                self.timing_mask_value = 1
-            else:
-                self.timing_mask_value = self.curriculum/self.max_curriculum
+            # if self.np_random.rand() < self.curriculum/self.max_curriculum:
+            #     self.timing_mask_value = 1
+            # else:
+            self.timing_mask_value = self.curriculum/self.max_curriculum
         if self.timing_mask_value == 1:
             self.mask_info["timing"][2] = True
 
@@ -2047,7 +2047,7 @@ class Walker3DStepperEnv(EnvBase):
         )
 
         dr = np.array([0,0])
-        time_and_dr_mask = np.array([self.timing_mask_value,self.mask_info["dir"][2],self.mask_info["vel"][2]]).astype(int)
+        time_and_dr_mask = np.array([self.timing_mask_value,int(self.mask_info["dir"][2]),int(self.mask_info["vel"][2])])
 
         return deltas, np.concatenate([time_left, dr, [0], time_and_dr_mask])
 
