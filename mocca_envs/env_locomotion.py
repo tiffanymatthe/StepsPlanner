@@ -1463,6 +1463,8 @@ class Walker3DStepperEnv(EnvBase):
                 self.timing_mask_value = self.curriculum/self.max_curriculum
         if self.timing_mask_value == 1:
             self.mask_info["timing"][2] = True
+        else:
+            self.mask_info["timing"][2] = False
 
         if self.mask_info["timing"][0]:
             self.mask_info["timing"][2] = self.np_random.rand() < self.mask_info["timing"][1]
