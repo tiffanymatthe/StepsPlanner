@@ -1453,14 +1453,15 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
-        self.train_old = self.np_random.rand() < 0.5
-        if self.train_old:
-            self.timing_mask_value = 0
+        # self.train_old = self.np_random.rand() < 0.5
+        # if self.train_old:
+        #     self.timing_mask_value = 0
+        # else:
+        self.train_old = False
+        if self.np_random.rand() < min(self.curriculum/self.max_curriculum/2, 0.5):
+            self.timing_mask_value = 1
         else:
-            # if self.np_random.rand() < self.curriculum/self.max_curriculum:
-            #     self.timing_mask_value = 1
-            # else:
-            self.timing_mask_value = self.curriculum/self.max_curriculum
+            self.timing_mask_value = 0
         if self.timing_mask_value == 1:
             self.mask_info["timing"][2] = True
         else:
