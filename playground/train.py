@@ -222,6 +222,8 @@ def main(_seed, _config, _run):
         log_dir=args.experiment_dir, console_log_interval=args.log_interval
     )
 
+    current_iteration = 0
+
     for iteration in range(num_updates):
 
         if args.lr_decay_type == "linear":
@@ -292,15 +294,17 @@ def main(_seed, _config, _run):
                 else:
                     update_curriculum = False
                     break
-
+            
+            current_iteration += 1
             # Update curriculum after roll-out
             if (
-                update_curriculum
+                update_curriculum and current_iteration > 50
             ):
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
                     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
                     current_curriculum += 1
+                    current_iteration = 0
                     envs.set_env_params({"curriculum": current_curriculum})
                 # elif current_behavior_curriculum < max_behavior_curriculum:
                 #     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
@@ -339,6 +343,7 @@ def main(_seed, _config, _run):
             timing_metric = [nanmean(m) for m in avg_timing_mets]
             logger.log_epoch(
                 {
+                    "iter": iteration,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": nanmean(mean_metric),
