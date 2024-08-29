@@ -211,6 +211,7 @@ def main(_seed, _config, _run):
     episode_rewards = deque(maxlen=args.num_processes)
     curriculum_metrics = [deque(maxlen=args.num_processes) for _ in range(4)]
     avg_heading_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
+    avg_dist_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
     avg_timing_mets = [deque(maxlen=args.num_processes) for _ in range(4)]
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
@@ -258,6 +259,8 @@ def main(_seed, _config, _run):
                         avg_heading_errs[info["mask_combo_id"]].append(info["avg_heading_err"])
                     if "avg_timing_met" in info:
                         avg_timing_mets[info["mask_combo_id"]].append(info["avg_timing_met"])
+                    if "avg_dist_err" in info:
+                        avg_dist_errs[info["mask_combo_id"]].append(info["avg_dist_err"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -337,6 +340,7 @@ def main(_seed, _config, _run):
             mean_metric = [nanmean(m) for m in curriculum_metrics]
             heading_metric = [nanmean(m) for m in avg_heading_errs]
             timing_metric = [nanmean(m) for m in avg_timing_mets]
+            dist_metric = [nanmean(m) for m in avg_dist_errs]
             logger.log_epoch(
                 {
                     "curriculum": current_curriculum if args.use_curriculum else 0,
@@ -344,6 +348,7 @@ def main(_seed, _config, _run):
                     "curriculum_metric": nanmean(mean_metric),
                     "avg_heading_err": nanmean(heading_metric),
                     "avg_timing_met": nanmean(timing_metric),
+                    "avg_dist_err": nanmean(dist_metric),
                     "curriculum_metric_0": mean_metric[0],
                     "curriculum_metric_1": mean_metric[1],
                     "curriculum_metric_2": mean_metric[2],

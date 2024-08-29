@@ -353,6 +353,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.met_times = []
+        self.dist_errors = []
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 8)
         self.gauss_width = kwargs.pop("gauss_width", 10)
         self.legs_bonus = 0
@@ -1581,6 +1582,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_errors = []
         self.met_times = []
+        self.dist_errors = []
         self.past_last_step = False
 
         self.reached_last_step = False
@@ -1710,10 +1712,12 @@ class Walker3DStepperEnv(EnvBase):
                 info["avg_heading_err"] = nanmean(self.heading_errors)
                 info["avg_timing_met"] = nanmean(self.met_times)
                 info["mask_combo_id"] = 2 * int(self.mask_info["heading"][2]) + int(self.mask_info["timing"][2])
+                info["avg_dist_err"] = nanmean(self.dist_errors)
             else:
                 info["curriculum_metric"] = np.nan
                 info["avg_heading_err"] = np.nan
                 info["avg_timing_met"] = np.nan
+                info["avg_dist_err"] = np.nan
                 info["mask_combo_id"] = 0
 
         return state, reward, self.done, info
@@ -2032,7 +2036,9 @@ class Walker3DStepperEnv(EnvBase):
             and self.target_reached_count == 1
             and self.next_step_index != len(self.terrain_info) - 1  # exclude last step
         ):
+            # TODO: specify swing leg in small relevant cases
             dist = nanmin(self.foot_dist_to_target)
+            self.dist_errors.append(dist)
             self.step_bonus = 50 * 2.718 ** (
                 -(dist ** self.step_bonus_smoothness) / 0.25
             )
