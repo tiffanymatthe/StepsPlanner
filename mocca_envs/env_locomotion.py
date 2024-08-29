@@ -313,8 +313,14 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0, 1.32]
+    robot_init_position = [0.3, 0, 1.32]
     robot_init_velocity = None
+
+    num_steps = 20
+    step_radius = 0.25
+    step_separation = 0.75
+    foot_sep = 0.16
+    step_bonus_smoothness = 1
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -322,24 +328,25 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=False, **kwargs)
-        self.task_is_standing = False
-
-        if self.task_is_standing:
-            self.robot.set_base_pose(pose="stand")
-        else:
-            self.robot.set_base_pose(pose="running_start")
+        self.robot.set_base_pose(pose="running_start")
 
         self.curriculum = 0
-
-        self.walk_target = [0, 1, 0]
 
         self.elbow_penalty = 0
         self.foot_tilt_penalty = 0
         self.torso_heading_bonus = 0
 
+        # Stepping stone variables
+        self.next_step_index = 1
+        self.target_reached = False
+        self.swing_leg_lifted = False
+        self.target_reached_count = 0
+        self.walk_target = [0, 0]
+        self.legs_not_on_step = False
+
         # Robot settings
         N = self.curriculum + 1 # hardcoding
-        self.terminal_height_curriculum = np.linspace(1.03, 1.03, N)
+        self.terminal_height_curriculum = np.linspace(0.75, 0.75, N)
         self.applied_gain_curriculum = np.linspace(1.0, 1.0, N)
         self.angle_curriculum = np.linspace(0, np.pi / 2, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
@@ -348,17 +355,72 @@ class Walker3DStepperEnv(EnvBase):
 
         # Observation and Action spaces
         self.robot_obs_dim = self.robot.observation_space.shape[0]
+        self.step_param_dim = 2
         high = np.inf * np.ones(
-            self.robot_obs_dim + 2, dtype=np.float32
+            self.robot_obs_dim + self.step_param_dim, dtype=np.float32
         )
         self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
         self.action_space = self.robot.action_space
 
+        # pre-allocate buffers
+        F = len(self.robot.feet)
+        self._foot_target_contacts = np.zeros((F, 1), dtype=np.float32)
+        self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
+
+        self.terrain_info = self.generate_step_placements()
+
+    def generate_step_placements(self):
+
+        N = self.num_steps
+        dr = np.ones(N) * self.step_separation
+
+        # make first step below feet
+        dr[0] = 0.0
+
+        dx = dr 
+        dy = dr * 0
+
+        x = np.cumsum(dx)
+        y = np.cumsum(dy)
+
+        swing_legs = np.ones(N, dtype=np.int8)
+        swing_legs[:N:2] = 0
+
+        y += np.where(swing_legs == 1, self.foot_sep, -self.foot_sep)
+
+        if not self.robot.mirrored:
+            y *= -1 # need to flip the steps if the robot is not mirrored
+            swing_legs = 1 - swing_legs
+
+        return np.stack((x, y, swing_legs), axis=1)
+
     def create_terrain(self):
+        # evoked in env_base.py
         options = {
             # self._p.URDF_ENABLE_SLEEPING |
             "flags": self._p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         }
+
+        self.steps = []
+
+        # display steps when rendering
+        if self.is_rendered or self.use_egl:
+            for index in range(self.num_steps):
+                self.steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None, rgba=Colors["crimson"]))
+
+        self.all_contact_object_ids = set()
+        if not self.remove_ground:
+            self.all_contact_object_ids |= self.ground_ids
+
+    def set_step_state(self, info_index, step_index):
+        pos = self.terrain_info[info_index, 0:2]
+        self.steps[step_index].set_position(pos=[pos[0],pos[1],0])
+
+    def randomize_terrain(self):
+        self.terrain_info = self.generate_step_placements()
+        if self.is_rendered or self.use_egl:
+            for index in range(self.num_steps):
+                self.set_step_state(index, index)
 
     def reset(self):
         if self.state_id >= 0:
@@ -367,23 +429,38 @@ class Walker3DStepperEnv(EnvBase):
         self.timestep = 0
         self.done = False
 
+        self.next_step_index = 1
+        self.target_reached = False
+        self.swing_leg_lifted = False
+        self.target_reached_count = 0
+        self.legs_not_on_step = False
+
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         self.robot_state = self.robot.reset(
             random_pose=self.robot_random_start,
             pos=self.robot_init_position,
             vel=self.robot_init_velocity,
-            quat=self._p.getQuaternionFromEuler((0,0,-90 * RAD2DEG)),
+            quat=self._p.getQuaternionFromEuler((0,0,0)), # CHANGED ORIENTATION!
             mirror=True # allow random chance of mirroring robot
         )
+
+        self.randomize_terrain()
+
+        self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
+        self.calc_feet_state()
 
         # Reset camera
         if self.is_rendered or self.use_egl:
             self.camera.lookat(self.robot.body_xyz)
+            for step in self.steps:
+                step.set_color(Colors["crimson"])
 
+        self.targets = self.delta_to_k_targets()
+        assert self.targets.shape[-1] == self.step_param_dim
+        state = np.concatenate([self.robot_state, self.targets.flatten()])
+
+        # order is important, walk_target set in delta_to_k_targets first
         self.calc_potential()
-
-        walk_target_delta = self.walk_target - self.robot.body_xyz
-        state = np.concatenate([self.robot_state, walk_target_delta[0:2]])
 
         if not self.state_id >= 0:
             self.state_id = self._p.saveState()
@@ -403,53 +480,35 @@ class Walker3DStepperEnv(EnvBase):
         reward = - self.energy_penalty - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         # rewards for walking
-        if not self.task_is_standing:
-            reward += self.progress * 2
-            reward += self.torso_heading_bonus
+        reward += self.progress * 2
         # reward for arms flailing
         reward += -self.elbow_penalty * 0.4
-        reward += -self.foot_tilt_penalty
+        # reward for stepping stones
+        reward += self.step_bonus
         # print(f"Elbow penalty: {self.elbow_penalty * 0.4} and foot tilt penalty: {self.foot_tilt_penalty} vs total reward: {reward}")
 
-        walk_target_delta = self.walk_target - self.robot.body_xyz
-        state = np.concatenate([self.robot_state, walk_target_delta[0:2]])
+        # targets is calculated by calc_env_state()
+        state = concatenate((self.robot_state, self.targets.flatten()))
 
         if self.is_rendered or self.use_egl:
             self._handle_keyboard()
             self.camera.track(pos=self.robot.body_xyz)
+            self.steps[self.next_step_index-1].set_color(Colors["crimson"])
+            self.steps[self.next_step_index].set_color(Colors["dodgerblue"])
+            self.target.set_position(pos=[self.walk_target[0], self.walk_target[1], 0])
 
         info = {}
 
-        if self.is_rendered or self.use_egl:
-            x_axis = self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
-                                                                    lineToXYZ            = [1, 0, 0],
-                                                                    lineColorRGB         = [1, 0, 0]  ,
-                                                                    lineWidth            = 10        ,
-                                                                    lifeTime             = 0          ,
-                                                                    parentObjectUniqueId = self.robot.id     ,
-                                                                    parentLinkIndex      = self.robot.robot_body.bodyPartIndex     )
-
-            y_axis = self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
-                                                                    lineToXYZ            = [0, 1, 0],
-                                                                    lineColorRGB         = [0, 1, 0]  ,
-                                                                    lineWidth            = 10        ,
-                                                                    lifeTime             = 0          ,
-                                                                    parentObjectUniqueId = self.robot.id     ,
-                                                                    parentLinkIndex      = self.robot.robot_body.bodyPartIndex     )
-
-            z_axis = self._p.addUserDebugLine(lineFromXYZ          = [0, 0, 0]  ,
-                                                                    lineToXYZ            = [0, 0, 1],
-                                                                    lineColorRGB         = [0, 0, 1]  ,
-                                                                    lineWidth            = 10        ,
-                                                                    lifeTime             = 0          ,
-                                                                    parentObjectUniqueId = self.robot.id     ,
-                                                                    parentLinkIndex      = self.robot.robot_body.bodyPartIndex     )
-
         return state, reward, self.done, info
     
+    def create_target(self):
+        # Need this to create target in render mode, called by EnvBase
+        # Sphere is a visual shape, does not interact physically
+        self.target = VSphere(self._p, radius=0.15, pos=None)
+    
     def calc_potential(self):
-        walk_target_delta = self.walk_target - self.robot.body_xyz
-        self.distance_to_target = sqrt(ss(walk_target_delta[0:2]))
+        walk_target_delta = self.walk_target - self.robot.body_xyz[0:2]
+        self.distance_to_target = sqrt(ss(walk_target_delta))
         self.linear_potential = -(self.distance_to_target) / self.scene.dt
 
     def calc_base_reward(self, action):
@@ -457,12 +516,6 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
         linear_progress = self.linear_potential - old_linear_potential
         self.progress = linear_progress
-
-        if self.distance_to_target < 0.1:
-            # once close, move target 1 meter further and update potentials
-            self.walk_target[1] += 1
-            self.calc_potential()
-            old_linear_potential = self.linear_potential
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -494,35 +547,126 @@ class Walker3DStepperEnv(EnvBase):
         if heights[2] - heights[1] < min_height_diff:
             self.elbow_penalty += abs(heights[2] - heights[1] - min_height_diff)
 
-        # make sure feet are flat on the floor
-        foot_tilts = self.robot.feet_rpy[:, 1]
-
-        self.foot_tilt_penalty = 0
-        if self.task_is_standing:
-            if foot_tilts[0] > 5 * DEG2RAD:
-                self.foot_tilt_penalty += foot_tilts[0] - 5 * DEG2RAD
-            if foot_tilts[1] > 5 * DEG2RAD:
-                self.foot_tilt_penalty += foot_tilts[1] - 5 * DEG2RAD
-
-        self.torso_heading_bonus = 0
-        # if not self.task_is_standing:
-        #     if 70 * DEG2RAD < self.robot.body_rpy[2] < 110 * DEG2RAD:
-        #         self.torso_heading_bonus = 1 # np.exp(-11 * (self.robot.body_rpy[2] - 90 * DEG2RAD)**2)
-
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2]
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.legs_not_on_step
+
+    def calc_feet_state(self):
+        self.foot_dist_to_target = np.sqrt(
+            ss(
+                self.robot.feet_xyz[:, 0:2]
+                - self.terrain_info[self.next_step_index, 0:2],
+                axis=1,
+            )
+        )
+        swing_leg = int(self.terrain_info[self.next_step_index, 2]) # 1 for left foot, 0 for right foot
+
+        robot_id = self.robot.id
+        client_id = self._p._client
+        ground_ids = next(iter(self.ground_ids))
+        target_id_list = [ground_ids[0]]
+        target_cover_id_list = [ground_ids[1]]
+        self._foot_target_contacts.fill(0)
+
+        for i, (foot, contact) in enumerate(
+            zip(self.robot.feet, self._foot_target_contacts)
+        ):
+            # self.robot.feet_contact[i] will be 1 when it hits anything (including itself) and 0 otherwise. Important because it will be a part of the robot state in the observation
+            # contact in self._foot_target_contacts will be 1 only when it hits the ground. 
+            self.robot.feet_contact[i] = pybullet.getContactStates(
+                bodyA=robot_id,
+                linkIndexA=foot.bodyPartIndex,
+                bodiesB=target_id_list,
+                linkIndicesB=target_cover_id_list,
+                results=contact,
+                physicsClientId=client_id,
+            )
+
+        if self.next_step_index > 1:
+            dist_to_prev_target = np.sqrt(
+                ss(
+                    self.robot.feet_xyz[:, 0:2]
+                    - self.prev_leg_pos[:, 0:2], # NEED TO SET
+                    axis=1,
+                )
+            )
+            foot_in_target = self.foot_dist_to_target[swing_leg] < self.step_radius
+            foot_in_prev_target = dist_to_prev_target[swing_leg] < self.step_radius
+            other_foot_in_prev_target = dist_to_prev_target[1-swing_leg] < self.step_radius + 0.1 # allow a bit more tolerance
+            swing_leg_not_on_step = not self._foot_target_contacts[swing_leg, 0] == 0 and not (foot_in_target or foot_in_prev_target)
+            other_leg_not_on_step = not self._foot_target_contacts[1-swing_leg, 0] == 0 and not other_foot_in_prev_target
+            self.legs_not_on_step = swing_leg_not_on_step or other_leg_not_on_step
+        else:
+            self.legs_not_on_step = False
+        # want foot to be in air for at least a tiny bit
+        self.swing_leg_lifted = self.swing_leg_lifted or self._foot_target_contacts[swing_leg, 0] == 0
+
+        self.target_reached = self._foot_target_contacts[swing_leg, 0] > 0 and self.foot_dist_to_target[swing_leg] < self.step_radius and self.swing_leg_lifted
+
+        if self.target_reached:
+            self.target_reached_count += 1
+            if self.target_reached_count >= 2:
+                self.prev_leg_pos[swing_leg] = self.terrain_info[self.next_step_index, 0:2]
+                self.current_target_count = 0
+                self.swing_leg_lifted = False
+                self.next_step_index += 1
+                self.target_reached_count = 0
+
+        # Prevent out of bound
+        if self.next_step_index >= len(self.terrain_info):
+            self.next_step_index -= 1
+
+    def calc_step_reward(self):
+
+        self.step_bonus = 0
+        if (
+            self.target_reached
+            and self.target_reached_count == 1
+            and self.next_step_index != len(self.terrain_info) - 1  # exclude last step
+        ):
+            # dist = nanmin(self.foot_dist_to_target)
+            dist = self.foot_dist_to_target[int(self.terrain_info[self.next_step_index, 2])]
+            self.step_bonus = 50 * 2.718 ** (
+                -(dist ** self.step_bonus_smoothness) / 0.25
+            )
 
     def calc_env_state(self, action):
         if anynan(self.robot_state):
             print("~INF~", self.robot_state)
             self.done = True
 
-        self.calc_base_reward(action)
+        cur_step_index = self.next_step_index
 
-        self.calc_potential()
+        self.calc_feet_state()
+        self.calc_base_reward(action)
+        self.calc_step_reward()
+        self.targets = self.delta_to_k_targets()
+
+        if cur_step_index != self.next_step_index:
+            self.calc_potential()
+
+    def delta_to_k_targets(self):
+
+        walk_target_index = min(self.next_step_index + 1, self.num_steps - 1)
+        self.walk_target = np.copy(self.terrain_info[walk_target_index, 0:2])
+        if self.terrain_info[walk_target_index, 2] == 1:
+            self.walk_target[1] -= self.foot_sep
+        else:
+            self.walk_target[1] += self.foot_sep
+        
+        delta_pos = self.terrain_info[self.next_step_index, 0:2] - self.robot.body_xyz[0:2]
+        target_theta = np.arctan2(delta_pos[1], delta_pos[0])
+        angle_to_target = target_theta - self.robot.body_rpy[2]
+        distance_to_target = np.sqrt(ss(delta_pos))
+
+        return np.array(
+            [
+                np.sin(angle_to_target) * distance_to_target, # x delta
+                np.cos(angle_to_target) * distance_to_target # y delta
+            ]
+        )
 
     def get_mirror_indices(self):
 
