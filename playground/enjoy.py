@@ -148,25 +148,30 @@ def main():
         done = False
 
         if args.plot:
-            time_offsets = [0]
-            times_left = []
-            all_sets_left = []
-            times_right = []
-            all_sets_right = []
-            for current_step in range(1,20):
-                time_left = list(np.array(range(int(env.terrain_info[current_step, 8] + env.terrain_info[current_step, 9]) + env.step_delay)) + time_offsets[current_step - 1])
-                sets_left = [1 for _ in range(int(env.terrain_info[current_step, 8]))] + [0 for _ in range(int(env.terrain_info[current_step, 9]))] + [1 for _ in range(env.step_delay)]
-                time_right = list(np.array(range(int(env.terrain_info[current_step, 10] + env.terrain_info[current_step, 11]) + env.step_delay)) + time_offsets[current_step - 1])
-                sets_right = [1 for _ in range(int(env.terrain_info[current_step, 10]))] + [0 for _ in range(int(env.terrain_info[current_step, 11]))] + [1 for _ in range(env.step_delay)]
-                if env.terrain_info[current_step, 7] == 0:
-                    time_left, sets_left, time_right, sets_right = time_right, sets_right, time_left, sets_left
-                times_left += time_left
-                all_sets_left += sets_left
-                times_right += time_right
-                all_sets_right += sets_right
-                time_offsets.append(time_left[-1])
-            ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color='steelblue', step='post')
-            ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color='paleturquoise', step='post')
+            if env.mask_info["timing"][2]:
+                ax1.clear()
+                ax1.set_xlim(0, 800)
+                ax1.set_ylim(0,2.2)
+            else:
+                time_offsets = [0]
+                times_left = []
+                all_sets_left = []
+                times_right = []
+                all_sets_right = []
+                for current_step in range(1,20):
+                    time_left = list(np.array(range(int(env.terrain_info[current_step, 8] + env.terrain_info[current_step, 9]) + env.step_delay)) + time_offsets[current_step - 1])
+                    sets_left = [1 for _ in range(int(env.terrain_info[current_step, 8]))] + [0 for _ in range(int(env.terrain_info[current_step, 9]))] + [1 for _ in range(env.step_delay)]
+                    time_right = list(np.array(range(int(env.terrain_info[current_step, 10] + env.terrain_info[current_step, 11]) + env.step_delay)) + time_offsets[current_step - 1])
+                    sets_right = [1 for _ in range(int(env.terrain_info[current_step, 10]))] + [0 for _ in range(int(env.terrain_info[current_step, 11]))] + [1 for _ in range(env.step_delay)]
+                    if env.terrain_info[current_step, 7] == 0:
+                        time_left, sets_left, time_right, sets_right = time_right, sets_right, time_left, sets_left
+                    times_left += time_left
+                    all_sets_left += sets_left
+                    times_right += time_right
+                    all_sets_right += sets_right
+                    time_offsets.append(time_left[-1])
+                ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color='steelblue', step='post')
+                ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color='paleturquoise', step='post')
             fig1.canvas.draw()
             background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
 
@@ -195,10 +200,18 @@ def main():
 
             if args.plot and not env.past_last_step:
                 fig1.canvas.restore_region(background_1)
+                if env.mask_info["timing"][2]:
+                    time = env.timestep
+                else:
+                    time = env.current_step_time + time_offsets[env.current_time_index-1]
                 actual_y_left.append(env.left_actual_contact)
                 actual_y_right.append(env.right_actual_contact + 1.2)
-                actual_x_left.append(env.current_step_time + time_offsets[env.current_time_index-1])
-                actual_x_right.append(env.current_step_time + time_offsets[env.current_time_index-1])
+                actual_x_left.append(time)
+                actual_x_right.append(time)
+
+                if time > ax1.get_xlim()[1]:
+                    ax1.set_xlim(0, time + 50)
+                    fig1.canvas.draw()
 
                 actual_points_left.set_data(actual_x_left, actual_y_left)
                 actual_points_right.set_data(actual_x_right, actual_y_right)
@@ -207,7 +220,6 @@ def main():
                 ax1.draw_artist(actual_points_right)
 
                 fig1.canvas.blit(ax1.bbox)
-                # fig.canvas.flush_events()
 
             if done:
                 if args.heading:
@@ -269,30 +281,32 @@ def main():
                     foot_position_targets = env.terrain_info[:, 0:2]
                     swing_targets = env.terrain_info[:, 7]
                 if args.plot:
-                    time_offsets = [0]
-                    times_left = []
-                    all_sets_left = []
-                    times_right = []
-                    all_sets_right = []
-                    for current_step in range(1,20):
-                        time_left = list(np.array(range(int(env.terrain_info[current_step, 8] + env.terrain_info[current_step, 9]) + env.step_delay)) + time_offsets[current_step - 1])
-                        sets_left = [1 for _ in range(int(env.terrain_info[current_step, 8]))] + [0 for _ in range(int(env.terrain_info[current_step, 9]))] + [1 for _ in range(env.step_delay)]
-                        time_right = list(np.array(range(int(env.terrain_info[current_step, 10] + env.terrain_info[current_step, 11]) + env.step_delay)) + time_offsets[current_step - 1])
-                        sets_right = [1 for _ in range(int(env.terrain_info[current_step, 10]))] + [0 for _ in range(int(env.terrain_info[current_step, 11]))] + [1 for _ in range(env.step_delay)]
-                        if env.terrain_info[current_step, 7] == 0:
-                            time_left, sets_left, time_right, sets_right = time_right, sets_right, time_left, sets_left
-                        times_left += time_left
-                        all_sets_left += sets_left
-                        times_right += time_right
-                        all_sets_right += sets_right
-                        time_offsets.append(time_left[-1])
-                    ax1.clear()                    
-                    ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color='steelblue', step='post')
-                    ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color='paleturquoise', step='post')
-                    actual_x_left = []
-                    actual_y_left = []
-                    actual_x_right = []
-                    actual_y_right = []
+                    if env.mask_info["timing"][2]:
+                        ax1.clear()
+                        ax1.set_xlim(0, 800)
+                        ax1.set_ylim(0,2.2)
+                    else:
+                        time_offsets = [0]
+                        times_left = []
+                        all_sets_left = []
+                        times_right = []
+                        all_sets_right = []
+                        for current_step in range(1,20):
+                            time_left = list(np.array(range(int(env.terrain_info[current_step, 8] + env.terrain_info[current_step, 9]) + env.step_delay)) + time_offsets[current_step - 1])
+                            sets_left = [1 for _ in range(int(env.terrain_info[current_step, 8]))] + [0 for _ in range(int(env.terrain_info[current_step, 9]))] + [1 for _ in range(env.step_delay)]
+                            time_right = list(np.array(range(int(env.terrain_info[current_step, 10] + env.terrain_info[current_step, 11]) + env.step_delay)) + time_offsets[current_step - 1])
+                            sets_right = [1 for _ in range(int(env.terrain_info[current_step, 10]))] + [0 for _ in range(int(env.terrain_info[current_step, 11]))] + [1 for _ in range(env.step_delay)]
+                            if env.terrain_info[current_step, 7] == 0:
+                                time_left, sets_left, time_right, sets_right = time_right, sets_right, time_left, sets_left
+                            times_left += time_left
+                            all_sets_left += sets_left
+                            times_right += time_right
+                            all_sets_right += sets_right
+                            time_offsets.append(time_left[-1])
+                        ax1.clear()
+                        ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color='steelblue', step='post')
+                        ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color='paleturquoise', step='post')
+                    actual_x_left, actual_y_left, actual_x_right, actual_y_right = [], [], [], []
                     fig1.canvas.draw()
                     background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
                 ep_reward = 0

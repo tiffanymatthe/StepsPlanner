@@ -1785,6 +1785,8 @@ class Walker3DStepperEnv(EnvBase):
         
         if self.mask_info["timing"][2]:
             self.timing_bonus = 0
+            self.left_actual_contact = self._foot_target_contacts[1,0]
+            self.right_actual_contact = self._foot_target_contacts[0,0]
         else:
             self.calc_timing_reward()
 
