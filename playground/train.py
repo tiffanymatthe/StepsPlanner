@@ -298,7 +298,7 @@ def main(_seed, _config, _run):
             current_iteration += 1
             # Update curriculum after roll-out
             if (
-                update_curriculum and current_iteration > 25
+                current_iteration > 35
             ):
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
