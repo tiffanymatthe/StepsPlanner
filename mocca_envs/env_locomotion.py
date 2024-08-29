@@ -342,7 +342,7 @@ class Walker3DStepperEnv(EnvBase):
         # Fix-ordered Curriculum
         self.curriculum = kwargs.pop("start_curriculum", 0)
         self.max_curriculum = 9
-        self.advance_threshold = min(15, self.num_steps)
+        self.advance_threshold = min(12, self.num_steps)
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
@@ -463,18 +463,18 @@ class Walker3DStepperEnv(EnvBase):
 
     def get_timing(self, N):
 
-        if self.curriculum == 0:
-            half_cycle_times = np.ones(N) * 30
-            timing_0 = half_cycle_times * 0.3
-            timing_1 = half_cycle_times * 0.7
-        else:
-            half_cycle_times = self.np_random.choice([20,30,40,50], size=N)
-            ground_ratio = self.np_random.choice([0.2,0.3,0.4], size=N)
-            timing_0 = half_cycle_times * ground_ratio
-            timing_1 = half_cycle_times * (1-ground_ratio)
-            half_cycle_times[0:3] = 30
-            timing_0[0:3] = half_cycle_times[0:3] * 0.3
-            timing_1[0:3] = half_cycle_times[0:3] * 0.7
+        # if self.curriculum == 0 and self.behavior_curriculum == 0:
+        #     half_cycle_times = np.ones(N) * 30
+        #     timing_0 = half_cycle_times * 0.3
+        #     timing_1 = half_cycle_times * 0.7
+        # else:
+        half_cycle_times = self.np_random.choice([20,30,40,50], size=N)
+        ground_ratio = self.np_random.choice([0.2,0.3,0.4], size=N)
+        timing_0 = half_cycle_times * ground_ratio
+        timing_1 = half_cycle_times * (1-ground_ratio)
+        half_cycle_times[0:3] = 30
+        timing_0[0:3] = half_cycle_times[0:3] * 0.3
+        timing_1[0:3] = half_cycle_times[0:3] * 0.7
 
         timing_0 = timing_0.astype(int)
         timing_1 = timing_1.astype(int)
@@ -2022,9 +2022,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.mask_info["leg"][2]:
             swing_legs_at_targets *= 0
 
-        self.train_old = self.np_random.rand() < self.timing_mask_value if self.timing_mask_value != 1 else self.train_old # override to make sure not to log results, acc train new
-
-        if self.mask_info["timing"][2] or self.train_old:
+        if self.mask_info["timing"][2]:
             time_left *= 0
 
         deltas = concatenate(
