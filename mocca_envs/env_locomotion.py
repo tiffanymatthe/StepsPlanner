@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var", "to_standstill", "backward", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -406,8 +406,8 @@ class Walker3DStepperEnv(EnvBase):
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": np.linspace(np.pi / 12, np.pi / 4, N),
-            "heading_var": np.linspace(0, np.pi / 2, N),
-            "timing_gaits": None,
+            "heading_var": np.linspace(0, np.pi / 3, N),
+            "timing_gaits": np.linspace(0, np.pi / 3, N),
         }
         self.dist_range = {
             "to_standstill": np.array([0.65, 0]),
@@ -416,8 +416,8 @@ class Walker3DStepperEnv(EnvBase):
             "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.5]),
             "backward": np.array([0.0, -0.65]),
-            "heading_var": np.array([0.65, 0.65]),
-            "timing_gaits": np.array([0.65, 0.65]),
+            "heading_var": np.array([0.55, 0.65]),
+            "timing_gaits": np.array([0.55, 0.65]),
         }
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
         self.pitch_range = np.array([0, 0])  # degrees
@@ -461,14 +461,17 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-
-        if self.curriculum == 0:
+        if self.curriculum == 0 and self.behavior_curriculum == 0:
             half_cycle_times = np.ones(N) * 30
+            timing_0 = half_cycle_times * 0.3
+            timing_1 = half_cycle_times * 0.7
+        elif self.behavior_curriculum == 0:
+            half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
         else:
             half_cycle_times = self.np_random.choice([10,20,30,40,50], size=N)
-            ground_ratio = self.np_random.choice([0.1,0.2,0.3,0.4,0.5], size=N)
+            ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7], size=N)
             half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
             ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
             timing_0 = half_cycle_times * ground_ratio
@@ -498,13 +501,13 @@ class Walker3DStepperEnv(EnvBase):
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
-        method = "hopping"
+        method = "walking"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
-        self.path_angle = 0
+        self.path_angle = self.angle_curriculum[behavior][curriculum]
 
         N = self.num_steps
         
@@ -589,22 +592,29 @@ class Walker3DStepperEnv(EnvBase):
 
         if curriculum == 0:
             half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
-            # half_cycle_times[self.np_random.choice(list(range(3,19)), size=10)] = 60
         else:
             if self.np_random.rand() < 0.5:
-                half_cycle_times = np.ones(N) * self.np_random.choice([20,30,40,50,60,70])
+                half_cycle_times = np.ones(N) * self.np_random.choice([10,20,30,40,50,60])
             else:
-                half_cycle_times = self.np_random.choice([20,30,40,50,60,70], size=N)
+                half_cycle_times = self.np_random.choice([10,20,30,40,50,60], size=N)
         
         half_cycle_times[0:3] = 30 # to start properly
 
         if method == "walking":
-            timing_0 = half_cycle_times * 0.4
-            timing_1 = half_cycle_times * 0.6
+            timing_0 = half_cycle_times * 0.3
+            timing_1 = half_cycle_times * 0.7
             if curriculum > 0:
-                ratio = self.np_random.choice([0.3, 0.4, 0.5])
-                timing_0 = half_cycle_times * ratio
-                timing_1 = half_cycle_times * (1-ratio)
+                ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7], size=N)
+                half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
+                ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
+                timing_0 = half_cycle_times * ground_ratio
+                timing_1 = half_cycle_times * (1-ground_ratio)
+                half_cycle_times[0:3] = 30
+                timing_0[0:3] = half_cycle_times[0:3] * 0.3
+                timing_1[0:3] = half_cycle_times[0:3] * 0.7
+                # ratio = self.np_random.choice([0.3, 0.4, 0.5])
+                # timing_0 = half_cycle_times * ratio
+                # timing_1 = half_cycle_times * (1-ratio)
             timing_0 = timing_0.astype(int)
             timing_1 = timing_1.astype(int)
             timing_2 = timing_0 + timing_1
@@ -690,6 +700,9 @@ class Walker3DStepperEnv(EnvBase):
             timing_3 = timing_0 + timing_1 - timing_2
 
         assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
+
+        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3), axis=1)
 
