@@ -401,13 +401,13 @@ class Walker3DStepperEnv(EnvBase):
         # Terrain info
         self.angle_curriculum = {
             "to_standstill": np.linspace(np.pi / 12, np.pi / 3, N),
-            "random_walks": np.linspace(np.pi / 12, np.pi / 2, N),
+            "random_walks": np.linspace(np.pi / 12, np.pi / 3, N),
             "random_walks_backward": np.linspace(np.pi / 12, np.pi / 3, N),
             "turn_in_place": np.linspace(0, np.pi / 2, N),
             "side_step": None,
             "backward": np.linspace(np.pi / 12, np.pi / 4, N),
-            "heading_var": np.linspace(0, np.pi / 3, N),
-            "timing_gaits": np.linspace(0, np.pi / 3, N),
+            "heading_var": np.linspace(0, np.pi / 3 - np.pi / 8, N),
+            "timing_gaits": np.linspace(0, np.pi / 3 - np.pi / 8, N),
         }
         self.dist_range = {
             "to_standstill": np.array([0.65, 0]),
@@ -416,8 +416,8 @@ class Walker3DStepperEnv(EnvBase):
             "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.5]),
             "backward": np.array([0.0, -0.65]),
-            "heading_var": np.array([0.55, 0.65]),
-            "timing_gaits": np.array([0.55, 0.65]),
+            "heading_var": np.array([0.65, 0.65]),
+            "timing_gaits": np.array([0.65, 0.65]),
         }
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
         self.pitch_range = np.array([0, 0])  # degrees
@@ -500,6 +500,8 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
+
+        behavior = "timing_gaits"
 
         method = "walking"
 
