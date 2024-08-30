@@ -422,14 +422,14 @@ class Walker3DStepperEnv(EnvBase):
         }
 
         self.foot_sep_range = {
-            "to_standstill": np.array([-0.04,0.14]),
-            "random_walks": np.array([-0.04,0.14]),
+            "to_standstill": np.array([-0.04,0.16]),
+            "random_walks": np.array([-0.04,0.16]),
             "random_walks_backward": np.array([-0.04,0.10]),
             "turn_in_place": np.array([-0.04,0.04]),
             "side_step": np.array([-0.04,0.04]),
-            "backward": np.array([-0.04,0.10]),
-            "heading_var": np.array([-0.04,0.04]),
-            "timing_gaits": np.array([-0.04,0.14]),
+            "backward": np.array([-0.04,0.12]),
+            "heading_var": np.array([-0.04,0.16]),
+            "timing_gaits": np.array([-0.04,0.16]),
         }
 
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
@@ -797,7 +797,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        foot_sep_range = self.foot_sep_range[self.selected_behavior] * ratio
+        foot_sep_range = self.foot_sep_range[self.selected_behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
 
         # Calculate shifts
@@ -886,7 +886,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        foot_sep_range = self.foot_sep_range[self.selected_behavior] * ratio
+        foot_sep_range = self.foot_sep_range[self.selected_behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
 
         # Calculate shifts
@@ -976,7 +976,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        foot_sep_range = self.foot_sep_range[self.selected_behavior] * ratio
+        foot_sep_range = self.foot_sep_range[self.selected_behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
 
         # Calculate shifts
@@ -1066,7 +1066,7 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        foot_sep_range = self.foot_sep_range[self.selected_behavior] * ratio
+        foot_sep_range = self.foot_sep_range[self.selected_behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
 
         # Calculate shifts
@@ -1156,6 +1156,7 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         foot_sep_range = self.foot_sep_range[self.selected_behavior] * ratio
+        foot_sep_possibilities =   # np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
 
         # Calculate shifts
@@ -1262,7 +1263,7 @@ class Walker3DStepperEnv(EnvBase):
         y[3:] += self.init_step_separation - self.dr_spacing
         heading_targets = np.roll(np.repeat(heading_targets[:N//2], 2),-1)
 
-        foot_sep_range = self.foot_sep_range[self.selected_behavior] * ratio
+        foot_sep_range = self.foot_sep_range[self.selected_behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
 
         # Calculate shifts
@@ -1365,7 +1366,7 @@ class Walker3DStepperEnv(EnvBase):
         y[3:] += self.init_step_separation - self.dr_spacing
         heading_targets = np.roll(np.repeat(heading_targets[:N//2], 2),-1)
 
-        foot_sep_range = self.foot_sep_range[self.selected_behavior] * ratio
+        foot_sep_range = self.foot_sep_range[self.selected_behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
 
         # Calculate shifts
