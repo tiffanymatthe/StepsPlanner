@@ -273,6 +273,8 @@ def main(_seed, _config, _run):
 
             next_value = actor_critic.get_value(rollouts.observations[-1]).detach()
 
+            advance_threshold = min(4 + 2 * (current_curriculum), 15)
+
             update_curriculum = True
             for i in range(4):
                 if not args.use_curriculum:
@@ -298,7 +300,7 @@ def main(_seed, _config, _run):
             current_iteration += 1
             # Update curriculum after roll-out
             if (
-                current_iteration > 35
+                update_curriculum
             ):
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
