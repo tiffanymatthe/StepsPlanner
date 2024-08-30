@@ -273,7 +273,7 @@ def main(_seed, _config, _run):
 
             next_value = actor_critic.get_value(rollouts.observations[-1]).detach()
 
-            advance_threshold = min(4 + 2 * (current_curriculum), 15)
+            advance_threshold = min(2 + 2 * (current_curriculum), 15)
 
             update_curriculum = True
             for i in range(4):
