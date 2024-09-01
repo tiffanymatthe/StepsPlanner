@@ -17,6 +17,7 @@ os.sys.path.insert(0, parent_dir)
 
 import numpy as np
 import torch
+from bottleneck import nanmean
 
 import mocca_envs
 from algorithms.ppo import PPO
@@ -167,6 +168,7 @@ def main(_seed, _config, _run):
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
+    curriculum_metrics = deque(maxlen=args.num_processes)
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -207,6 +209,8 @@ def main(_seed, _config, _run):
                     # This information is added by common.envs_utils.Monitor
                     if "episode" in info:
                         episode_rewards.append(info["episode"]["r"])
+                    if "curriculum_metric" in info:
+                        curriculum_metrics.append(info["curriculum_metric"])
 
                 rollouts.insert(
                     torch.from_numpy(obs),
@@ -253,5 +257,6 @@ def main(_seed, _config, _run):
                     "action_loss": action_loss,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
+                    "curriculum_metric": nanmean(curriculum_metrics),
                 }
             )
