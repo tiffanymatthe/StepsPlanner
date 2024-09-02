@@ -480,7 +480,7 @@ class Walker3DStepperEnv(EnvBase):
         reward = - self.energy_penalty - self.speed_penalty
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         # rewards for walking
-        reward += self.progress * 2
+        reward += self.progress * 1.5
         # reward for arms flailing
         reward += -self.elbow_penalty * 0.4
         # reward for stepping stones
