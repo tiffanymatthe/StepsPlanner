@@ -1608,6 +1608,11 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
+        if self.curriculum == 0 and self.behavior_curriculum == 0:
+            self.mask_info["timing"][2] = self.np_random.rand() < 0.5
+        else:
+            self.mask_info["timing"][2] = True
+
         if self.mask_info["timing"][0]:
             threshold = self.mask_info["timing"][1] if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
             self.mask_info["timing"][2] = self.np_random.rand() < threshold
