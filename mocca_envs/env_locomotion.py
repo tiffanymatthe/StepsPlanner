@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     rendered_step_count = 4
     init_step_separation = 0.70
 
-    step_delay = 6
+    step_delay = 5
 
     lookahead = 2
     lookbehind = 1
@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -368,7 +368,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [True, 0.5, False],
+            "timing": [False, 0.5, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -429,7 +429,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": np.array([-0.04,0.04]),
             "backward": np.array([-0.04,0.12]),
             "heading_var": np.array([-0.04,0.16]),
-            "timing_gaits": np.array([-0.04,0.16]),
+            "timing_gaits": np.array([-0.04,0.04]),
         }
 
         self.dr_curriculum = {k: np.linspace(*dist_range, N) for k, dist_range in self.dist_range.items()}
@@ -516,7 +516,7 @@ class Walker3DStepperEnv(EnvBase):
 
         behavior = "timing_gaits"
 
-        method = "walking"
+        method = "hopping"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -1487,7 +1487,10 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 path = self.generate_random_walks_step_placements(min(self.selected_curriculum + 1, self.max_curriculum))
         elif self.selected_behavior == "heading_var":
-            path = self.generate_heading_var_step_placements(self.selected_curriculum)
+            if self.np_random.rand() < 0.5:
+                path = self.generate_heading_var_step_placements(self.selected_curriculum)
+            else:
+                path = self.generate_timing_gaits_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "turn_in_place":
             path = self.generate_turn_in_place_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "side_step":
