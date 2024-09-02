@@ -368,7 +368,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [False, 0.2, True],
+            "timing": [False, 0.2, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -474,24 +474,24 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        if self.curriculum == 0 and self.behavior_curriculum == 0:
-            half_cycle_times = np.ones(N) * 30
-            timing_0 = half_cycle_times * 0.3
-            timing_1 = half_cycle_times * 0.7
-        elif self.behavior_curriculum == 0:
-            half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
-            timing_0 = half_cycle_times * 0.3
-            timing_1 = half_cycle_times * 0.7
-        else:
-            half_cycle_times = self.np_random.choice([10,20,30,40,50], size=N)
-            ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7], size=N)
-            half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
-            ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
-            timing_0 = half_cycle_times * ground_ratio
-            timing_1 = half_cycle_times * (1-ground_ratio)
-            half_cycle_times[0:3] = 30
-            timing_0[0:3] = half_cycle_times[0:3] * 0.3
-            timing_1[0:3] = half_cycle_times[0:3] * 0.7
+        # if self.curriculum == 0 and self.behavior_curriculum == 0:
+        half_cycle_times = np.ones(N) * 30
+        timing_0 = half_cycle_times * 0.3
+        timing_1 = half_cycle_times * 0.7
+        # elif self.behavior_curriculum == 0:
+        #     half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
+        #     timing_0 = half_cycle_times * 0.3
+        #     timing_1 = half_cycle_times * 0.7
+        # else:
+        #     half_cycle_times = self.np_random.choice([10,20,30,40,50], size=N)
+        #     ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7], size=N)
+        #     half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
+        #     ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
+        #     timing_0 = half_cycle_times * ground_ratio
+        #     timing_1 = half_cycle_times * (1-ground_ratio)
+        #     half_cycle_times[0:3] = 30
+        #     timing_0[0:3] = half_cycle_times[0:3] * 0.3
+        #     timing_1[0:3] = half_cycle_times[0:3] * 0.7
 
         timing_0 = timing_0.astype(int)
         timing_1 = timing_1.astype(int)
@@ -1608,10 +1608,10 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
-        if self.curriculum == 0 and self.behavior_curriculum == 0:
-            self.mask_info["timing"][2] = self.np_random.rand() < 0.5
-        else:
-            self.mask_info["timing"][2] = True
+        # if self.curriculum == 0 and self.behavior_curriculum == 0:
+        #     self.mask_info["timing"][2] = self.np_random.rand() < 0.5
+        # else:
+        #     self.mask_info["timing"][2] = True
 
         if self.mask_info["timing"][0]:
             threshold = self.mask_info["timing"][1] if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
