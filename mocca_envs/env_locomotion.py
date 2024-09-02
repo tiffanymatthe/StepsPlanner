@@ -368,7 +368,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [False, 0.5, True],
+            "timing": [False, 0.2, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -1487,7 +1487,7 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 path = self.generate_random_walks_step_placements(min(self.selected_curriculum + 1, self.max_curriculum))
         elif self.selected_behavior == "heading_var":
-            if self.np_random.rand() < 0.5:
+            if self.np_random.rand() < 0.5 and not (self.curriculum == 0 and self.behavior_curriculum == 0):
                 path = self.generate_heading_var_step_placements(self.selected_curriculum)
             else:
                 path = self.generate_timing_gaits_step_placements(self.selected_curriculum)

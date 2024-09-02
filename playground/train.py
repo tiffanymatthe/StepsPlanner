@@ -287,11 +287,11 @@ def main(_seed, _config, _run):
                     iteration > 0
                     and (
                         np.isnan(avg_curriculum_nanmean) or 
-                        avg_curriculum_nanmean > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
+                        avg_curriculum_nanmean > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 10)
                     )
                     and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
                     and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.8)
-                    and (np.isnan(avg_dist_err_nanmean) or avg_dist_err_nanmean <= 0.065)
+                    and (np.isnan(avg_dist_err_nanmean) or avg_dist_err_nanmean <= 0.07)
                 ):
                     continue
                 else:
