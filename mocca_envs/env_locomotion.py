@@ -706,7 +706,7 @@ class Walker3DStepperEnv(EnvBase):
                 6 + self.robot._negation_joint_indices,
                 # negate part of robot (velocity)
                 6 + self.robot._negation_joint_indices + action_dim,
-                self.robot_obs_dim, # sin(-x) = -sin(x)
+                [self.robot_obs_dim], # sin(-x) = -sin(x)
             )
         )
 
