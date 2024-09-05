@@ -474,11 +474,11 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        if self.curriculum == 0 and self.behavior_curriculum == 0:
+        if self.selected_curriculum == 0 and self.behaviors.index(self.selected_behavior) == 0:
             half_cycle_times = np.ones(N) * 30
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
-        elif self.behavior_curriculum == 0:
+        elif self.behaviors.index(self.selected_behavior) == 0:
             half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
@@ -2107,11 +2107,12 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        # if self.selected_behavior in {"turn_in_place", "side_step"}:
-        #     # TODO: bad for mixing everything together
-        #     walk_target_full = self.terrain_info[self.next_step_index]
-        # else:
-        walk_target_full = targets[self.walk_target_index]
+        if self.behaviors.index(self.selected_behavior) == 0 and self.selected_curriculum == 0:
+            # TODO: bad for mixing everything together
+            walk_target_full = targets[self.walk_target_index]
+        else:
+            walk_target_full = self.terrain_info[self.next_step_index]
+        # walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
         if int(walk_target_full[7]) == 1:
