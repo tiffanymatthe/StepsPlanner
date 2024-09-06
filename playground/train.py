@@ -223,7 +223,10 @@ def main(_seed, _config, _run):
         log_dir=args.experiment_dir, console_log_interval=args.log_interval
     )
 
+    current_iteration = 0
+
     for iteration in range(num_updates):
+        current_iteration += 1
 
         if args.lr_decay_type == "linear":
             scheduled_lr = linear_decay(iteration, num_updates, args.lr, final_value=0)
@@ -290,7 +293,7 @@ def main(_seed, _config, _run):
                         avg_curriculum_nanmean > (advance_threshold if (current_curriculum > 0 or args.net is not None) else 5)
                     )
                     and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
-                    and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.75)
+                    and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= 1.85 or (avg_timing_met_nanmean >= 1.75 and current_iteration >= 500))
                     and (np.isnan(avg_dist_err_nanmean) or avg_dist_err_nanmean <= 0.15)
                 ):
                     continue
@@ -302,6 +305,7 @@ def main(_seed, _config, _run):
             if (
                 update_curriculum
             ):
+                current_iteration = 0
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
                     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
@@ -345,6 +349,7 @@ def main(_seed, _config, _run):
             dist_metric = [nanmean(m) for m in avg_dist_errs]
             logger.log_epoch(
                 {
+                    "iter": iteration,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
                     "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": nanmean(mean_metric),
