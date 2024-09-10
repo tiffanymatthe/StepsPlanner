@@ -1920,6 +1920,15 @@ class Walker3DStepperEnv(EnvBase):
         count = 200
         if self.body_stationary_count > count:
             self.legs_bonus -= 100
+        
+        if self.mask_info["timing"][2]:
+            self.timing_bonus = 0
+            self.left_actual_contact = self._foot_target_contacts[1,0]
+            self.right_actual_contact = self._foot_target_contacts[0,0]
+        else:
+            self.calc_timing_reward()
+
+        check_other_foot_on_ground = not self.mask_info["timing"][2] and np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
@@ -1929,17 +1938,11 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 self.heading_bonus = 0
 
-            if self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net):
+            if check_other_foot_on_ground and self.next_step_index > 1 and (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net):
                 self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1) * 0.5
-        
-        if self.mask_info["timing"][2]:
-            self.timing_bonus = 0
-            self.left_actual_contact = self._foot_target_contacts[1,0]
-            self.right_actual_contact = self._foot_target_contacts[0,0]
-        else:
-            self.calc_timing_reward()
 
-        if self.next_step_index > 1:
+        # expect to be on the floor
+        if self.next_step_index > 1 and check_other_foot_on_ground:
             self.prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
             foot_dist_to_prev_target = np.sqrt(
                 ss(
