@@ -320,7 +320,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 1
+    rendered_step_count = 20
     init_step_separation = 0.70
 
     step_delay = 4
@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["to_standstill", "one_step_plant", "heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["to_standstill", "one_step_plant"] #, "heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -474,11 +474,11 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        if self.selected_curriculum == 0 and self.behaviors.index(self.selected_behavior) == 0:
+        if self.selected_curriculum == 0: # and self.behaviors.index(self.selected_behavior) == 0:
             half_cycle_times = np.ones(N) * 40
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
-        elif self.behaviors.index(self.selected_behavior) == 0:
+        elif self.behaviors.index(self.selected_behavior) < 2:
             half_cycle_times = np.ones(N) * self.np_random.choice([40,50])
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
@@ -798,14 +798,17 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
-        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
+        # path_angle_possibilities = np.array([-self.path_angle, self.path_angle]) # np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
+        # print(path_angle_possibilities)
+        # heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
 
-        x[3:] = x[2] + np.cos(heading_targets[3:]) * dr[3:]
-        y[3:] = y[2] + np.sin(heading_targets[3:]) * dr[3:]
+        # x[3:] = x[2] + np.cos(-heading_targets[3:]) * dr[2] / 2
+        max_deviation = 0.4 * ratio
+        y[3:] = y[2] + self.np_random.choice([-max_deviation, 0, max_deviation], size=N-3) # np.sin(-heading_targets[3:]) * dr[2] / 2
 
         foot_sep_range = self.foot_sep_range[behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
+        foot_seps[3:] += self.np_random.uniform(0, 0.2, size=N-3)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)])
@@ -1765,6 +1768,7 @@ class Walker3DStepperEnv(EnvBase):
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
+        reward += 2 * self.step_bonus_other_leg
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
 
@@ -1935,6 +1939,21 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
+        if self.next_step_index > 1:
+            self.prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
+            foot_dist_to_prev_target = np.sqrt(
+                ss(
+                    self.robot.feet_xyz[:, 0:2]
+                    - self.terrain_info[self.prev_index, 0:2],
+                    axis=1,
+                )
+            )
+
+            dist = foot_dist_to_prev_target[1-self.swing_leg]
+            self.step_bonus_other_leg = self.step_radius - dist
+        else:
+            self.step_bonus_other_leg = 0
+
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
 
     def calc_timing_reward(self):
@@ -2033,7 +2052,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
         if self.next_step_index > 1:
-            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[self.next_step_index-1, 6])
+            self.prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
+            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[self.prev_index, 6])
         else:
             self.prev_heading_rad_to_target = 0
 
@@ -2137,8 +2157,7 @@ class Walker3DStepperEnv(EnvBase):
             and self.target_reached_count == 1
             and self.next_step_index != len(self.terrain_info) - 1  # exclude last step
         ):
-            # TODO: specify swing leg in small relevant cases
-            dist = nanmin(self.foot_dist_to_target)
+            dist = self.foot_dist_to_target[self.swing_leg]
             self.dist_errors.append(dist)
             self.step_bonus = 50 * 2.718 ** (
                 -(dist ** self.step_bonus_smoothness) / 0.25
