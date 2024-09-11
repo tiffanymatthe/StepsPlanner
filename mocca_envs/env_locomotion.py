@@ -320,7 +320,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 20
+    rendered_step_count = 1
     init_step_separation = 0.70
 
     step_delay = 4
@@ -408,7 +408,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": None,
             "backward": np.linspace(np.pi / 12, np.pi / 4, N),
             "heading_var": np.linspace(0, np.pi / 3 - np.pi / 8, N),
-            "timing_gaits": np.linspace(0, np.pi / 3 - np.pi / 8, N),
+            "timing_gaits": np.linspace(0, np.pi / 8, N),
         }
         self.dist_range = {
             "to_standstill": np.array([0.65, 0]),
@@ -798,12 +798,9 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        # path_angle_possibilities = np.array([-self.path_angle, self.path_angle]) # np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
-        # print(path_angle_possibilities)
-        # heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
-
         # x[3:] = x[2] + np.cos(-heading_targets[3:]) * dr[2] / 2
-        max_deviation = 0.4 * ratio
+        ratio_skewed = (curriculum + 2) / (self.max_curriculum + 2) if self.max_curriculum > 0 else 0
+        max_deviation = 0.4 * ratio_skewed
         y[3:] = y[2] + self.np_random.choice([-max_deviation, 0, max_deviation], size=N-3) # np.sin(-heading_targets[3:]) * dr[2] / 2
 
         foot_sep_range = self.foot_sep_range[behavior]
@@ -829,6 +826,9 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
+
+        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
 
         dphi *= 0
 
@@ -1944,15 +1944,22 @@ class Walker3DStepperEnv(EnvBase):
         # expect to be on the floor
         if self.next_step_index > 1 and check_other_foot_on_ground:
             self.prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
-            foot_dist_to_prev_target = np.sqrt(
+            dist_to_prev_target = np.sqrt(
                 ss(
                     self.robot.feet_xyz[:, 0:2]
-                    - self.terrain_info[self.prev_index, 0:2],
+                    - self.prev_leg_pos[:, 0:2],
                     axis=1,
                 )
             )
+            # foot_dist_to_prev_target = np.sqrt(
+            #     ss(
+            #         self.robot.feet_xyz[:, 0:2]
+            #         - self.terrain_info[self.prev_index, 0:2],
+            #         axis=1,
+            #     )
+            # )
 
-            dist = foot_dist_to_prev_target[1-self.swing_leg]
+            dist = dist_to_prev_target[1-self.swing_leg]
             self.step_bonus_other_leg = self.step_radius - dist
         else:
             self.step_bonus_other_leg = 0
@@ -2075,6 +2082,13 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
+        next_step_time = [
+            self.terrain_info[self.next_step_index, 8],
+            self.terrain_info[self.next_step_index, 9],
+            self.terrain_info[self.next_step_index, 10],
+            self.terrain_info[self.next_step_index, 11]
+        ]
+
         if self.next_step_index > 1:
             dist_to_prev_target = np.sqrt(
                 ss(
@@ -2084,7 +2098,8 @@ class Walker3DStepperEnv(EnvBase):
                 )
             )
             foot_in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius
+            # say foot_in_prev_target is False if we are already past time and it should not be on prev step
+            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
             other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius + 0.1
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
         # else:
@@ -2100,12 +2115,12 @@ class Walker3DStepperEnv(EnvBase):
         
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
-        next_step_time = [
-            self.terrain_info[self.next_step_index, 8],
-            self.terrain_info[self.next_step_index, 9],
-            self.terrain_info[self.next_step_index, 10],
-            self.terrain_info[self.next_step_index, 11]
-        ]
+        # next_step_time = [
+        #     self.terrain_info[self.next_step_index, 8],
+        #     self.terrain_info[self.next_step_index, 9],
+        #     self.terrain_info[self.next_step_index, 10],
+        #     self.terrain_info[self.next_step_index, 11]
+        # ]
         if self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
             self.target_reached = False
 
