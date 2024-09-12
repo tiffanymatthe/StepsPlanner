@@ -408,7 +408,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": None,
             "backward": np.linspace(np.pi / 12, np.pi / 4, N),
             "heading_var": np.linspace(0, np.pi / 3 - np.pi / 8, N),
-            "timing_gaits": np.linspace(0, np.pi / 8, N),
+            "timing_gaits": np.linspace(0, np.pi / 3, N),
         }
         self.dist_range = {
             "to_standstill": np.array([0.65, 0]),
@@ -798,14 +798,14 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        # x[3:] = x[2] + np.cos(-heading_targets[3:]) * dr[2] / 2
-        ratio_skewed = (curriculum + 2) / (self.max_curriculum + 2) if self.max_curriculum > 0 else 0
-        max_deviation = 0.4 * ratio_skewed
-        y[3:] = y[2] + self.np_random.choice([-max_deviation, 0, max_deviation], size=N-3) # np.sin(-heading_targets[3:]) * dr[2] / 2
+        # # x[3:] = x[2] + np.cos(-heading_targets[3:]) * dr[2] / 2
+        # ratio_skewed = (curriculum + 2) / (self.max_curriculum + 2) if self.max_curriculum > 0 else 0
+        # max_deviation = 0.4 * ratio_skewed
+        # y[3:] = y[2] + self.np_random.choice([-max_deviation, 0, max_deviation], size=N-3) # np.sin(-heading_targets[3:]) * dr[2] / 2
 
         foot_sep_range = self.foot_sep_range[behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
-        foot_seps[3:] += self.np_random.uniform(0, 0.2, size=N-3)
+        foot_seps[3:] += self.np_random.choice([-0.05, 0, 0.1, 0.2, 0.3], size=N-3) # self.np_random.uniform(0, 0.2, size=N-3)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)])
