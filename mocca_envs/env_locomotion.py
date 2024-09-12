@@ -320,7 +320,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 1
+    rendered_step_count = 12
     init_step_separation = 0.70
 
     step_delay = 4
@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["one_step_plant"] #, "heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["one_step_plant", "to_standstill", "transition_all"] #, "heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -408,10 +408,10 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": None,
             "backward": np.linspace(np.pi / 12, np.pi / 4, N),
             "heading_var": np.linspace(0, np.pi / 3 - np.pi / 8, N),
-            "timing_gaits": np.linspace(0, np.pi / 3, N),
+            "timing_gaits": np.linspace(0, np.pi / 4, N),
         }
         self.dist_range = {
-            "to_standstill": np.array([0.65, 0]),
+            "to_standstill": np.array([0.65, 0.55]),
             "random_walks": np.array([0.55, 0.75]),
             "random_walks_backward": np.array([-0.45, -0.65]),
             "turn_in_place": np.array([0.7, 0.1]),
@@ -738,7 +738,8 @@ class Walker3DStepperEnv(EnvBase):
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, foot_seps), axis=1)
     
-    def generate_one_step_plant_step_placements(self, curriculum):
+    def generate_one_step_plant_step_placements(self, curriculum, force_dir=2):
+        # if 1 left, if 0 right
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
@@ -818,7 +819,7 @@ class Walker3DStepperEnv(EnvBase):
         x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * foot_seps
         y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * foot_seps
 
-        if self.robot.mirrored:
+        if (self.robot.mirrored and force_dir==2) or force_dir==1: # or force left
             x *= -1
         else:
             swing_legs = 1 - swing_legs
@@ -896,7 +897,13 @@ class Walker3DStepperEnv(EnvBase):
         z = np.cumsum(dz)
 
         foot_sep_range = self.foot_sep_range[behavior]
-        foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
+        possible_foot_seps = self.np_random.choice(np.linspace(*foot_sep_range, num=7, endpoint=True), size=4)
+        foot_seps = self.foot_sep + np.concatenate((
+            np.full(5, possible_foot_seps[0]),
+            np.full(5, possible_foot_seps[1]),
+            np.full(5, possible_foot_seps[2]),
+            np.full(5, possible_foot_seps[3])
+        ))
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)])
@@ -1511,11 +1518,12 @@ class Walker3DStepperEnv(EnvBase):
         
         step_placement_fcns = [
             (self.generate_to_standstill_step_placements, "to_standstill"),
-            (self.generate_turn_in_place_step_placements, "turn_in_place"),
-            (self.generate_side_step_step_placements, "side_step"),
-            (self.generate_random_walks_step_placements, "random_walks"),
-            (self.generate_random_walks_step_placements, "random_walks_backward"),
-            (self.generate_random_walks_step_placements, "backward"),
+            (self.generate_one_step_plant_step_placements, "timing_gaits"),
+            # (self.generate_turn_in_place_step_placements, "turn_in_place"),
+            # (self.generate_side_step_step_placements, "side_step"),
+            # (self.generate_random_walks_step_placements, "random_walks"),
+            # (self.generate_random_walks_step_placements, "random_walks_backward"),
+            # (self.generate_random_walks_step_placements, "backward"),
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
@@ -1531,14 +1539,23 @@ class Walker3DStepperEnv(EnvBase):
             if behavior_str in self.generated_paths_cache and self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] is not None:
                 step_placements_part = np.copy(self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)])
             else:
-                step_placements_part = selected_step_placement_fcn(selected_step_curriculum)
+                if behavior_str == "timing_gaits":
+                    force_dir = 2 if i == 0 else 1-step_placements[transition_indices[i-1] - 1,7]
+                    step_placements_part = selected_step_placement_fcn(selected_step_curriculum, force_dir=force_dir)
+                else:
+                    step_placements_part = selected_step_placement_fcn(selected_step_curriculum)
                 if behavior_str in self.generated_paths_cache:
                     self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] = np.copy(step_placements_part)
 
             if i == 0:
                 step_placements = step_placements_part
+                continue
             a = transition_indices[i-1]
             b = transition_indices[i]
+            if behavior_str == "timing_gaits":
+                step_placements_part[a-1:b,:] = step_placements_part[2:2+b-a+1,:]
+            elif step_placements_part[a-1,7] != step_placements[a-1,7]: # swing legs don't match, need to shift
+                step_placements_part[a-1:b,:] = step_placements_part[a-2:b-1,:]
             heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
             dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
             dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
