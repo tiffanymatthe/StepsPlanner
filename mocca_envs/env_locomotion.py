@@ -368,7 +368,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [True, 0.5, False],
+            "timing": [False, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -623,27 +623,36 @@ class Walker3DStepperEnv(EnvBase):
         half_cycle_times[0:3] = 30 # to start properly
 
         if method == "walking":
+            half_cycle_times = np.ones(N) * 50
+            half_cycle_times[:N:2] = 20
+            if curriculum == 1:
+                half_cycle_times = np.ones(N) * 60
+                half_cycle_times[:N:2] = 20
+            elif curriculum > 1:
+                half_cycle_times = np.ones(N) * 60
+                half_cycle_times[:N:2] = 10
+            half_cycle_times[0:3] = 30
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
-            if curriculum > 0:
-                if curriculum == 1:
-                    ratios = [0.2,0.3,0.4]
-                elif curriculum == 2:
-                    ratios = [0.1,0.2,0.3,0.4]
-                elif curriculum == 3:
-                    ratios = [0.1,0.2,0.3,0.4,0.5]
-                elif curriculum == 4:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6]
-                else:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
-                ground_ratio = self.np_random.choice(ratios, size=N)
-                half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
-                ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
-                timing_0 = half_cycle_times * ground_ratio
-                timing_1 = half_cycle_times * (1-ground_ratio)
-                half_cycle_times[0:3] = 30
-                timing_0[0:3] = half_cycle_times[0:3] * 0.3
-                timing_1[0:3] = half_cycle_times[0:3] * 0.7
+            # if curriculum > 0:
+            #     if curriculum == 1:
+            #         ratios = [0.2,0.3,0.4]
+            #     elif curriculum == 2:
+            #         ratios = [0.1,0.2,0.3,0.4]
+            #     elif curriculum == 3:
+            #         ratios = [0.1,0.2,0.3,0.4,0.5]
+            #     elif curriculum == 4:
+            #         ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6]
+            #     else:
+            #         ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
+            #     ground_ratio = self.np_random.choice(ratios, size=N)
+            #     half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
+            #     ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
+            #     timing_0 = half_cycle_times * ground_ratio
+            #     timing_1 = half_cycle_times * (1-ground_ratio)
+            #     half_cycle_times[0:3] = 30
+            #     timing_0[0:3] = half_cycle_times[0:3] * 0.3
+            #     timing_1[0:3] = half_cycle_times[0:3] * 0.7
                 # ratio = self.np_random.choice([0.3, 0.4, 0.5])
                 # timing_0 = half_cycle_times * ratio
                 # timing_1 = half_cycle_times * (1-ratio)
@@ -1460,7 +1469,7 @@ class Walker3DStepperEnv(EnvBase):
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
         factor = 0 if self.determine else 0.35
-        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
+        train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if self.behaviors[self.behavior_curriculum] == "combine_all":
             self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
