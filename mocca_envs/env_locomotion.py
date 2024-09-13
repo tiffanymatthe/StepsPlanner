@@ -320,7 +320,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 12
+    rendered_step_count = 1
     init_step_separation = 0.70
 
     step_delay = 4
@@ -799,10 +799,10 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
-        # # x[3:] = x[2] + np.cos(-heading_targets[3:]) * dr[2] / 2
-        # ratio_skewed = (curriculum + 2) / (self.max_curriculum + 2) if self.max_curriculum > 0 else 0
-        # max_deviation = 0.4 * ratio_skewed
-        # y[3:] = y[2] + self.np_random.choice([-max_deviation, 0, max_deviation], size=N-3) # np.sin(-heading_targets[3:]) * dr[2] / 2
+        # x[3:] = x[2] + np.cos(-heading_targets[3:]) * dr[2] / 2
+        ratio_skewed = (curriculum + 2) / (self.max_curriculum + 2) if self.max_curriculum > 0 else 0
+        max_deviation = 0.4 * ratio_skewed
+        y[3:] = y[2] + self.np_random.choice([-max_deviation, 0, max_deviation], size=N-3) # np.sin(-heading_targets[3:]) * dr[2] / 2
 
         foot_sep_range = self.foot_sep_range[behavior]
         foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
@@ -837,14 +837,14 @@ class Walker3DStepperEnv(EnvBase):
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, foot_seps), axis=1)
 
-    def generate_to_standstill_step_placements(self, curriculum):
+    def generate_to_standstill_step_placements(self, curriculum, force_wide=False):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         behavior = 'to_standstill'
         ratio = curriculum / self.max_curriculum
 
         # {self.max_curriculum + 1} levels in total
-        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD * 0
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
@@ -898,12 +898,15 @@ class Walker3DStepperEnv(EnvBase):
 
         foot_sep_range = self.foot_sep_range[behavior]
         possible_foot_seps = self.np_random.choice(np.linspace(*foot_sep_range, num=7, endpoint=True), size=4)
-        foot_seps = self.foot_sep + np.concatenate((
-            np.full(5, possible_foot_seps[0]),
-            np.full(5, possible_foot_seps[1]),
-            np.full(5, possible_foot_seps[2]),
-            np.full(5, possible_foot_seps[3])
-        ))
+        # foot_seps = self.foot_sep + np.concatenate((
+        #     np.full(5, possible_foot_seps[0]),
+        #     np.full(5, possible_foot_seps[1]),
+        #     np.full(5, possible_foot_seps[2]),
+        #     np.full(5, possible_foot_seps[3])
+        # ))
+        foot_seps = self.foot_sep * np.ones(N)
+        if force_wide:
+            foot_seps += foot_sep_range[1]
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)])
@@ -924,7 +927,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # switched dy and dx before, so need to rectify
         heading_targets += 90 * DEG2RAD
-        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
+        # heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
 
         dphi *= 0
 
@@ -1527,7 +1530,13 @@ class Walker3DStepperEnv(EnvBase):
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
-        selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 5)
+        selected_step_placement_fcns = [
+            (self.generate_to_standstill_step_placements, "to_standstill"),
+            (self.generate_to_standstill_step_placements, "to_standstill"),
+            (self.generate_one_step_plant_step_placements, "timing_gaits"),
+            (self.generate_one_step_plant_step_placements, "timing_gaits"),
+            (self.generate_to_standstill_step_placements, "to_standstill"),
+        ] # self.np_random.choice(step_placement_fcns, 5)
 
         step_placements = None
 
@@ -1543,7 +1552,10 @@ class Walker3DStepperEnv(EnvBase):
                     force_dir = 2 if i == 0 else 1-step_placements[transition_indices[i-1] - 1,7]
                     step_placements_part = selected_step_placement_fcn(selected_step_curriculum, force_dir=force_dir)
                 else:
-                    step_placements_part = selected_step_placement_fcn(selected_step_curriculum)
+                    if i == 1:
+                        step_placements_part = selected_step_placement_fcn(selected_step_curriculum, force_wide=True)
+                    else:
+                        step_placements_part = selected_step_placement_fcn(selected_step_curriculum)
                 if behavior_str in self.generated_paths_cache:
                     self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] = np.copy(step_placements_part)
 
