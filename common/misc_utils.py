@@ -25,6 +25,7 @@ class EpisodeRunner(object):
         self.csv = csv
         self.ax = ax
         self.video_filename = video_filename
+        self.could_not_save_frame = False
 
         self.max_steps = max_steps or float("inf")
         self.done = False
@@ -107,7 +108,9 @@ class EpisodeRunner(object):
             try:
                 image = self.env.camera.dump_rgb_array()
                 self.rgb_buffer.append(image)
+                could_not_save_frame = False
             except:
+                could_not_save_frame = True
                 return
 
     def save_csv_render_data(self):

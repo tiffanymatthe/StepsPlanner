@@ -15,18 +15,11 @@ DIMENSIONS2=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,he
 
 # Get the duration of the shorter video
 shorter_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$VIDEO2")
-shorter_duration=${shorter_duration%.*} # remove fractional seconds
-
-# Get the duration of the longer video
 longer_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$VIDEO1")
-longer_duration=${longer_duration%.*} # remove fractional seconds
-
-start_time=$((longer_duration - shorter_duration))
-start_time_formatted=$(printf '%02d:%02d:%02d' $((start_time/3600)) $((start_time%3600/60)) $((start_time%60)))
-
-ffmpeg -y -ss "$start_time_formatted" -i "$VIDEO1" -t "$shorter_duration" -c copy "$TRIMMED_VIDEO1"
-
-VIDEO1="$TRIMMED_VIDEO1"
+if [[ "$shorter_duration" != "$longer_duration" ]]; then
+    echo "DURATIONS ARE NOT EQUAL"
+    exit 1
+fi
 
 WIDTH1=$(echo $DIMENSIONS1 | cut -d'x' -f1)
 HEIGHT1=$(echo $DIMENSIONS1 | cut -d'x' -f2)

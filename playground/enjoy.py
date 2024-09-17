@@ -90,6 +90,9 @@ def main():
     if args.plot:
         fig1, ax1 = plt.subplots(figsize=(12,4))
 
+        # ax1.set_xlim(0, 800)
+        # ax1.set_ylim(0,2.2)
+
         # ax1.set_xlim(0, 60)
         # ax1.set_ylim(-0.2, 1.2)
         
@@ -120,7 +123,6 @@ def main():
 
     if args.save and args.plot:
         import matplotlib.animation as animation
-        import datetime
         writer = animation.FFMpegWriter(fps=1/env.control_step, bitrate=1800)
         filename = os.path.join(parent_dir, "videos", f"{args.behavior_curriculum}_{args.curriculum}_plot.mp4")
         writer.setup(fig1, filename, dpi=100)
@@ -162,13 +164,16 @@ def main():
                 ax1.clear()
                 ax1.set_xlim(0, 800)
                 ax1.set_ylim(0,2.2)
+                # MUST DO AFTER CLEARING!!!
+                actual_points_left = ax1.plot([0,1], [0,1], '-', color="slateblue", linewidth=4, animated=True)[0]
+                actual_points_right = ax1.plot([0,1], [0,1], '-', color="turquoise", linewidth=4, animated=True)[0]
             else:
                 time_offsets = [0]
                 times_left = []
                 all_sets_left = []
                 times_right = []
                 all_sets_right = []
-                for current_step in range(1,20):
+                for current_step in range(1,env.num_steps):
                     time_left = list(np.array(range(int(env.terrain_info[current_step, 8] + env.terrain_info[current_step, 9]) + env.step_delay)) + time_offsets[current_step - 1])
                     sets_left = [1 for _ in range(int(env.terrain_info[current_step, 8]))] + [0 for _ in range(int(env.terrain_info[current_step, 9]))] + [1 for _ in range(env.step_delay)]
                     time_right = list(np.array(range(int(env.terrain_info[current_step, 10] + env.terrain_info[current_step, 11]) + env.step_delay)) + time_offsets[current_step - 1])
@@ -199,11 +204,11 @@ def main():
                 target_indices.append(env.next_step_index)
 
             cpu_actions = action.squeeze().cpu().numpy()
-            if args.save and args.plot:
-                writer.grab_frame()
 
             obs, reward, done, _ = env.step(cpu_actions)
             env.camera.lookat(env.robot.body_xyz)
+            if args.save and args.plot and not runner.could_not_save_frame:
+                writer.grab_frame() # hides animator from visuals, but save in ffmpeg so ok
             if not reset_once:
                 reset_once = True
                 env.reset()
@@ -310,7 +315,7 @@ def main():
                         all_sets_left = []
                         times_right = []
                         all_sets_right = []
-                        for current_step in range(1,20):
+                        for current_step in range(1,env.num_steps):
                             time_left = list(np.array(range(int(env.terrain_info[current_step, 8] + env.terrain_info[current_step, 9]) + env.step_delay)) + time_offsets[current_step - 1])
                             sets_left = [1 for _ in range(int(env.terrain_info[current_step, 8]))] + [0 for _ in range(int(env.terrain_info[current_step, 9]))] + [1 for _ in range(env.step_delay)]
                             time_right = list(np.array(range(int(env.terrain_info[current_step, 10] + env.terrain_info[current_step, 11]) + env.step_delay)) + time_offsets[current_step - 1])
@@ -325,6 +330,9 @@ def main():
                         ax1.clear()
                         ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color='steelblue', step='post')
                         ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color='paleturquoise', step='post')
+                    # REQUIRED AFTER CLEARING
+                    actual_points_left = ax1.plot([0,1], [0,1], '-', color="slateblue", linewidth=4, animated=True)[0]
+                    actual_points_right = ax1.plot([0,1], [0,1], '-', color="turquoise", linewidth=4, animated=True)[0]
                     actual_x_left, actual_y_left, actual_x_right, actual_y_right = [], [], [], []
                     fig1.canvas.draw()
                     background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
