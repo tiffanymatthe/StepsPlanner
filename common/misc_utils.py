@@ -17,12 +17,13 @@ class StringEnum(tuple):
 
 class EpisodeRunner(object):
     def __init__(
-        self, env, save=False, use_ffmpeg=False, dir=None, max_steps=None, csv=None
+        self, env, save=False, use_ffmpeg=False, dir=None, max_steps=None, csv=None, ax=None
     ):
         self.env = env
         self.save = save
         self.use_ffmpeg = use_ffmpeg
         self.csv = csv
+        self.ax = ax
 
         self.max_steps = max_steps or float("inf")
         self.done = False
@@ -98,9 +99,28 @@ class EpisodeRunner(object):
         self.env.step = types.MethodType(new_step, self.env)
 
     def store_current_frame(self):
-        if self.save:
-            image = self.env.camera.dump_rgb_array()
-            self.rgb_buffer.append(image)
+        return
+        # if self.save:
+        #     try:
+        #         image = self.env.camera.dump_rgb_array()
+        #     except:
+        #         return
+        #     if self.ax is not None:
+        #         fig = self.ax.figure
+        #         fig.canvas.draw()
+        #         # Now we can save it to a numpy array.
+        #         rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        #         rgb_array = rgb_array.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+        #         h1, w1, _ = rgb_array.shape
+        #         h2, w2, _ = image.shape
+        #         assert w2 >= w1
+        #         trim_w = (w2 - w1) // 2
+        #         trimmed_image = image[:, trim_w:w2-trim_w, :]
+        #         trimmed_image = trimmed_image[:, :w1, :]
+        #         self.rgb_buffer.append(np.vstack((rgb_array, trimmed_image)))
+        #     else:
+        #         self.rgb_buffer.append(image)
 
     def save_csv_render_data(self):
         if self.csv is not None:
@@ -121,7 +141,7 @@ class EpisodeRunner(object):
         return self
 
     def __exit__(self, *args):
-        if self.save and len(self.rgb_buffer) >= self.max_steps:
+        if self.save and not self.use_ffmpeg and len(self.rgb_buffer) >= self.max_steps:
             import moviepy.editor as mp
 
             if not os.path.exists(self.dump_dir):

@@ -92,7 +92,7 @@ def main():
 
         # ax1.set_xlim(0, 60)
         # ax1.set_ylim(-0.2, 1.2)
-
+        
         plt.show(block=False)
         plt.draw()
         background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
@@ -113,7 +113,19 @@ def main():
         "use_ffmpeg": use_ffmpeg,
         "max_steps": args.len,
         "csv": args.csv,
+        "ax": ax1 if args.plot else None,
+        "dir": parent_dir,
     }
+
+    if args.save and args.plot:
+        import matplotlib.animation as animation
+        import datetime
+        writer = animation.FFMpegWriter(fps=60, bitrate=1800)
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        filename = os.path.join(parent_dir, f"{now_str}_plot.mp4")
+        filename_rgb = os.path.join(parent_dir, f"{now_str}_rgb.mp4")
+        writer.setup(fig1, filename, dpi=100)
+        rgb_buffer = []
 
     with EpisodeRunner(env, **runner_options) as runner:
 
@@ -187,6 +199,14 @@ def main():
                 target_indices.append(env.next_step_index)
 
             cpu_actions = action.squeeze().cpu().numpy()
+            if args.save and args.plot:
+                try:
+                    image = env.camera.dump_rgb_array()
+                    rgb_buffer.append(image)
+                    writer.grab_frame()
+                except:
+                    print("TERMINATED")
+
             obs, reward, done, _ = env.step(cpu_actions)
             env.camera.lookat(env.robot.body_xyz)
             ep_reward += reward
@@ -311,6 +331,12 @@ def main():
                     background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
                 ep_reward = 0
 
+        if args.save and args.plot:
+            writer.finish()
+            import moviepy.editor as mp
+            print(env.control_step)
+            clip = mp.ImageSequenceClip(rgb_buffer, fps=1 / env.control_step)
+            clip.write_videofile(filename_rgb)
 
 if __name__ == "__main__":
     main()

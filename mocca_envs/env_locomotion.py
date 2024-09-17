@@ -1691,13 +1691,6 @@ class Walker3DStepperEnv(EnvBase):
             )
             self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(Colors["lightgrey"])
             self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(Colors["dodgerblue"])
-            self.arrow.set_position(
-                pos=[
-                    self.terrain_info[self.next_step_index, 0],
-                    self.terrain_info[self.next_step_index, 1],
-                    self.terrain_info[self.next_step_index, 2] + 0.4
-                ], heading=self.terrain_info[self.next_step_index, 6]
-            )
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
@@ -1737,7 +1730,6 @@ class Walker3DStepperEnv(EnvBase):
         # Need this to create target in render mode, called by EnvBase
         # Sphere is a visual shape, does not interact physically
         self.target = VSphere(self._p, radius=0.15, pos=None)
-        self.arrow = VArrow(self._p)
 
     def calc_potential(self):
         walk_target_delta = self.walk_target - self.robot.body_xyz
