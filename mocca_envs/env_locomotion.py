@@ -378,6 +378,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.past_last_step = False
         self.reached_last_step = False
+        self.finished_all = False
 
         self.determine = kwargs.pop("determine", False)
 
@@ -1566,7 +1567,7 @@ class Walker3DStepperEnv(EnvBase):
             next = min(self.next_step_index, len(self.terrain_info) - 1)
             self.set_step_state(next, oldest)
 
-    def reset(self):
+    def reset(self, force=False):
         if self.state_id >= 0:
             self._p.restoreState(self.state_id)
 
@@ -1587,6 +1588,7 @@ class Walker3DStepperEnv(EnvBase):
         self.met_times = []
         self.dist_errors = []
         self.past_last_step = False
+        self.finished_all = False
 
         self.reached_last_step = False
 
@@ -1612,7 +1614,7 @@ class Walker3DStepperEnv(EnvBase):
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
 
         # Randomize platforms
-        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored
+        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or force
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
@@ -1830,7 +1832,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count or self.finished_all
 
     def calc_timing_reward(self):
         self.left_actual_contact = self._foot_target_contacts[1,0]
@@ -2020,6 +2022,7 @@ class Walker3DStepperEnv(EnvBase):
                 self.stop_on_next_step = self.set_stop_on_next_step
 
                 self.reached_last_step = self.reached_last_step or self.next_step_index >= len(self.terrain_info) - 1
+                self.finished_all = self.finished_all or self.next_step_index >= len(self.terrain_info)
 
             # Prevent out of bound
             if self.next_step_index >= len(self.terrain_info):

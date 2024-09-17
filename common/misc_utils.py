@@ -17,7 +17,7 @@ class StringEnum(tuple):
 
 class EpisodeRunner(object):
     def __init__(
-        self, env, save=False, use_ffmpeg=False, dir=None, max_steps=None, csv=None, ax=None, video_filename=None
+        self, env, save=False, use_ffmpeg=False, dir=None, max_steps=None, csv=None, ax=None, video_filename=None, plot_writer=None
     ):
         self.env = env
         self.save = save
@@ -25,7 +25,9 @@ class EpisodeRunner(object):
         self.csv = csv
         self.ax = ax
         self.video_filename = video_filename
-        self.could_not_save_frame = False
+        self.plot_writer = plot_writer
+
+        self.save_count = 0
 
         self.max_steps = max_steps or float("inf")
         self.done = False
@@ -108,9 +110,10 @@ class EpisodeRunner(object):
             try:
                 image = self.env.camera.dump_rgb_array()
                 self.rgb_buffer.append(image)
-                could_not_save_frame = False
+                if self.plot_writer is not None:
+                    self.plot_writer.grab_frame()
+                    self.save_count += 1
             except:
-                could_not_save_frame = True
                 return
 
     def save_csv_render_data(self):
@@ -138,7 +141,7 @@ class EpisodeRunner(object):
             if not os.path.exists(self.dump_dir):
                 print(f"Creating directory {self.dump_dir}")
                 os.makedirs(self.dump_dir)
-
+            print(f"Length of rgb buffer is {len(self.rgb_buffer)} and save count {self.save_count}")
             clip = mp.ImageSequenceClip(self.rgb_buffer, fps=1 / self.env.control_step)
             clip.write_videofile(self.filename)
 

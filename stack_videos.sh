@@ -16,10 +16,10 @@ DIMENSIONS2=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,he
 # Get the duration of the shorter video
 shorter_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$VIDEO2")
 longer_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$VIDEO1")
-if [[ "$shorter_duration" != "$longer_duration" ]]; then
-    echo "DURATIONS ARE NOT EQUAL"
-    exit 1
-fi
+# if [[ "$shorter_duration" != "$longer_duration" ]]; then
+#     echo "DURATIONS ARE NOT EQUAL $shorter_duration vs $longer_duration"
+#     exit 1
+# fi
 
 WIDTH1=$(echo $DIMENSIONS1 | cut -d'x' -f1)
 HEIGHT1=$(echo $DIMENSIONS1 | cut -d'x' -f2)
@@ -47,6 +47,7 @@ fi
 echo "finished trimming"
 
 # Stack the videos vertically
-ffmpeg -y -i "$VIDEO1" -i "$VIDEO2" -filter_complex "[0:v][1:v]vstack=inputs=2" "$OUTPUT"
+# https://www.ffmpeg.org/ffmpeg-all.html#toc-vstack-1
+ffmpeg -y -i "$VIDEO1" -i "$VIDEO2" -filter_complex "[0:v][1:v]vstack=shortest=1" "$OUTPUT"
 
 echo "Videos stacked and saved as $OUTPUT"

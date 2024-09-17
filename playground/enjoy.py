@@ -85,7 +85,6 @@ def main():
     print("Model: {}".format(os.path.basename(model_path)))
 
     actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
-    actor = actor_critic.actor
 
     if args.plot:
         fig1, ax1 = plt.subplots(figsize=(12,4))
@@ -110,6 +109,13 @@ def main():
 
     # Set global no_grad
     torch.set_grad_enabled(False)
+    
+    writer = None
+    if args.save and args.plot:
+        import matplotlib.animation as animation
+        writer = animation.FFMpegWriter(fps=1/env.control_step, bitrate=1800)
+        filename = os.path.join(parent_dir, "videos", f"{args.behavior_curriculum}_{args.curriculum}_plot.mp4")
+        writer.setup(fig1, filename, dpi=100)
 
     runner_options = {
         "save": args.save,
@@ -118,14 +124,9 @@ def main():
         "csv": args.csv,
         "ax": ax1 if args.plot else None,
         "dir": os.path.join(parent_dir, "videos"),
-        "video_filename": f"{args.behavior_curriculum}_{args.curriculum}_rgb.mp4"
+        "video_filename": f"{args.behavior_curriculum}_{args.curriculum}_rgb.mp4",
+        "plot_writer": writer,
     }
-
-    if args.save and args.plot:
-        import matplotlib.animation as animation
-        writer = animation.FFMpegWriter(fps=1/env.control_step, bitrate=1800)
-        filename = os.path.join(parent_dir, "videos", f"{args.behavior_curriculum}_{args.curriculum}_plot.mp4")
-        writer.setup(fig1, filename, dpi=100)
 
     with EpisodeRunner(env, **runner_options) as runner:
 
@@ -135,7 +136,7 @@ def main():
         behavior_curriculum = args.behavior_curriculum if args.behavior_curriculum is not None else max_behavior_curriculum
         env.set_env_params({"curriculum": int(curriculum), "behavior_curriculum": int(behavior_curriculum)})
 
-        obs = env.reset()
+        obs = env.reset(force=True)
         env.camera._cam_yaw = 90
         ep_reward = 0
 
@@ -190,8 +191,6 @@ def main():
             fig1.canvas.draw()
             background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
 
-        reset_once = False
-
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
             action = controller(obs)
@@ -207,12 +206,7 @@ def main():
 
             obs, reward, done, _ = env.step(cpu_actions)
             env.camera.lookat(env.robot.body_xyz)
-            if args.save and args.plot and not runner.could_not_save_frame:
-                writer.grab_frame() # hides animator from visuals, but save in ffmpeg so ok
-            if not reset_once:
-                reset_once = True
-                env.reset()
-                continue
+
             ep_reward += reward
 
             if args.timing:
