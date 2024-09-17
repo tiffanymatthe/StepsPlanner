@@ -114,18 +114,16 @@ def main():
         "max_steps": args.len,
         "csv": args.csv,
         "ax": ax1 if args.plot else None,
-        "dir": parent_dir,
+        "dir": os.path.join(parent_dir, "videos"),
+        "video_filename": f"{args.behavior_curriculum}_{args.curriculum}_rgb.mp4"
     }
 
     if args.save and args.plot:
         import matplotlib.animation as animation
         import datetime
-        writer = animation.FFMpegWriter(fps=60, bitrate=1800)
-        now_str = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        filename = os.path.join(parent_dir, f"{now_str}_plot.mp4")
-        filename_rgb = os.path.join(parent_dir, f"{now_str}_rgb.mp4")
+        writer = animation.FFMpegWriter(fps=1/env.control_step, bitrate=1800)
+        filename = os.path.join(parent_dir, "videos", f"{args.behavior_curriculum}_{args.curriculum}_plot.mp4")
         writer.setup(fig1, filename, dpi=100)
-        rgb_buffer = []
 
     with EpisodeRunner(env, **runner_options) as runner:
 
@@ -187,6 +185,8 @@ def main():
             fig1.canvas.draw()
             background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
 
+        reset_once = False
+
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
             action = controller(obs)
@@ -200,15 +200,14 @@ def main():
 
             cpu_actions = action.squeeze().cpu().numpy()
             if args.save and args.plot:
-                try:
-                    image = env.camera.dump_rgb_array()
-                    rgb_buffer.append(image)
-                    writer.grab_frame()
-                except:
-                    print("TERMINATED")
+                writer.grab_frame()
 
             obs, reward, done, _ = env.step(cpu_actions)
             env.camera.lookat(env.robot.body_xyz)
+            if not reset_once:
+                reset_once = True
+                env.reset()
+                continue
             ep_reward += reward
 
             if args.timing:
@@ -333,10 +332,6 @@ def main():
 
         if args.save and args.plot:
             writer.finish()
-            import moviepy.editor as mp
-            print(env.control_step)
-            clip = mp.ImageSequenceClip(rgb_buffer, fps=1 / env.control_step)
-            clip.write_videofile(filename_rgb)
 
 if __name__ == "__main__":
     main()

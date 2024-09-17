@@ -9,6 +9,8 @@ dump/
 wandb/*
 *.out
 
+videos/*.mp4
+
 # editors
 .vscode/
 .idea/
