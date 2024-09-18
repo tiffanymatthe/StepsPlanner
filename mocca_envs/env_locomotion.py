@@ -367,7 +367,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.mask_info = {
             "xy": [False, 0.5, False],
-            "heading": [True, 0.5, False],
+            "heading": [False, 0.5, False],
             "timing": [True, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
@@ -1608,7 +1608,7 @@ class Walker3DStepperEnv(EnvBase):
         self.prev_leg = self.swing_leg
 
         if self.mask_info["timing"][0]:
-            threshold = self.mask_info["timing"][1] if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
+            threshold = self.mask_info["timing"][1] # if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
             self.mask_info["timing"][2] = self.np_random.rand() < threshold
         if self.mask_info["heading"][0]:
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
