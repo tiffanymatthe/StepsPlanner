@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all", "combine_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "transition_all", "combine_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -414,10 +414,10 @@ class Walker3DStepperEnv(EnvBase):
         self.dist_range = {
             "to_standstill": np.array([0.65, 0]),
             "random_walks": np.array([0.55, 0.75]),
-            "random_walks_backward": np.array([-0.45, -0.65]),
+            "random_walks_backward": np.array([-0.3, -0.43]),
             "turn_in_place": np.array([0.7, 0.1]),
             "side_step": np.array([0.2, 0.7]),
-            "backward": np.array([0.0, -0.65]),
+            "backward": np.array([0.0, -0.43]),
             "heading_var": np.array([0.65, 0.65]),
             "timing_gaits": np.array([0.65, 0.65]),
         }
@@ -1739,16 +1739,17 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 2 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
+        multiplier = 2 # if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
 
         if self.mask_info["heading"][2]:
             multiplier = 0
 
-        if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
-            # add a foot distance potential if there is no timing signal
-            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
-        else:
-            foot_delta = 0
+        # if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
+        #     # add a foot distance potential if there is no timing signal
+        #     foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
+        # else:
+        #     foot_delta = 0
+        foot_delta = 0
 
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier + foot_delta) / self.scene.dt
         self.distance_to_target = body_distance_to_target
@@ -1801,18 +1802,18 @@ class Walker3DStepperEnv(EnvBase):
         self.legs_bonus = 0
         self.heading_bonus = 0
 
-        swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
+        # swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
-            self.legs_bonus += self.tilt_bonus_weight
+        # if self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
+        #     self.legs_bonus += self.tilt_bonus_weight
 
-        if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
-            self.body_stationary_count += 1
-        else:
-            self.body_stationary_count = 0
-        count = 200
-        if self.body_stationary_count > count:
-            self.legs_bonus -= 100
+        # if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
+        #     self.body_stationary_count += 1
+        # else:
+        #     self.body_stationary_count = 0
+        # count = 200
+        # if self.body_stationary_count > count:
+        #     self.legs_bonus -= 100
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
@@ -1832,7 +1833,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count or self.finished_all
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all
 
     def calc_timing_reward(self):
         self.left_actual_contact = self._foot_target_contacts[1,0]
