@@ -1805,14 +1805,14 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if not (self.curriculum == 0 and self.behavior_curriculum == 0) and self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
+        if self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
             self.legs_bonus += self.tilt_bonus_weight
 
-        # if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
-        #     self.body_stationary_count += 1
-        # else:
-        #     self.body_stationary_count = 0
-        # count = 200
+        if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
+            self.body_stationary_count += 1
+        else:
+            self.body_stationary_count = 0
+        count = 200
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
@@ -1834,7 +1834,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
 
     def calc_timing_reward(self):
         self.left_actual_contact = self._foot_target_contacts[1,0]
