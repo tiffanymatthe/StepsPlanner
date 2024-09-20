@@ -1805,7 +1805,7 @@ class Walker3DStepperEnv(EnvBase):
 
         swing_foot_tilt = self.robot.feet_rpy[self.swing_leg, 1]
 
-        if self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
+        if not (self.curriculum == 0 and self.behavior_curriculum == 0) and self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
             self.legs_bonus += self.tilt_bonus_weight
 
         # if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
