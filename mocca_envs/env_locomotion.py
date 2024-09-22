@@ -629,7 +629,7 @@ class Walker3DStepperEnv(EnvBase):
 
         behavior = "timing_gaits"
 
-        yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
@@ -637,7 +637,7 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
         
-        self.dr_spacing = self.dr_curriculum[self.selected_behavior][curriculum]
+        self.dr_spacing = self.dr_curriculum[behavior][curriculum]
         dr = np.zeros(N) + self.dr_spacing
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
