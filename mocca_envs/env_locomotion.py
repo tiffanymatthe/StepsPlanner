@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all", "combine_all", "one_step_plant"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks", "random_walks_backward", "turn_in_place", "side_step", "transition_all", "combine_all", "one_step_plant", "hopping"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -622,14 +622,12 @@ class Walker3DStepperEnv(EnvBase):
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, foot_seps), axis=1)
 
-    def generate_timing_gaits_step_placements(self, curriculum):
+    def generate_timing_gaits_step_placements(self, curriculum, method="walking"):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
 
         behavior = "timing_gaits"
-
-        method = "walking"
 
         yaw_range = self.yaw_range[self.selected_behavior] * ratio * DEG2RAD
         pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
@@ -1618,6 +1616,8 @@ class Walker3DStepperEnv(EnvBase):
             path = self.generate_timing_gaits_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "one_step_plant":
             path = self.generate_one_step_plant_step_placements(self.selected_curriculum)
+        elif self.selected_behavior == "hopping":
+            path = self.generate_timing_gaits_step_placements(self.selected_curriculum, method="hopping")
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
         
