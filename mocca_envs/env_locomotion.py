@@ -1668,7 +1668,7 @@ class Walker3DStepperEnv(EnvBase):
     def randomize_terrain(self, replace=True):
         if replace:
             self.terrain_info = self.generate_step_placements()
-        if self.selected_behavior == "one_step_plant":
+        if self.selected_behavior in {"one_step_plant", "hopping"}:
             self.mask_info["timing"][2] = False
             self.mask_info["heading"][2] = False
         if self.is_rendered or self.use_egl:
