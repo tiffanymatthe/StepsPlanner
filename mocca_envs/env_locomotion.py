@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var", "timing_gaits", "hopping"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var", "timing_gaits"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -367,7 +367,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.mask_info = {
             "xy": [False, 0.5, False],
-            "heading": [True, 0.5, False],
+            "heading": [False, 0.5, False],
             "timing": [True, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
@@ -1598,7 +1598,11 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 path = self.generate_random_walks_step_placements(min(self.selected_curriculum + 1, self.max_curriculum))
         elif self.selected_behavior == "heading_var":
-            path = self.generate_heading_var_step_placements(self.selected_curriculum)
+            if self.np_random.rand() < 0.5:
+                path = self.generate_heading_var_step_placements(self.selected_curriculum)
+            else:
+                self.selected_behavior == "hopping"
+                path = self.generate_timing_gaits_step_placements(self.selected_curriculum, method="hopping")
         elif self.selected_behavior == "turn_in_place":
             path = self.generate_turn_in_place_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "side_step":
@@ -1616,8 +1620,8 @@ class Walker3DStepperEnv(EnvBase):
             path = self.generate_timing_gaits_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "one_step_plant":
             path = self.generate_one_step_plant_step_placements(self.selected_curriculum)
-        elif self.selected_behavior == "hopping":
-            path = self.generate_timing_gaits_step_placements(self.selected_curriculum, method="hopping")
+        # elif self.selected_behavior == "hopping":
+        #     path = self.generate_timing_gaits_step_placements(self.selected_curriculum, method="hopping")
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
         
@@ -1817,7 +1821,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.done or self.timestep == self.max_timestep - 1:
             behavior_str_index = self.behaviors[self.behavior_curriculum]
             if (
-                behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
+                self.behavior_curriculum == 0 or behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
                 and (
                     self.curriculum == self.selected_curriculum
                     or behavior_str_index == "combine_all"
