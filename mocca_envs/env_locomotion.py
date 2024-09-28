@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     rendered_step_count = 4
     init_step_separation = 0.70
 
-    step_delay = 4
+    step_delay = 5
 
     lookahead = 2
     lookbehind = 1
@@ -368,7 +368,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [True, 0.5, False],
+            "timing": [False, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -432,7 +432,7 @@ class Walker3DStepperEnv(EnvBase):
             "side_step": np.array([-0.04,0.04]),
             "backward": np.array([-0.04,0.12]),
             "heading_var": np.array([-0.04,0.16]),
-            "timing_gaits": np.array([-0.04,0.16]),
+            "timing_gaits": np.array([-0.04,0.04]),
             "one_step_plant": np.array([0,0.3]),
         }
 
@@ -1792,7 +1792,7 @@ class Walker3DStepperEnv(EnvBase):
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
-        reward += 2 * self.step_bonus_other_leg
+        # reward += 2 * self.step_bonus_other_leg
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
 
