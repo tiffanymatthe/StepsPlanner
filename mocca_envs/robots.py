@@ -559,6 +559,123 @@ class Walker3DLongLegs(WalkerBase):
                 pybullet.getQuaternionFromEuler([0, 90 * DEG2RAD, 0])
             )
 
+class Walker3DLongArms(WalkerBase):
+
+    root_link_name = "torso"
+    lower_root_link_name = "waist"
+    foot_names = ["right_foot", "left_foot"]
+
+    power_coef = {
+        "abdomen_z": 60,
+        "abdomen_y": 80,
+        "abdomen_x": 60,
+        "right_hip_x": 80,
+        "right_hip_z": 60,
+        "right_hip_y": 100,
+        "right_knee": 90,
+        "right_ankle": 60,
+        "left_hip_x": 80,
+        "left_hip_z": 60,
+        "left_hip_y": 100,
+        "left_knee": 90,
+        "left_ankle": 60,
+        "right_shoulder_x": 60,
+        "right_shoulder_z": 60,
+        "right_shoulder_y": 50,
+        "right_elbow": 60,
+        "left_shoulder_x": 60,
+        "left_shoulder_z": 60,
+        "left_shoulder_y": 50,
+        "left_elbow": 60,
+    }
+
+    def load_robot_model(self, model_path=None, flags=None, root_link_name=None):
+        if flags is None:
+            flags = (
+                self._p.MJCF_COLORS_FROM_FILE
+                | self._p.URDF_USE_SELF_COLLISION
+                | self._p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS
+            )
+
+        if model_path is None:
+            model_path = os.path.join(current_dir, "data", "robots", "walker3d_long_arms.xml")
+
+        # Need to call this first to parse body
+        super(Walker3DLongArms, self).load_robot_model(model_path, flags, root_link_name)
+
+        # T-pose
+        self.base_joint_angles = np.zeros(self.action_dim)
+        self.base_joint_speeds = np.zeros(self.action_dim)
+        self.base_position = np.array([0, 0, 1.32])
+        self.base_orientation = np.array([0, 0, 0, 1])
+        self.base_velocity = np.array([0, 0, 0])
+        self.base_angular_velocity = np.array([0, 0, 0])
+
+        # Need this to set pose and mirroring
+        # hip_[x,z,y], knee, ankle, shoulder_[x,z,y], elbow
+        self._right_joint_indices = np.array(
+            [3, 4, 5, 6, 7, 13, 14, 15, 16], dtype=np.int64
+        )
+        self._left_joint_indices = np.array(
+            [8, 9, 10, 11, 12, 17, 18, 19, 20], dtype=np.int64
+        )
+        self._negation_joint_indices = np.array([0, 2], dtype=np.int64)  # abdomen_[x,z]
+        self._rl = concatenate((self._right_joint_indices, self._left_joint_indices))
+        self._lr = concatenate((self._left_joint_indices, self._right_joint_indices))
+
+    def set_base_pose(self, pose=None):
+        self.base_joint_angles[:] = 0  # reset
+        self.base_orientation = np.array([0, 0, 0, 1])
+
+        if pose == "running_start":
+            self.base_joint_angles[[5, 6]] = -np.pi / 8  # Right leg
+            self.base_joint_angles[10] = np.pi / 10  # Left leg back
+            self.base_joint_angles[[13, 17]] = np.pi / 3  # Shoulder x
+            self.base_joint_angles[[14]] = -np.pi / 6  # Right shoulder back
+            self.base_joint_angles[[18]] = np.pi / 6  # Left shoulder forward
+            self.base_joint_angles[[16, 20]] = np.pi / 3  # Elbow
+        if pose == "stand":
+            self.base_joint_angles[[5,10]] = -np.pi / 8  # Right leg
+            self.base_joint_angles[[3,8]] = -np.pi / 16
+            self.base_joint_angles[[6,11]] = -np.pi / 4  # Left leg back
+            self.base_joint_angles[[13, 17]] = np.pi / 3  # Shoulder x
+            # self.base_joint_angles[[14]] = -np.pi / 6  # Right shoulder back
+            # self.base_joint_angles[[18]] = np.pi / 6  # Left shoulder forward
+            self.base_joint_angles[[16, 20]] = 0  # Elbow
+        elif pose == "side_step_start":
+            self.base_joint_angles[3] = -np.pi / 3 # hip x right
+            self.base_joint_angles[4] = np.pi / 16
+            self.base_joint_angles[5] = -np.pi / 16
+            self.base_joint_angles[6] = -np.pi / 8  # Right leg bent
+            self.base_joint_angles[8] = -np.pi / 16  # hip x left
+            self.base_joint_angles[9] = 0 # -np.pi / 14
+            self.base_joint_angles[10] = -np.pi / 16
+            self.base_joint_angles[11] = -np.pi / 8 # Left leg bent
+            self.base_joint_angles[[13, 17]] = np.pi / 3  # Shoulder x
+            self.base_joint_angles[[14]] = 0  # Right shoulder back
+            self.base_joint_angles[[18]] = 0  # Left shoulder forward
+            self.base_joint_angles[[16, 20]] = 0  # Elbow
+        elif pose == "sit":
+            self.base_joint_angles[[5, 10]] = -np.pi / 2  # hip
+            self.base_joint_angles[[6, 11]] = -np.pi / 2  # knee
+        elif pose == "squat":
+            angle = -20 * DEG2RAD
+            self.base_joint_angles[[5, 10]] = -np.pi / 2  # hip
+            self.base_joint_angles[[6, 11]] = -np.pi / 2  # knee
+            self.base_joint_angles[[7, 12]] = angle  # ankles
+            self.base_orientation = np.array(
+                pybullet.getQuaternionFromEuler([0, -angle, 0])
+            )
+        elif pose == "crawl":
+            self.base_joint_angles[[13, 17]] = np.pi / 2  # shoulder x
+            self.base_joint_angles[[14, 18]] = np.pi / 2  # shoulder z
+            self.base_joint_angles[[16, 20]] = np.pi / 3  # Elbow
+            self.base_joint_angles[[5, 10]] = -np.pi / 2  # hip
+            self.base_joint_angles[[6, 11]] = -120 * DEG2RAD  # knee
+            self.base_joint_angles[[7, 12]] = -20 * DEG2RAD  # ankles
+            self.base_orientation = np.array(
+                pybullet.getQuaternionFromEuler([0, 90 * DEG2RAD, 0])
+            )
 
 class Child3D(Walker3D):
     def __init__(self, bc):
