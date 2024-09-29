@@ -22,7 +22,7 @@ from mocca_envs.bullet_objects import (
     HeightField,
     MonkeyBar,
 )
-from mocca_envs.robots import Child3D, Laikago, Mike, Monkey3D, Walker2D, Walker3D
+from mocca_envs.robots import Child3D, Laikago, Mike, Monkey3D, Walker2D, Walker3D, Walker3DLongLegs
 
 Colors = {
     "dodgerblue": (0.11764705882352941, 0.5647058823529412, 1.0, 1.0),
@@ -311,7 +311,7 @@ class Walker3DStepperEnv(EnvBase):
     sim_frame_skip = 4
     max_timestep = 1000
 
-    robot_class = Walker3D
+    robot_class = Walker3DLongLegs #Walker3D
     robot_random_start = True
     robot_init_position = [0, 0.3, 1.32]
     robot_init_velocity = None
