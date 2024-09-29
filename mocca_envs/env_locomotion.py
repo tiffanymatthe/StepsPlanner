@@ -1598,7 +1598,7 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 path = self.generate_random_walks_step_placements(min(self.selected_curriculum + 1, self.max_curriculum))
         elif self.selected_behavior == "heading_var":
-            if self.np_random.rand() < 0.5:
+            if self.np_random.rand() < 0.5 and not (self.curriculum == 0 and self.behavior_curriculum == 0):
                 path = self.generate_heading_var_step_placements(self.selected_curriculum)
             else:
                 self.selected_behavior == "hopping"
@@ -2246,7 +2246,8 @@ class Walker3DStepperEnv(EnvBase):
         #     # TODO: bad for mixing everything together
         #     walk_target_full = targets[self.walk_target_index]
         # else:
-        walk_target_full = self.terrain_info[self.next_step_index]
+        walk_target_full = targets[self.walk_target_index]
+        # walk_target_full = self.terrain_info[self.next_step_index]
         # walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
