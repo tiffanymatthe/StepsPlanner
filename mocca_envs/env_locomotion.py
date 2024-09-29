@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     rendered_step_count = 4
     init_step_separation = 0.70
 
-    step_delay = 5
+    step_delay = 4
 
     lookahead = 2
     lookbehind = 1
@@ -1792,7 +1792,7 @@ class Walker3DStepperEnv(EnvBase):
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
-        # reward += 2 * self.step_bonus_other_leg
+        reward += 2 * self.step_bonus_other_leg
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
 
@@ -1884,7 +1884,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress
+        self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -2246,8 +2246,7 @@ class Walker3DStepperEnv(EnvBase):
         #     # TODO: bad for mixing everything together
         #     walk_target_full = targets[self.walk_target_index]
         # else:
-        walk_target_full = targets[self.walk_target_index]
-        # walk_target_full = self.terrain_info[self.next_step_index]
+        walk_target_full = self.terrain_info[self.next_step_index]
         # walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
