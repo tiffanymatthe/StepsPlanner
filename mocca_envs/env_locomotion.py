@@ -1944,7 +1944,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
-        check_other_foot_on_ground = not self.mask_info["timing"][2] and np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
+        check_other_foot_on_ground = self.current_step_time <= self.terrain_info[self.next_step_index, 10] # not self.mask_info["timing"][2] and np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
@@ -2070,7 +2070,7 @@ class Walker3DStepperEnv(EnvBase):
         self.heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
         if self.next_step_index > 1:
             prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
-            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[prev_index, 6])
+            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[self.next_step_index-1 6])
         else:
             self.prev_heading_rad_to_target = 0
 
@@ -2105,7 +2105,7 @@ class Walker3DStepperEnv(EnvBase):
                 )
             )
             foot_in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
+            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius # and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
             other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius + 0.1
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
         # else:
@@ -2176,7 +2176,7 @@ class Walker3DStepperEnv(EnvBase):
             and self.target_reached_count == 1
             and self.next_step_index != len(self.terrain_info) - 1  # exclude last step
         ):
-            dist = self.foot_dist_to_target[self.swing_leg]
+            dist = nanmin(self.foot_dist_to_target) # self.foot_dist_to_target[self.swing_leg]
             self.dist_errors.append(dist)
             self.step_bonus = 50 * 2.718 ** (
                 -(dist ** self.step_bonus_smoothness) / 0.25
