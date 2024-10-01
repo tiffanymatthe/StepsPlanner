@@ -1671,7 +1671,7 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info = self.generate_step_placements()
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             self.mask_info["timing"][2] = False
-            self.mask_info["heading"][2] = False
+            # self.mask_info["heading"][2] = False
         if self.is_rendered or self.use_egl:
             for index in range(self.rendered_step_count):
                 self.set_step_state(index, index)
