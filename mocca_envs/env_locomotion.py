@@ -1944,7 +1944,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
-        check_other_foot_on_ground = not self.mask_info["timing"][2] and np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
+        check_other_foot_on_ground = not self.mask_info["timing"][2] and np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1 and self.current_step_time <= (self.terrain_info[self.next_step_index, 10] + self.terrain_info[self.next_step_index, 11])
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
