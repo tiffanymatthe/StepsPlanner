@@ -311,7 +311,7 @@ class Walker3DStepperEnv(EnvBase):
     sim_frame_skip = 4
     max_timestep = 1000
 
-    robot_class = Walker3DLongArms # Walker3DFatLegs #Walker3D
+    robot_class = Walker3D #LongArms # Walker3DFatLegs #Walker3D
     robot_random_start = True
     robot_init_position = [0, 0.3, 1.32]
     robot_init_velocity = None
@@ -1860,7 +1860,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 2 # if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
+        multiplier = 2 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
 
         if self.mask_info["heading"][2]:
             multiplier = 0
