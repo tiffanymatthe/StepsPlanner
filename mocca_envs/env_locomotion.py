@@ -1813,8 +1813,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.body_stationary_count = 0
         count = 200
-        # if self.body_stationary_count > count:
-        #     self.legs_bonus -= 100
+        if self.body_stationary_count > count:
+            self.legs_bonus -= 100
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
