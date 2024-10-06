@@ -1933,9 +1933,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
         if self.next_step_index > 1:
-            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[self.next_step_index-1, 6])
-            # prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
-            # self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[prev_index, 6])
+            # self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[self.next_step_index-1, 6])
+            prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
+            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[prev_index, 6])
         else:
             self.prev_heading_rad_to_target = 0
 
