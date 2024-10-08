@@ -1823,7 +1823,8 @@ class Walker3DStepperEnv(EnvBase):
         if self.done or self.timestep == self.max_timestep - 1:
             behavior_str_index = self.behaviors[self.behavior_curriculum]
             if (
-                behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
+                # behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
+                self.behavior_curriculum == 0 or behavior_str_index == self.selected_behavior or behavior_str_index == "combine_all"
                 and (
                     self.curriculum == self.selected_curriculum
                     or behavior_str_index == "combine_all"
@@ -1887,7 +1888,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2
+        self.progress = linear_progress
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -2249,8 +2250,8 @@ class Walker3DStepperEnv(EnvBase):
         #     # TODO: bad for mixing everything together
         #     walk_target_full = targets[self.walk_target_index]
         # else:
-        walk_target_full = self.terrain_info[self.next_step_index]
-        # walk_target_full = targets[self.walk_target_index]
+        # walk_target_full = self.terrain_info[self.next_step_index]
+        walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
         if int(walk_target_full[7]) == 1:
