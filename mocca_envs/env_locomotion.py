@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "transition_all", "one_step_plant", "combine_all"] #, "hopping"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "transition_all", "one_step_plant", "combine_all", "hopping"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.behavior_timing_thresholds = [1.85, 1.85, 1.85, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
@@ -1671,7 +1671,7 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info = self.generate_step_placements()
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             self.mask_info["timing"][2] = False
-            # self.mask_info["heading"][2] = False
+            self.mask_info["heading"][2] = False
         if self.is_rendered or self.use_egl:
             for index in range(self.rendered_step_count):
                 self.set_step_state(index, index)
