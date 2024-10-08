@@ -18,13 +18,14 @@ def train(
 ) -> None:
     
     # dummy_env = make_env(env_name, **env_kwargs)
-    student_actor = torch.load("daggered.pt", map_location=torch.device(device)) #  SoftsignActor(dummy_env).to(device)
+    # student_actor = student_policy.actor
+    # student_actor = torch.load("daggered.pt", map_location=torch.device(device)) #  SoftsignActor(dummy_env).to(device)
 
     envs = make_vec_envs(
         env_name, seed, num_processes, None, **env_kwargs
     )
 
-    optimizer = torch.optim.Adam(student_actor.parameters(), lr=3e-4)
+    optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
 
     obs_shape = envs.observation_space.shape
     obs_shape = (obs_shape[0], *obs_shape[1:])
@@ -46,7 +47,7 @@ def train(
                     buffer_observations[buffer_index], deterministic=True
                 )
                 if epoch > 0:
-                    student_action = student_actor(buffer_observations[buffer_index])
+                    student_action = student_policy.actor(buffer_observations[buffer_index]) #, deterministic=True) # deterministic
 
                 if epoch == 0:
                     cpu_actions = expert_action.cpu().numpy()
@@ -67,7 +68,7 @@ def train(
 
         observations_shaped = buffer_observations.view(-1, obs_dim)
         expert_actions_shaped = buffer_expert_actions.view(-1, act_dim)
-        expert_values_shaped = buffer_expert_values.view(-1, act_dim)
+        expert_values_shaped = buffer_expert_values.view(-1, 1)
 
         ep_action_loss = torch.tensor(0.0, device=device).float()
         ep_value_loss = torch.tensor(0.0, device=device).float()
@@ -79,7 +80,7 @@ def train(
             actions_batch = expert_actions_shaped[indices]
             values_batch = expert_values_shaped[indices]
 
-            pred_actions = student_actor(observations_batch)
+            pred_actions = student_policy.actor(observations_batch)
             pred_values = student_policy.get_value(observations_batch)
 
             action_loss = F.mse_loss(pred_actions, actions_batch)
@@ -105,7 +106,7 @@ def train(
                 f"Value Loss: {ep_value_loss.item():8.4f} | "
             )
         )
-    student_file_name = "daggered_turning.pt"
-    torch.save(student_actor, student_file_name)
-    print(f"Saved student actor to {student_file_name}")
+    student_file_name = "daggered_hopping.pt"
+    torch.save(student_policy, student_file_name)
+    print(f"Saved student policy to {student_file_name}")
     envs.close()

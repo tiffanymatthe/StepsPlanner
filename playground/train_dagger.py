@@ -1,3 +1,7 @@
+'''
+python3 -m playground.train_dagger --env Walker3DStepperEnv-v0 --net runs/dream/sep_30/timing_50_simplifed_cont_c9/models/Walker3DStepperEnv-v0_curr_10_9.pt --student_net runs/dream/sep_4/timing_w_hopping_cont_gpu/models/Walker3DStepperEnv-v0_curr_1_4.pt
+'''
+
 import argparse
 import os
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -18,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", type=str, required=True)
     parser.add_argument("--net", type=str, required=True)
+    parser.add_argument("--student_net", type=str, required=True)
     parser.add_argument("--seed", type=int, default=1093)
     parser.add_argument("--num_epochs", type=int, default=20)
     parser.add_argument("--num_processes", type=int, default=10)
@@ -31,6 +36,7 @@ def main():
         "timing_bonus_weight": 1.5,
         "start_curriculum": 0,
         "start_behavior_curriculum": 11,
+        "determine": True,
     }
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -38,9 +44,11 @@ def main():
     torch.set_num_threads(1)
     
     actor_critic = torch.load(args.net, map_location=torch.device(device))
+    actor_critic_student = torch.load(args.student_net, map_location=torch.device(device))
 
     train(
         actor_critic,
+        actor_critic_student,
         args.env,
         env_kwargs,
         device=device,
