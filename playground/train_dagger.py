@@ -22,7 +22,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", type=str, required=True)
     parser.add_argument("--net", type=str, required=True)
-    parser.add_argument("--student_net", type=str, required=True)
+    parser.add_argument("--student_net", type=str, required=False)
     parser.add_argument("--seed", type=int, default=1093)
     parser.add_argument("--num_epochs", type=int, default=20)
     parser.add_argument("--num_processes", type=int, default=10)
@@ -42,9 +42,13 @@ def main():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     torch.set_num_threads(1)
-    
+
+
     actor_critic = torch.load(args.net, map_location=torch.device(device))
-    actor_critic_student = torch.load(args.student_net, map_location=torch.device(device))
+    if args.student_net is not None:
+        actor_critic_student = torch.load(args.student_net, map_location=torch.device(device))
+    else:
+        actor_critic_student = None
 
     train(
         actor_critic,

@@ -1,4 +1,4 @@
-from common.controller import SoftsignActor
+from common.controller import SoftsignActor, Policy
 import torch
 from common.envs_utils import make_env, make_vec_envs
 import torch.nn.functional as F
@@ -20,6 +20,13 @@ def train(
     # dummy_env = make_env(env_name, **env_kwargs)
     # student_actor = student_policy.actor
     # student_actor = torch.load("daggered.pt", map_location=torch.device(device)) #  SoftsignActor(dummy_env).to(device)
+
+    if student_policy is None:
+        dummy_env = make_env(env_name, **env_kwargs)
+        controller = SoftsignActor(dummy_env).to(device)
+        student_policy = Policy(controller)
+
+    dummy_env = make_env(env_name, **env_kwargs)
 
     envs = make_vec_envs(
         env_name, seed, num_processes, None, **env_kwargs
@@ -47,6 +54,7 @@ def train(
                     buffer_observations[buffer_index], deterministic=True
                 )
                 if epoch > 0:
+                    # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
                     student_action = student_policy.actor(buffer_observations[buffer_index]) #, deterministic=True) # deterministic
 
                 if epoch == 0:
@@ -106,7 +114,7 @@ def train(
                 f"Value Loss: {ep_value_loss.item():8.4f} | "
             )
         )
-    student_file_name = "daggered_hopping.pt"
+    student_file_name = "daggered_hopping_e10.pt"
     torch.save(student_policy, student_file_name)
     print(f"Saved student policy to {student_file_name}")
     envs.close()
