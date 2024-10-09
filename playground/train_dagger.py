@@ -39,6 +39,16 @@ def main():
         "determine": True,
     }
 
+    env_kwargs_normal = {
+        "plank_class": "VeryLargePlank",
+        "heading_bonus_weight": 8,
+        "gauss_width": 12,
+        "timing_bonus_weight": 1.5,
+        "start_curriculum": 9,
+        "start_behavior_curriculum": 10,
+        "determine": True,
+    }
+
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     torch.set_num_threads(1)
@@ -54,7 +64,7 @@ def main():
         actor_critic,
         actor_critic_student,
         args.env,
-        env_kwargs,
+        [env_kwargs, env_kwargs_normal],
         device=device,
         seed=args.seed,
         num_epochs=args.num_epochs,
