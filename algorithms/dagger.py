@@ -25,9 +25,14 @@ def train(
 
     dummy_env = make_env(env_name, **env_per_task_kwargs[0])
 
-    if student_policy is None:
-        controller = SoftsignActor(dummy_env).to(device)
-        student_policy = Policy(controller)
+    # assume first task is hopping, second task is everything else
+    import copy
+    expert_policy_for_previous_task = copy.deepcopy(student_policy)
+    expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
+
+    # if student_policy is None:
+    controller = SoftsignActor(dummy_env).to(device)
+    student_policy = Policy(controller)
 
     envs_per_task = [
         make_vec_envs(
@@ -47,12 +52,7 @@ def train(
     buffer_expert_actions_per_task = [torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(num_tasks)]
     buffer_expert_values_per_task = [torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(num_tasks)]
 
-    # assume first task is hopping, second task is everything else
-    import copy
-    expert_policy_for_previous_task = copy.deepcopy(student_policy)
-    expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
-
-    epoch_threshold = -1
+    epoch_threshold = 0
 
     start = time.time()
     for epoch in range(num_epochs):
@@ -132,7 +132,7 @@ def train(
                 f"Value Loss: {ep_value_loss.item():8.4f} | "
             )
         )
-    student_file_name = "daggered_hopping_2_tasks_no_BC.pt"
+    student_file_name = "daggered_hopping_2_tasks_BC_random_initialization.pt"
     torch.save(student_policy, student_file_name)
     print(f"Saved student policy to {student_file_name}")
     for i in range(num_tasks):
