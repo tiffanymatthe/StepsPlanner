@@ -355,6 +355,7 @@ def main(_seed, _config, _run):
                 {
                     "iter": iteration,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
+                    "morphology_curriculum": morphology_current_curriculum if args.use_curriculum else 0,
                     "behavior_curriculum": current_behavior_curriculum if args.use_curriculum else 0,
                     "curriculum_metric": nanmean(mean_metric),
                     "avg_heading_err": nanmean(heading_metric),
