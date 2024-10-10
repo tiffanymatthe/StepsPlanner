@@ -13,6 +13,7 @@ from numpy import concatenate
 import pybullet
 
 from mocca_envs.bullet_utils import BodyPart, Joint
+from mocca_envs.mujoco_utils import modify_mujoco_sizes
 
 DEG2RAD = np.pi / 180
 
@@ -153,8 +154,8 @@ class WalkerBase:
 
         return state
 
-    def initialize(self):
-        self.load_robot_model()
+    def initialize(self, load_robot_kwargs={}):
+        self.load_robot_model(**load_robot_kwargs)
         self.make_robot_utils()
 
     def load_robot_model(self, model_path, flags, root_link_name=None):
@@ -353,7 +354,7 @@ class Walker3D(WalkerBase):
         "left_elbow": 60,
     }
 
-    def load_robot_model(self, model_path=None, flags=None, root_link_name=None):
+    def load_robot_model(self, model_path=None, flags=None, root_link_name=None, scale_factors={}):
         if flags is None:
             flags = (
                 self._p.MJCF_COLORS_FROM_FILE
@@ -363,6 +364,9 @@ class Walker3D(WalkerBase):
 
         if model_path is None:
             model_path = os.path.join(current_dir, "data", "robots", "walker3d.xml")
+
+        if len(scale_factors) > 0:
+            model_path = modify_mujoco_sizes(model_path, **scale_factors)
 
         # Need to call this first to parse body
         super(Walker3D, self).load_robot_model(model_path, flags, root_link_name)

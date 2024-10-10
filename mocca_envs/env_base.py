@@ -16,6 +16,7 @@ class EnvBase(gym.Env):
     def __init__(
         self,
         robot_class,
+        load_robot_kwargs={},
         robot_kwargs={},
         render=False,
         remove_ground=False,
@@ -24,6 +25,7 @@ class EnvBase(gym.Env):
         **kwargs
     ):
         self.robot_kwargs = robot_kwargs
+        self.load_robot_kwargs = load_robot_kwargs
         self.robot_class = robot_class
 
         self.is_rendered = render
@@ -90,7 +92,7 @@ class EnvBase(gym.Env):
 
         # Create robot object
         self.robot = self.robot_class(self._p, **self.robot_kwargs)
-        self.robot.initialize()
+        self.robot.initialize(self.load_robot_kwargs)
         self.robot.np_random = self.np_random
 
         # Create terrain

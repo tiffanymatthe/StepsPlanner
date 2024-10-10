@@ -337,6 +337,7 @@ class Walker3DStepperEnv(EnvBase):
         self.plank_class = globals().get(plank_name, self.plank_class)
 
         super().__init__(self.robot_class, remove_ground=False, **kwargs)
+
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
@@ -1685,6 +1686,16 @@ class Walker3DStepperEnv(EnvBase):
             next = min(self.next_step_index, len(self.terrain_info) - 1)
             self.set_step_state(next, oldest)
 
+    def scale_robot(self, arm_factor, leg_factor):
+        self._p.removeBody(self.robot.id)
+        load_robot_kwargs = {}
+        load_robot_kwargs["scale_factors"] = {}
+        load_robot_kwargs["scale_factors"]["arm_scale_factor"] = arm_factor
+        load_robot_kwargs["scale_factors"]["leg_scale_factor"] = leg_factor
+        self.robot = self.robot_class(self._p)
+        self.robot.initialize(load_robot_kwargs)
+        self.robot.np_random = self.np_random
+
     def reset(self, force=False):
         if self.state_id >= 0:
             self._p.restoreState(self.state_id)
@@ -1713,6 +1724,9 @@ class Walker3DStepperEnv(EnvBase):
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
+        self.scale_robot(1,1) #self.np_random.choice([0.8,1.3,2]),self.np_random.choice([0.8,1.3,2]))
+        self.robot.set_base_pose(pose="running_start")
+
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         prev_robot_mirrored = self.robot.mirrored
 
@@ -1732,7 +1746,7 @@ class Walker3DStepperEnv(EnvBase):
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
 
         # Randomize platforms
-        replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or force
+        replace = True # self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or force
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
