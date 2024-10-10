@@ -4,6 +4,10 @@ from common.envs_utils import make_env, make_vec_envs
 import torch.nn.functional as F
 import time
 
+from bottleneck import nanmean
+import numpy as np
+from collections import deque
+
 def train(
     expert_policy,
     student_policy,
@@ -23,23 +27,23 @@ def train(
     # student_actor = student_policy.actor
     # student_actor = torch.load("daggered.pt", map_location=torch.device(device)) #  SoftsignActor(dummy_env).to(device)
 
-    dummy_env = make_env(env_name, **env_per_task_kwargs[0])
-
-    # assume first task is hopping, second task is everything else
-    import copy
-    expert_policy_for_previous_task = copy.deepcopy(student_policy)
-    expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
-
-    # if student_policy is None:
-    controller = SoftsignActor(dummy_env).to(device)
-    student_policy = Policy(controller)
-
     envs_per_task = [
         make_vec_envs(
             env_name, seed, num_processes, None, **env_per_task_kwargs[i]
         )
         for i in range(num_tasks)
     ]
+
+    dummy_env = make_env(env_name, **env_per_task_kwargs[0])
+
+    if student_policy is None:
+        controller = SoftsignActor(dummy_env).to(device)
+        student_policy = Policy(controller)
+
+    # assume first task is hopping, second task is everything else
+    import copy
+    expert_policy_for_previous_task = copy.deepcopy(student_policy)
+    expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
 
     optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
 
@@ -53,6 +57,11 @@ def train(
     buffer_expert_values_per_task = [torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(num_tasks)]
 
     epoch_threshold = 0
+
+    curriculum_metric_per_task = [deque(maxlen=num_processes) for _ in range(num_tasks)]
+    avg_curriculum_per_task = np.zeros(num_tasks)
+
+    print(f"Starting DAGGER. First expert policy is hopping, second one is everything else.")
 
     start = time.time()
     for epoch in range(num_epochs):
@@ -76,11 +85,17 @@ def train(
                         cpu_actions = expert_action.cpu().numpy()
                     else:
                         cpu_actions = student_action.cpu().numpy()
-                    obs, _, _, _ = envs_per_task[task_i].step(cpu_actions)
+                    obs, _, _, infos = envs_per_task[task_i].step(cpu_actions)
+
+                    for p_index, info in enumerate(infos):
+                        if "curriculum_metric" in info:
+                            curriculum_metric_per_task[task_i].append(info["curriculum_metric"])
 
                     buffer_observations_per_task[task_i][buffer_index + 1].copy_(torch.from_numpy(obs))
                     buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
                     buffer_expert_values_per_task[task_i][buffer_index].copy_(expert_value)
+
+                avg_curriculum_per_task[task_i] = nanmean(curriculum_metric_per_task[task_i])
 
             batch_size = num_steps * (epoch + 1) * num_processes
             num_mini_batch = batch_size // mini_batch_size
@@ -130,9 +145,10 @@ def train(
                 f"Elapsed Time {elapsed_time:8.2f} |"
                 f"Action Loss: {ep_action_loss.item():8.4f} | "
                 f"Value Loss: {ep_value_loss.item():8.4f} | "
+                f"Avg Steps: {avg_curriculum_per_task} | "
             )
         )
-    student_file_name = "daggered_hopping_2_tasks_BC_random_initialization.pt"
+    student_file_name = "daggered_hopping_2_tasks.pt"
     torch.save(student_policy, student_file_name)
     print(f"Saved student policy to {student_file_name}")
     for i in range(num_tasks):
