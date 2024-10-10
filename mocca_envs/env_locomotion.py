@@ -385,6 +385,7 @@ class Walker3DStepperEnv(EnvBase):
         self.determine = kwargs.pop("determine", False)
 
         self.selected_curriculum = 0
+        self.morphology_curriculum = 0
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -1724,7 +1725,21 @@ class Walker3DStepperEnv(EnvBase):
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
-        self.scale_robot(1,1) #self.np_random.choice([0.8,1.3,2]),self.np_random.choice([0.8,1.3,2]))
+        max_arm_scale_factor = 1.7
+        max_leg_scale_factor = 1.5
+        alpha = self.morphology_curriculum / self.max_curriculum
+        arm_mean = (max_arm_scale_factor - 1) * alpha + 1
+        leg_mean = (max_leg_scale_factor - 1) * alpha + 1
+        std_dev = 0.15
+
+        arm_factor = np.random.normal(loc=arm_mean, scale=std_dev)
+        arm_factor = np.clip(arm_factor, 1, max_arm_scale_factor)
+
+        leg_factor = np.random.normal(loc=leg_mean, scale=std_dev)
+        leg_factor = np.clip(leg_factor, 1, max_leg_scale_factor)
+
+        self.scale_robot(arm_factor, leg_factor)
+
         self.robot.set_base_pose(pose="running_start")
 
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]

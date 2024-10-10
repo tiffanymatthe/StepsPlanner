@@ -196,6 +196,8 @@ def main(_seed, _config, _run):
     rollouts = RolloutStorage(args.num_steps, args.num_processes, obs_shape, action_dim)
     rollouts.to(args.device)
 
+    morphology_current_curriculum = 0
+
     # This has to be done before reset
     if args.use_curriculum:
         current_curriculum = dummy_env.unwrapped.curriculum
@@ -294,7 +296,7 @@ def main(_seed, _config, _run):
                         or (avg_curriculum_nanmean >= advance_threshold - 3 and (current_iteration >= 3000 or current_behavior_curriculum == 5))
                     )
                     and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
-                    and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= dummy_env.unwrapped.behavior_timing_thresholds[current_curriculum] or (avg_timing_met_nanmean >= 1.7 and (current_iteration >= 3000)))
+                    and (np.isnan(avg_timing_met_nanmean) or avg_timing_met_nanmean >= dummy_env.unwrapped.behavior_timing_thresholds[current_behavior_curriculum] or (avg_timing_met_nanmean >= 1.7 and (current_iteration >= 3000)))
                     and (np.isnan(avg_dist_err_nanmean) or avg_dist_err_nanmean <= 0.15)
                 ):
                     continue
@@ -307,17 +309,17 @@ def main(_seed, _config, _run):
                 update_curriculum and current_iteration >= 50
             ):
                 current_iteration = 0
-                if current_curriculum < max_curriculum:
-                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
+                if morphology_current_curriculum < max_curriculum:
+                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{morphology_current_curriculum}.pt"
                     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
-                    current_curriculum += 1
-                    envs.set_env_params({"curriculum": current_curriculum})
+                    morphology_current_curriculum += 1
+                    envs.set_env_params({"morphology_curriculum": morphology_current_curriculum})
                 elif current_behavior_curriculum < max_behavior_curriculum:
-                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
+                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{morphology_current_curriculum}.pt"
                     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
-                    current_curriculum = 0
+                    morphology_current_curriculum = 0
                     current_behavior_curriculum += 1
-                    envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+                    envs.set_env_params({"morphology_curriculum": morphology_current_curriculum, "behavior_curriculum": current_behavior_curriculum})
                 else:
                     pass
 
