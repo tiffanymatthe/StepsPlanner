@@ -52,6 +52,8 @@ def train(
     expert_policy_for_previous_task = copy.deepcopy(student_policy)
     expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
 
+    epoch_threshold = -1
+
     start = time.time()
     for epoch in range(num_epochs):
         observations_shaped_per_task = [None for _ in range(num_tasks)]
@@ -66,11 +68,11 @@ def train(
                     expert_value, expert_action, _ = expert_policies_per_task[task_i].act(
                         buffer_observations_per_task[task_i][buffer_index], deterministic=True
                     )
-                    if epoch > 0:
+                    if epoch > epoch_threshold:
                         # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
                         student_action = student_policy.actor(buffer_observations_per_task[task_i][buffer_index]) #, deterministic=True) # deterministic
 
-                    if epoch == 0:
+                    if epoch == epoch_threshold:
                         cpu_actions = expert_action.cpu().numpy()
                     else:
                         cpu_actions = student_action.cpu().numpy()
@@ -130,7 +132,7 @@ def train(
                 f"Value Loss: {ep_value_loss.item():8.4f} | "
             )
         )
-    student_file_name = "daggered_hopping_2_tasks.pt"
+    student_file_name = "daggered_hopping_2_tasks_no_BC.pt"
     torch.save(student_policy, student_file_name)
     print(f"Saved student policy to {student_file_name}")
     for i in range(num_tasks):
