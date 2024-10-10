@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     rendered_step_count = 4
     init_step_separation = 0.70
 
-    step_delay = 6
+    step_delay = 4
 
     lookahead = 2
     lookbehind = 1
@@ -1609,7 +1609,7 @@ class Walker3DStepperEnv(EnvBase):
         self.prev_leg = self.swing_leg
 
         if self.mask_info["timing"][0]:
-            threshold = self.mask_info["timing"][1] if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
+            threshold = self.mask_info["timing"][1] # if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
             self.mask_info["timing"][2] = self.np_random.rand() < threshold
         if self.mask_info["heading"][0]:
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
@@ -1740,17 +1740,17 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 2 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
+        multiplier = 2 # if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
 
         if self.mask_info["heading"][2]:
             multiplier = 0
 
-        if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
-            # add a foot distance potential if there is no timing signal
-            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
-        else:
-            foot_delta = 0
-        # foot_delta = 0
+        # if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
+        #     # add a foot distance potential if there is no timing signal
+        #     foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
+        # else:
+        #     foot_delta = 0
+        foot_delta = 0
 
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier + foot_delta) / self.scene.dt
         self.distance_to_target = body_distance_to_target
@@ -1813,8 +1813,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.body_stationary_count = 0
         count = 200
-        if self.body_stationary_count > count:
-            self.legs_bonus -= 100
+        # if self.body_stationary_count > count:
+        #     self.legs_bonus -= 100
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
@@ -1824,7 +1824,7 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 self.heading_bonus = 0
 
-            if self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net):
+            if not self.mask_info["timing"][2] and self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net):
                 self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1) * 0.5
         
         if self.mask_info["timing"][2]:
@@ -1932,9 +1932,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
         if self.next_step_index > 1:
-            # prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
-            # self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[prev_index, 6])
-            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[self.next_step_index-1, 6])
+            prev_index = np.where(self.terrain_info[0:self.next_step_index, 7] == 1-self.swing_leg)[0][-1]
+            self.prev_heading_rad_to_target = self.smallest_angle_between(self.robot.feet_rpy[1-self.swing_leg,2], self.terrain_info[prev_index, 6])
         else:
             self.prev_heading_rad_to_target = 0
 
@@ -1984,7 +1983,7 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.next_step_index, 10],
             self.terrain_info[self.next_step_index, 11]
         ]
-        if self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
+        if not self.mask_info["timing"][2] and (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
             self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
@@ -2039,7 +2038,7 @@ class Walker3DStepperEnv(EnvBase):
             and self.target_reached_count == 1
             and self.next_step_index != len(self.terrain_info) - 1  # exclude last step
         ):
-            dist = nanmin(self.foot_dist_to_target)
+            dist = self.foot_dist_to_target[self.swing_leg]
             self.dist_errors.append(dist)
             self.step_bonus = 50 * 2.718 ** (
                 -(dist ** self.step_bonus_smoothness) / 0.25
