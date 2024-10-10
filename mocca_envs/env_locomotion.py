@@ -1824,7 +1824,8 @@ class Walker3DStepperEnv(EnvBase):
             else:
                 self.heading_bonus = 0
 
-            if not self.mask_info["timing"][2] and self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net):
+            # if not self.mask_info["timing"][2] and self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net):
+            if self.current_step_time <= self.terrain_info[self.next_step_index, 10] and self.next_step_index > 1 and (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net):
                 self.heading_bonus += -( -np.exp(-self.gauss_width * abs(self.prev_heading_rad_to_target) ** 2) + 1) * 0.5
         
         if self.mask_info["timing"][2]:
@@ -1984,7 +1985,8 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.next_step_index, 10],
             self.terrain_info[self.next_step_index, 11]
         ]
-        if not self.mask_info["timing"][2] and (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
+        # if not self.mask_info["timing"][2] and (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
+        if (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
             self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
