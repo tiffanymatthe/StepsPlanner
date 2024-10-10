@@ -352,6 +352,7 @@ class Walker3DStepperEnv(EnvBase):
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
+        self.save_dir = kwargs.pop("save_dir")
 
         self.heading_errors = []
         self.met_times = []
@@ -1693,6 +1694,7 @@ class Walker3DStepperEnv(EnvBase):
         load_robot_kwargs["scale_factors"] = {}
         load_robot_kwargs["scale_factors"]["arm_scale_factor"] = arm_factor
         load_robot_kwargs["scale_factors"]["leg_scale_factor"] = leg_factor
+        load_robot_kwargs["scale_factors"]["save_dir"] = self.save_dir
         self.robot = self.robot_class(self._p)
         self.robot.initialize(load_robot_kwargs)
         self.robot.np_random = self.np_random
@@ -1738,7 +1740,7 @@ class Walker3DStepperEnv(EnvBase):
         leg_factor = np.random.normal(loc=leg_mean, scale=std_dev)
         leg_factor = np.clip(leg_factor, 1, max_leg_scale_factor)
 
-        self.scale_robot(arm_factor, leg_factor)
+        self.scale_robot(round(arm_factor, 2), round(leg_factor, 2))
 
         self.robot.set_base_pose(pose="running_start")
 

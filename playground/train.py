@@ -119,6 +119,7 @@ def main(_seed, _config, _run):
         "start_behavior_curriculum": args.start_behavior_curriculum,
         "foot_angle_weight": args.foot_angle_weight,
         "from_net": args.net is not None,
+        "save_dir": args.save_dir,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)

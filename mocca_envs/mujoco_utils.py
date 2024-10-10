@@ -2,9 +2,15 @@ import xml.etree.ElementTree as ET
 import os
 
 # Function to update arm size in the Mujoco XML
-def modify_mujoco_sizes(xml_path, arm_scale_factor, leg_scale_factor):
+def modify_mujoco_sizes(xml_path, arm_scale_factor, leg_scale_factor, save_dir):
     base, ext = os.path.splitext(xml_path)
-    output_path = f"{base}_modified{ext}"
+    folder = f"{os.path.dirname(save_dir)}/temp_xml"
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    output_path = f"{folder}/walker3d_modified_{arm_scale_factor}_{leg_scale_factor}{ext}"
+
+    if os.path.isfile(output_path):
+        return output_path
 
     # Parse the XML file
     tree = ET.parse(xml_path)
