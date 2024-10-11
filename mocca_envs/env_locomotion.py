@@ -1763,7 +1763,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2.5
+        self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1986,7 +1986,7 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.next_step_index, 11]
         ]
         # if not self.mask_info["timing"][2] and (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
-        if not self.mask_info["timing"][2] and (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
+        if (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
             self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
