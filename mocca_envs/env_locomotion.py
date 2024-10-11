@@ -1727,8 +1727,8 @@ class Walker3DStepperEnv(EnvBase):
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
 
-        max_arm_scale_factor = 1.7
-        max_leg_scale_factor = 1.5
+        max_arm_scale_factor = 2.5
+        max_leg_scale_factor = 1.8
         alpha = self.morphology_curriculum / self.max_curriculum
         arm_mean = (max_arm_scale_factor - 1) * alpha + 1
         leg_mean = (max_leg_scale_factor - 1) * alpha + 1
@@ -1740,7 +1740,7 @@ class Walker3DStepperEnv(EnvBase):
         leg_factor = np.random.normal(loc=leg_mean, scale=std_dev)
         leg_factor = np.clip(leg_factor, 1, max_leg_scale_factor)
 
-        self.scale_robot(round(arm_factor, 2), round(leg_factor, 2))
+        self.scale_robot(round(arm_factor, 1), round(leg_factor, 1))
 
         self.robot.set_base_pose(pose="running_start")
 
