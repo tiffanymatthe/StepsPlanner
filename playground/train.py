@@ -206,9 +206,10 @@ def main(_seed, _config, _run):
         current_curriculum = dummy_env.unwrapped.curriculum
         max_curriculum = dummy_env.unwrapped.max_curriculum
         current_behavior_curriculum = dummy_env.unwrapped.behavior_curriculum
+        morphology_current_curriculum = dummy_env.unwrapped.morphology_curriculum
         max_behavior_curriculum = dummy_env.unwrapped.max_behavior_curriculum
         advance_threshold = dummy_env.unwrapped.advance_threshold
-        envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+        envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum, "morphology_curriculum": morphology_current_curriculum})
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
