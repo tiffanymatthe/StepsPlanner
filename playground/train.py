@@ -51,6 +51,7 @@ def configs():
     timing_bonus_weight = 1.5
     gauss_width = 12
     start_curriculum = 0
+    start_morphology_curriculum = 0
     start_behavior_curriculum = 0
     use_wandb = True
     foot_angle_weight = 0.1
@@ -117,6 +118,7 @@ def main(_seed, _config, _run):
         "timing_bonus_weight": args.timing_bonus_weight,
         "start_curriculum": args.start_curriculum,
         "start_behavior_curriculum": args.start_behavior_curriculum,
+        "start_morphology_curriculum": args.start_morphology_curriculum,
         "foot_angle_weight": args.foot_angle_weight,
         "from_net": args.net is not None,
         "save_dir": args.save_dir,

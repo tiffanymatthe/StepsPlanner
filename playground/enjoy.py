@@ -46,6 +46,7 @@ def main():
     parser.add_argument("--net", type=str, required=True)
     parser.add_argument("--curriculum", type=int, default=None)
     parser.add_argument("--behavior_curriculum", type=int, default=None)
+    parser.add_argument("--morphology_curriculum", type=int, default=None)
     parser.add_argument("--len", type=int, default=float("inf"))
     parser.add_argument("--plank_class", type=str, default="VeryLargePlank")
     parser.add_argument("--heading_bonus_weight", type=float, default=1.0)
@@ -134,7 +135,8 @@ def main():
         curriculum = args.curriculum if args.curriculum is not None else max_curriculum
         max_behavior_curriculum = getattr(env.unwrapped, "max_behavior_curriculum", 10)
         behavior_curriculum = args.behavior_curriculum if args.behavior_curriculum is not None else max_behavior_curriculum
-        env.set_env_params({"curriculum": int(curriculum), "behavior_curriculum": int(behavior_curriculum)})
+        morphology_curriculum = 0 if args.morphology_curriculum is None else args.morphology_curriculum
+        env.set_env_params({"curriculum": int(curriculum), "behavior_curriculum": int(behavior_curriculum), "morphology_curriculum": int(morphology_curriculum)})
 
         obs = env.reset(force=True)
         env.camera._cam_yaw = 90

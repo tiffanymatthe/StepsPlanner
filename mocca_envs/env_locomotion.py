@@ -352,7 +352,7 @@ class Walker3DStepperEnv(EnvBase):
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
-        self.save_dir = kwargs.pop("save_dir")
+        self.save_dir = kwargs.pop("save_dir", f"{os.getcwd()}/temp_xml")
 
         self.heading_errors = []
         self.met_times = []
@@ -386,7 +386,7 @@ class Walker3DStepperEnv(EnvBase):
         self.determine = kwargs.pop("determine", False)
 
         self.selected_curriculum = 0
-        self.morphology_curriculum = 0
+        self.morphology_curriculum = kwargs.pop("start_morphology_curriculum", 0)
 
         # Robot settings
         N = self.max_curriculum + 1
