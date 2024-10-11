@@ -171,7 +171,10 @@ class WalkerBase:
         self.feet_contact = np.zeros(len(self.foot_names), dtype=np.float32)
         self.feet_xyz = np.zeros((len(self.foot_names), 3))
 
-        self.upper_arm_and_head_ids = [self.parts["right_upper_arm"].bodyPartIndex, self.parts["left_upper_arm"].bodyPartIndex, self.parts["head"].bodyPartIndex]
+        if "head" in self.parts:
+            self.upper_arm_and_head_ids = [self.parts["right_upper_arm"].bodyPartIndex, self.parts["left_upper_arm"].bodyPartIndex, self.parts["head"].bodyPartIndex]
+        else:
+            self.upper_arm_and_head_ids = [self.parts["right_upper_arm"].bodyPartIndex, self.parts["left_upper_arm"].bodyPartIndex, self.parts["waist"].bodyPartIndex]
 
         self.foot_ids = [f.bodyPartIndex for f in self.feet]
         if self.root_link_name is not None:
