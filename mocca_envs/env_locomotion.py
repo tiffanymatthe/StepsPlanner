@@ -1667,9 +1667,9 @@ class Walker3DStepperEnv(EnvBase):
             reward += self.step_bonus + self.target_bonus # - self.speed_penalty * 0
         reward += self.tall_bonus - self.posture_penalty - self.joints_penalty
         reward += self.legs_bonus - self.elbow_penalty * self.elbow_weight
-        if not self.mask_info["heading"][2]:
+        if not self.mask_info["heading"][2] and (self.next_step_index > 2 and self.curriculum != 0 and self.behavior_curriculum != 0):
             reward += self.heading_bonus * self.heading_bonus_weight
-        if not self.mask_info["timing"][2]:
+        if not self.mask_info["timing"][2] and (self.next_step_index > 2 and self.curriculum != 0 and self.behavior_curriculum != 0):
             reward += self.timing_bonus * self.timing_bonus_weight
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
@@ -1986,10 +1986,8 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.next_step_index, 11]
         ]
         # if not self.mask_info["timing"][2] and (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
-        if self.target_reached and self.next_step_index > 2:
+        if self.target_reached and (self.next_step_index > 2 and self.curriculum != 0 and self.behavior_curriculum != 0):
             if not self.mask_info["timing"][2] and (self.current_step_time < next_step_time[0] + next_step_time[1]):
-                self.target_reached = False
-            elif self.mask_info["timing"][2] and self.current_step_time < 30:
                 self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
