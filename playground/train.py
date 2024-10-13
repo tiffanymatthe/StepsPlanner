@@ -153,6 +153,8 @@ def main(_seed, _config, _run):
                 parameter.data = trained_parameter.data
         else:
             net_actor_critic = torch.load(args.net, map_location=torch.device(args.device))
+            actor_class = globals().get(args.actor_class)
+            controller = actor_class(dummy_env)
             actor_critic = Policy(controller)
             actor_critic.actor.load_state_dict(net_actor_critic.actor.state_dict())
             actor_critic.critic.load_state_dict(net_actor_critic.critic.state_dict())
