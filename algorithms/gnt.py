@@ -12,7 +12,7 @@ class GnT(object):
     def __init__(
             self,
             net,
-            hidden_activation,
+            hidden_activations,
             opt,
             decay_rate=0.99,
             replacement_rate=1e-4,
@@ -55,21 +55,21 @@ class GnT(object):
         """
         Calculate uniform distribution's bound for random feature initialization
         """
-        if hidden_activation == 'selu': init = 'lecun'
-        self.bounds = self.compute_bounds(hidden_activation=hidden_activation, init=init)
+        # if hidden_activation == 'selu': init = 'lecun'
+        self.bounds = self.compute_bounds(hidden_activations=hidden_activations, init=init)
 
-    def compute_bounds(self, hidden_activation, init='kaiming'):
-        if hidden_activation in ['swish', 'elu']: hidden_activation = 'relu'
+    def compute_bounds(self, hidden_activations, init='kaiming'):
+        # if hidden_activation in ['swish', 'elu']: hidden_activation = 'relu'
         if init == 'default':
             bounds = [sqrt(1 / self.net[i * 2].in_features) for i in range(self.num_hidden_layers)]
         elif init == 'xavier':
-            bounds = [torch.nn.init.calculate_gain(nonlinearity=hidden_activation) *
+            bounds = [torch.nn.init.calculate_gain(nonlinearity=hidden_activations[i]) *
                       sqrt(6 / (self.net[i * 2].in_features + self.net[i * 2].out_features)) for i in
                       range(self.num_hidden_layers)]
         elif init == 'lecun':
             bounds = [sqrt(3 / self.net[i * 2].in_features) for i in range(self.num_hidden_layers)]
         else:
-            bounds = [torch.nn.init.calculate_gain(nonlinearity=hidden_activation) *
+            bounds = [torch.nn.init.calculate_gain(nonlinearity=hidden_activations[i]) *
                       sqrt(3 / self.net[i * 2].in_features) for i in range(self.num_hidden_layers)]
         bounds.append(1 * sqrt(3 / self.net[self.num_hidden_layers * 2].in_features))
         return bounds

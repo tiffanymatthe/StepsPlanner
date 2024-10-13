@@ -19,6 +19,29 @@ def clip_grad_norm_(parameters, max_norm):
     return total_norm
 
 
+def get_activation_layers(model):
+    """
+    Returns a list of all activation layers in a PyTorch model.
+    
+    Args:
+        model (torch.nn.Module): The model containing layers.
+        
+    Returns:
+        activations (list): A list of activation layers (e.g., ReLU, Softsign).
+    """
+    activations = []
+    
+    for layer in model.children():
+        # Check if the layer is a common activation function
+        if isinstance(layer, (nn.ReLU, nn.Softsign, nn.Sigmoid, nn.Tanh, nn.LeakyReLU, nn.Softmax)):
+            activations.append(layer)
+        # Recursively check within submodules (in case of nested layers)
+        elif isinstance(layer, nn.Sequential) or isinstance(layer, nn.Module):
+            activations.extend(get_activation_layers(layer))
+    
+    return activations
+
+
 class PPO(object):
     def __init__(
         self,
@@ -56,35 +79,36 @@ class PPO(object):
             eps=eps,
         )
 
-        self.previous_features = None
-
         # settings based on https://github.com/shibhansh/loss-of-plasticity/blob/7bf3dfe6723a43a543fa1057a38eaf4b480f2ff3/lop/rl/cfg/walker/cbp.yml
 
         self.actor_gnt = GnT(
-            net=self.actor_critic.actor.net.layers,
-            hidden_activation=self.actor_critic.actor.net.act_type,
+            net=self.actor_critic.actor.net,
+            hidden_activations=["linear", "linear", "linear","relu", "relu"],
             opt=self.optimizer,
             replacement_rate=1e-4,
             decay_rate=0.99,
             maturity_threshold=10000,
             util_type="contribution",
-            device=self.actor_critic.device,
+            device="cuda:0" if torch.cuda.is_available() else "cpu",
             init="kaiming",
             # accumulate=accumulate,
         )
 
         self.critic_gnt = GnT(
-            net=self.actor_critic.critic.layers,
-            hidden_activation=self.actor_critic.critic.act_type,
+            net=self.actor_critic.critic,
+            hidden_activations=["relu", "relu", "relu", "relu"],
             opt=self.optimizer,
             replacement_rate=1e-4,
             decay_rate=0.99,
             maturity_threshold=10000,
             util_type="contribution",
-            device=self.actor_critic.device,
+            device="cuda:0" if torch.cuda.is_available() else "cpu",
             init="kaiming",
             # accumulate=accumulate,
         )
+
+        self.actor_activation_layers = get_activation_layers(self.actor_critic.actor.net)
+        self.critic_activation_layers = get_activation_layers(self.actor_critic.critic)
 
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
@@ -134,7 +158,7 @@ class PPO(object):
                     action_log_probs,
                     dist_entropy,
                 ) = self.actor_critic.evaluate_actions(
-                    observations_batch, actions_batch
+                    observations_batch, actions_batch, to_log_features=True
                 )
 
                 ratio = (action_log_probs - old_action_log_probs_batch).exp()
@@ -165,7 +189,8 @@ class PPO(object):
 
                 # continual backprop (wipe dormant neurons)
                 self.optimizer.zero_grad()
-                self.gnt.gen_and_test(features=self.previous_features)
+                self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
+                self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())

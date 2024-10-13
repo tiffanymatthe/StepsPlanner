@@ -3,6 +3,38 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 
+# def register_hook(net, hook_fn):
+#     for name, layer in net._modules.items():
+#         # If it is a sequential, don't register a hook on it but recursively register hook on all it's module children
+#         if isinstance(layer, nn.Sequential):
+#             register_hook(layer)
+#         else:
+#             # it's a non sequential. Register a hook
+#             layer.register_forward_hook(hook_fn)
+
+
+def get_activation_layers(model):
+    """
+    Returns a list of all activation layers in a PyTorch model.
+    
+    Args:
+        model (torch.nn.Module): The model containing layers.
+        
+    Returns:
+        activations (list): A list of activation layers (e.g., ReLU, Softsign).
+    """
+    activations = []
+    
+    for layer in model.children():
+        # Check if the layer is a common activation function
+        if isinstance(layer, (nn.ReLU, nn.Softsign, nn.Sigmoid, nn.Tanh, nn.LeakyReLU, nn.Softmax)):
+            activations.append(layer)
+        # Recursively check within submodules (in case of nested layers)
+        elif isinstance(layer, nn.Sequential) or isinstance(layer, nn.Module):
+            activations.extend(get_activation_layers(layer))
+    
+    return activations
+
 
 class FixedNormal(Normal):
     def __init__(self, loc, scale, validate_args=False):
@@ -88,6 +120,24 @@ class Policy(nn.Module):
             init_r_(nn.Linear(h_size, 1)),
         )
 
+        self.setup_feature_logging()
+
+    def setup_feature_logging(self) -> None:
+        self.to_log_features = False
+        # Prepare for logging
+        self.activations = {}
+        self.feature_keys = get_activation_layers(self.critic)
+
+        def hook_fn(m, i, o):
+            if self.to_log_features:
+                self.activations[m] = o
+
+        for feature in self.feature_keys:
+            feature.register_forward_hook(hook_fn)
+
+    def get_activations(self,):
+        return [self.activations[key] for key in self.feature_keys]
+
     def forward(self, inputs, states, masks):
         raise NotImplementedError
 
@@ -111,13 +161,19 @@ class Policy(nn.Module):
         value = self.critic(inputs)
         return value
 
-    def evaluate_actions(self, inputs, action):
+    def evaluate_actions(self, inputs, action, to_log_features=False):
+        self.to_log_features = to_log_features
+        self.actor.to_log_features = to_log_features
+
         value = self.critic(inputs)
         mode = self.actor(inputs)
         dist = self.dist(mode)
 
         action_log_probs = dist.log_probs(action)
         dist_entropy = dist.entropy().mean()
+
+        self.to_log_features = False
+        self.actor.to_log_features = False
 
         return value, action_log_probs, dist_entropy
 
@@ -165,6 +221,24 @@ class SoftsignActor(nn.Module):
             nn.ReLU(),
             nn.Linear(h_size, self.action_dim),
         )
+
+        self.setup_feature_logging()
+
+    def setup_feature_logging(self) -> None:
+        self.to_log_features = False
+        # Prepare for logging
+        self.activations = {}
+        self.feature_keys = get_activation_layers(self.net)
+
+        def hook_fn(m, i, o):
+            if self.to_log_features:
+                self.activations[m] = o
+
+        for feature in self.feature_keys:
+            feature.register_forward_hook(hook_fn)
+
+    def get_activations(self,):
+        return [self.activations[key] for key in self.feature_keys]
 
     def forward(self, x):
         return torch.tanh(self.net(x))

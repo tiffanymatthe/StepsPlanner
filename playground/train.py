@@ -152,7 +152,10 @@ def main(_seed, _config, _run):
             ):
                 parameter.data = trained_parameter.data
         else:
-            actor_critic = torch.load(args.net, map_location=torch.device(args.device))
+            net_actor_critic = torch.load(args.net, map_location=torch.device(args.device))
+            actor_critic = Policy(controller)
+            actor_critic.actor.load_state_dict(net_actor_critic.actor.state_dict())
+            actor_critic.critic.load_state_dict(net_actor_critic.critic.state_dict())
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
@@ -309,12 +312,12 @@ def main(_seed, _config, _run):
                 current_iteration = 0
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
-                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                    torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
                 elif current_behavior_curriculum < max_behavior_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
-                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                    torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
                     current_curriculum = 0
                     current_behavior_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
@@ -332,14 +335,14 @@ def main(_seed, _config, _run):
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
             model_name = f"{save_name}_{int(next_checkpoint)}.pt"
             next_checkpoint += args.save_every
-            torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+            torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
 
         mean_ep_reward = sum(episode_rewards) / len(episode_rewards) if len(episode_rewards) > 0 else 0
         if len(episode_rewards) > 1 and mean_ep_reward > max_ep_reward:
             max_ep_reward = mean_ep_reward
             model_name = f"{save_name}_best.pt"
             optim_name = f"{save_name}_best.optim"
-            torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+            torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
             torch.save(agent.optimizer, os.path.join(args.save_dir, optim_name))
 
         if len(episode_rewards) > 1:
