@@ -19,29 +19,6 @@ def clip_grad_norm_(parameters, max_norm):
     return total_norm
 
 
-def get_activation_layers(model):
-    """
-    Returns a list of all activation layers in a PyTorch model.
-    
-    Args:
-        model (torch.nn.Module): The model containing layers.
-        
-    Returns:
-        activations (list): A list of activation layers (e.g., ReLU, Softsign).
-    """
-    activations = []
-    
-    for layer in model.children():
-        # Check if the layer is a common activation function
-        if isinstance(layer, (nn.ReLU, nn.Softsign, nn.Sigmoid, nn.Tanh, nn.LeakyReLU, nn.Softmax)):
-            activations.append(layer)
-        # Recursively check within submodules (in case of nested layers)
-        elif isinstance(layer, nn.Sequential) or isinstance(layer, nn.Module):
-            activations.extend(get_activation_layers(layer))
-    
-    return activations
-
-
 class PPO(object):
     def __init__(
         self,
@@ -90,7 +67,7 @@ class PPO(object):
             maturity_threshold=10000,
             util_type="contribution",
             device="cuda:0" if torch.cuda.is_available() else "cpu",
-            init="kaiming",
+            init="default",
             # accumulate=accumulate,
         )
 
@@ -103,12 +80,9 @@ class PPO(object):
             maturity_threshold=10000,
             util_type="contribution",
             device="cuda:0" if torch.cuda.is_available() else "cpu",
-            init="kaiming",
+            init="default",
             # accumulate=accumulate,
         )
-
-        self.actor_activation_layers = get_activation_layers(self.actor_critic.actor.net)
-        self.critic_activation_layers = get_activation_layers(self.actor_critic.critic)
 
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
