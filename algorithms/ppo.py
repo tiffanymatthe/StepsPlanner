@@ -187,10 +187,10 @@ class PPO(object):
                 clip_grad_norm_(parameters, self.max_grad_norm)
                 self.optimizer.step()
 
-                # continual backprop (wipe dormant neurons)
-                self.optimizer.zero_grad()
-                self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
-                self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
+                # # continual backprop (wipe dormant neurons)
+                # self.optimizer.zero_grad()
+                # self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
+                # self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())
