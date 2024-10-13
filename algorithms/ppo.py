@@ -6,10 +6,10 @@ os.sys.path.insert(0, parent_dir)
 
 import torch
 import torch.nn as nn
-# import torch.optim as optim
+import torch.optim as optim
 
 from algorithms.gnt import GnT
-from algorithms.adamgnt import AdamGnT
+# from algorithms.adamgnt import AdamGnT
 
 def clip_grad_norm_(parameters, max_norm):
     total_norm = torch.cat([p.grad.detach().view(-1) for p in parameters]).norm()
@@ -72,7 +72,7 @@ class PPO(object):
         self.mirror_function = mirror_function
 
         # GNT stuff
-        self.optimizer = AdamGnT(
+        self.optimizer = optim.AdamW(
             actor_critic.parameters(),
             lr=lr,
             weight_decay=5e-4,
