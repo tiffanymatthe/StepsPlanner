@@ -1740,16 +1740,16 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 2 # if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
+        multiplier = 2 if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
 
         if self.mask_info["heading"][2]:
             multiplier = 0
 
-        # if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
-        #     # add a foot distance potential if there is no timing signal
-        #     foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
-        # else:
-        #     foot_delta = 0
+        if self.mask_info["timing"][2] and self.next_step_index <= 2: # and not (self.curriculum > 0 or self.behavior_curriculum > 0):
+            # add a foot distance potential if there is no timing signal
+            foot_delta = sqrt(ss(self.terrain_info[self.next_step_index, 0:2] - self.robot.feet_xyz[self.swing_leg][0:2])) * 0.3
+        else:
+            foot_delta = 0
         foot_delta = 0
 
         self.linear_potential = -(body_distance_to_target + angle_delta * multiplier + foot_delta) / self.scene.dt
@@ -1988,8 +1988,6 @@ class Walker3DStepperEnv(EnvBase):
         # if not self.mask_info["timing"][2] and (self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]):
         if self.target_reached and self.next_step_index > 2:
             if not self.mask_info["timing"][2] and (self.current_step_time < next_step_time[0] + next_step_time[1]):
-                self.target_reached = False
-            elif self.mask_info["timing"][2] and self.current_step_time < 30:
                 self.target_reached = False
 
         self.past_last_step = self.past_last_step or (self.reached_last_step and self.target_reached_count >= 2)
