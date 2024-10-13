@@ -61,7 +61,7 @@ class PPO(object):
 
         self.actor_gnt = GnT(
             net=self.actor_critic.actor.net,
-            hidden_activations=["linear", "linear", "linear","relu", "relu"],
+            hidden_activations=["sigmoid", "sigmoid", "sigmoid","relu", "relu"],
             opt=self.optimizer,
             replacement_rate=1e-4,
             decay_rate=0.99,
