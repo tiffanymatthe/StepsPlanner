@@ -153,11 +153,9 @@ def main(_seed, _config, _run):
                 parameter.data = trained_parameter.data
         else:
             actor_critic = torch.load(args.net, map_location=torch.device(args.device))
-            # actor_class = globals().get(args.actor_class)
-            # controller = actor_class(dummy_env)
-            # actor_critic = Policy(controller)
-            # actor_critic.actor.net.load_state_dict(net_actor_critic.actor.net.state_dict())
-            # actor_critic.critic.load_state_dict(net_actor_critic.critic.state_dict())
+            if not hasattr(actor_critic, 'feature_keys'):
+                actor_critic.setup_feature_logging()
+                actor_critic.actor.setup_feature_logging()
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")

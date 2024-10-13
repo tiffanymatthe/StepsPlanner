@@ -136,8 +136,6 @@ class Policy(nn.Module):
             feature.register_forward_hook(hook_fn)
 
     def get_activations(self,):
-        if not hasattr(self, 'feature_keys'):
-            self.setup_feature_logging()
         return [self.activations[key] for key in self.feature_keys]
 
     def forward(self, inputs, states, masks):
@@ -240,8 +238,6 @@ class SoftsignActor(nn.Module):
             feature.register_forward_hook(hook_fn)
 
     def get_activations(self,):
-        if not hasattr(self, 'feature_keys'):
-            self.setup_feature_logging()
         return [self.activations[key] for key in self.feature_keys]
 
     def forward(self, x):
