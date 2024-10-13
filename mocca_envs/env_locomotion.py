@@ -1732,7 +1732,7 @@ class Walker3DStepperEnv(EnvBase):
         alpha = self.morphology_curriculum / self.max_curriculum
         arm_mean = (max_arm_scale_factor - 1) * alpha + 1
         leg_mean = (max_leg_scale_factor - 1) * alpha + 1
-        std_dev = 0.15
+        std_dev = 0.3
 
         arm_factor = np.random.normal(loc=arm_mean, scale=std_dev)
         arm_factor = np.clip(arm_factor, 1, max_arm_scale_factor)
