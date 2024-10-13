@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 # import torch.optim as optim
 
-from gnt import GnT
-from adamgnt import AdamGnT
+from algorithms.gnt import GnT
+from algorithms.adamgnt import AdamGnT
 
 def clip_grad_norm_(parameters, max_norm):
     total_norm = torch.cat([p.grad.detach().view(-1) for p in parameters]).norm()
@@ -59,9 +59,23 @@ class PPO(object):
         self.previous_features = None
 
         # settings based on https://github.com/shibhansh/loss-of-plasticity/blob/7bf3dfe6723a43a543fa1057a38eaf4b480f2ff3/lop/rl/cfg/walker/cbp.yml
-        self.gnt = GnT(
-            net=self.actor_critic.layers,
-            hidden_activation=self.actor_critic.act_type,
+
+        self.actor_gnt = GnT(
+            net=self.actor_critic.actor.net.layers,
+            hidden_activation=self.actor_critic.actor.net.act_type,
+            opt=self.optimizer,
+            replacement_rate=1e-4,
+            decay_rate=0.99,
+            maturity_threshold=10000,
+            util_type="contribution",
+            device=self.actor_critic.device,
+            init="kaiming",
+            # accumulate=accumulate,
+        )
+
+        self.critic_gnt = GnT(
+            net=self.actor_critic.critic.layers,
+            hidden_activation=self.actor_critic.critic.act_type,
             opt=self.optimizer,
             replacement_rate=1e-4,
             decay_rate=0.99,
