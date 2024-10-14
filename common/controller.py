@@ -197,8 +197,8 @@ class SoftsignActor(nn.Module):
         self.to_log_features = False
         # Prepare for logging
         self.activations = {}
-        self.feature_keys = [self.net[i] for i in [1,3,5,7]]
-        self.layers_to_check = [self.net[i] for i in [0,2,4,6,8]]
+        self.feature_keys = [self.net[i] for i in [7]]
+        self.layers_to_check = [self.net[i] for i in [6,8]]
 
         def hook_fn(m, i, o):
             if self.to_log_features:

@@ -60,7 +60,7 @@ class PPO(object):
 
         self.actor_gnt = GnT(
             hidden_layers=self.actor_critic.actor.layers_to_check,
-            hidden_activations=["sigmoid", "sigmoid", "sigmoid","relu"],
+            hidden_activations=["relu"],
             opt=self.optimizer,
             replacement_rate=1e-4,
             decay_rate=0.99,
@@ -161,10 +161,10 @@ class PPO(object):
                 clip_grad_norm_(parameters, self.max_grad_norm)
                 self.optimizer.step()
 
-                # # continual backprop (wipe dormant neurons)
-                # self.optimizer.zero_grad()
-                # critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
-                # actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
+                # continual backprop (wipe dormant neurons)
+                self.optimizer.zero_grad()
+                critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
+                actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
                 critic_fraction_to_replace = 0
                 actor_fraction_to_replace = 0
 
