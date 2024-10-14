@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from algorithms.redo import run_redo
 
 def clip_grad_norm_(parameters, max_norm):
     total_norm = torch.cat([p.grad.detach().view(-1) for p in parameters]).norm()
@@ -46,12 +47,22 @@ class PPO(object):
 
         self.mirror_function = mirror_function
 
-        self.optimizer = optim.AdamW(
-            actor_critic.parameters(),
+        self.optimizer_actor = optim.AdamW(
+            actor_critic.actor.parameters(),
             lr=lr,
             weight_decay=5e-4,
             eps=eps,
         )
+
+        self.optimizer_critic = optim.AdamW(
+            actor_critic.critic.parameters(),
+            lr=lr,
+            weight_decay=5e-4,
+            eps=eps,
+        )
+
+        self.redo_check_interval = 1
+        self.tau = 0.025
 
         # self.optimizer = optim.Adam(
         #     actor_critic.parameters(),
@@ -59,7 +70,7 @@ class PPO(object):
         #     eps=eps,
         # )
 
-    def update(self, rollouts):
+    def update(self, rollouts, iteration):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
@@ -67,6 +78,16 @@ class PPO(object):
         value_loss_epoch = torch.tensor(0.0).to(device)
         action_loss_epoch = torch.tensor(0.0).to(device)
         dist_entropy_epoch = torch.tensor(0.0).to(device)
+
+        dormant_fraction_actor_epoch = torch.tensor(0.0).to(device)
+        dormant_count_actor_epoch = torch.tensor(0.0).to(device)
+        zero_fraction_actor_epoch = torch.tensor(0.0).to(device)
+        zero_count_actor_epoch = torch.tensor(0.0).to(device)
+
+        dormant_fraction_critic_epoch = torch.tensor(0.0).to(device)
+        dormant_count_critic_epoch = torch.tensor(0.0).to(device)
+        zero_fraction_critic_epoch = torch.tensor(0.0).to(device)
+        zero_count_critic_epoch = torch.tensor(0.0).to(device)
 
         clip_param = self.clip_param
 
@@ -107,7 +128,7 @@ class PPO(object):
                     action_log_probs,
                     dist_entropy,
                 ) = self.actor_critic.evaluate_actions(
-                    observations_batch, actions_batch
+                    observations_batch, actions_batch, to_log_features=True
                 )
 
                 ratio = (action_log_probs - old_action_log_probs_batch).exp()
@@ -127,18 +148,46 @@ class PPO(object):
                 else:
                     value_loss = 0.5 * (return_batch - values).pow(2).mean()
 
-                self.optimizer.zero_grad()
+                self.optimizer_critic.zero_grad()
+                self.optimizer_actor.zero_grad()
                 (
                     value_loss * self.value_loss_coef
                     + action_loss
                     - dist_entropy * self.entropy_coef
                 ).backward()
                 clip_grad_norm_(parameters, self.max_grad_norm)
-                self.optimizer.step()
+                self.optimizer_critic.step()
+                self.optimizer_actor.step()
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())
                 dist_entropy_epoch.add_(dist_entropy.detach())
+
+                # if e == self.ppo_epoch - 1:
+                redo_out_actor = run_redo(
+                    layers_to_reset=self.actor_critic.actor.feature_keys,
+                    activations=self.actor_critic.actor.get_activations(),
+                    optimizer=self.optimizer_actor,
+                    re_initialize=False,
+                    tau=self.tau
+                )
+                redo_out_critic = run_redo(
+                    layers_to_reset=self.actor_critic.feature_keys,
+                    activations=self.actor_critic.get_activations(),
+                    optimizer=self.optimizer_critic,
+                    re_initialize=False,
+                    tau=self.tau
+                )
+
+                dormant_fraction_actor_epoch.add_(redo_out_actor["dormant_fraction"])
+                dormant_count_actor_epoch.add_(redo_out_actor["dormant_count"])
+                zero_fraction_actor_epoch.add_(redo_out_actor["zero_fraction"])
+                zero_count_actor_epoch.add_(redo_out_actor["zero_count"])
+
+                dormant_fraction_critic_epoch.add_(redo_out_critic["dormant_fraction"])
+                dormant_count_critic_epoch.add_(redo_out_critic["dormant_count"])
+                zero_fraction_critic_epoch.add_(redo_out_critic["zero_fraction"])
+                zero_count_critic_epoch.add_(redo_out_critic["zero_count"])
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
@@ -146,8 +195,26 @@ class PPO(object):
         action_loss_epoch.div_(num_updates)
         dist_entropy_epoch.div_(num_updates)
 
+        dormant_fraction_actor_epoch.div_(num_updates)
+        dormant_count_actor_epoch.div_(num_updates)
+        zero_fraction_actor_epoch.div_(num_updates)
+        zero_count_actor_epoch.div_(num_updates)
+
+        dormant_fraction_critic_epoch.div_(num_updates)
+        dormant_count_critic_epoch.div_(num_updates)
+        zero_fraction_critic_epoch.div_(num_updates)
+        zero_count_critic_epoch.div_(num_updates)
+
         return (
             value_loss_epoch.item(),
             action_loss_epoch.item(),
             dist_entropy_epoch.item(),
+            dormant_fraction_actor_epoch,
+            dormant_count_actor_epoch,
+            zero_fraction_actor_epoch,
+            zero_count_actor_epoch,
+            dormant_fraction_critic_epoch,
+            dormant_count_critic_epoch,
+            zero_fraction_critic_epoch,
+            zero_count_critic_epoch,
         )

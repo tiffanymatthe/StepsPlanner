@@ -88,6 +88,26 @@ class Policy(nn.Module):
             init_r_(nn.Linear(h_size, 1)),
         )
 
+        self.setup_feature_logging()
+
+    def setup_feature_logging(self) -> None:
+        self.to_log_features = False
+        # Prepare for logging
+        self.activations = {}
+        # only collect ReLU layers
+        # TODO: should we include last layer?
+        self.feature_keys = [self.critic[0], self.critic[2], self.critic[4], self.critic[6]]
+
+        def hook_fn(m, i, o):
+            if self.to_log_features:
+                self.activations[m] = F.relu(o)
+
+        for feature in self.feature_keys:
+            feature.register_forward_hook(hook_fn)
+
+    def get_activations(self,):
+        return [self.activations[key] for key in self.feature_keys]
+
     def forward(self, inputs, states, masks):
         raise NotImplementedError
 
@@ -111,13 +131,18 @@ class Policy(nn.Module):
         value = self.critic(inputs)
         return value
 
-    def evaluate_actions(self, inputs, action):
+    def evaluate_actions(self, inputs, action, to_log_features = False):
+        self.to_log_features = to_log_features
+        self.actor.to_log_features = to_log_features
         value = self.critic(inputs)
         mode = self.actor(inputs)
         dist = self.dist(mode)
 
         action_log_probs = dist.log_probs(action)
         dist_entropy = dist.entropy().mean()
+
+        self.to_log_features = False
+        self.actor.to_log_features = False
 
         return value, action_log_probs, dist_entropy
 
@@ -165,6 +190,25 @@ class SoftsignActor(nn.Module):
             nn.ReLU(),
             nn.Linear(h_size, self.action_dim),
         )
+
+        self.setup_feature_logging()
+
+    def setup_feature_logging(self) -> None:
+        self.to_log_features = False
+        # Prepare for logging
+        self.activations = {}
+        # only collect ReLU layers
+        self.feature_keys = [self.net[6], self.net[8]] # TODO double check
+
+        def hook_fn(m, i, o):
+            if self.to_log_features:
+                self.activations[m] = F.relu(o)
+
+        for feature in self.feature_keys:
+            feature.register_forward_hook(hook_fn)
+
+    def get_activations(self,):
+        return [self.activations[key] for key in self.feature_keys]
 
     def forward(self, x):
         return torch.tanh(self.net(x))

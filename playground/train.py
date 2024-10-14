@@ -101,7 +101,7 @@ def main(_seed, _config, _run):
 
     if args.use_wandb:
         run = wandb.init(
-            project="WalkerStepperEnv-v0 - Everything 1",
+            project="WalkerStepperEnv-v0 - ReDo",
             config=args
         )
 
@@ -153,6 +153,8 @@ def main(_seed, _config, _run):
                 parameter.data = trained_parameter.data
         else:
             actor_critic = torch.load(args.net, map_location=torch.device(args.device))
+            actor_critic.critic.setup_feature_logging()
+            actor_critic.actor.setup_feature_logging()
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
@@ -235,7 +237,8 @@ def main(_seed, _config, _run):
         else:
             scheduled_lr = args.lr
 
-        set_optimizer_lr(agent.optimizer, scheduled_lr)
+        set_optimizer_lr(agent.optimizer_critic, scheduled_lr)
+        set_optimizer_lr(agent.optimizer_actor, scheduled_lr)
 
         # Disable gradient for data collection
         with torch.no_grad():
@@ -243,6 +246,7 @@ def main(_seed, _config, _run):
                 value, action, action_log_prob = actor_critic.act(
                     rollouts.observations[step]
                 )
+
                 cpu_actions = action.cpu().numpy()
 
                 obs, rewards, dones, infos = envs.step(cpu_actions)
@@ -309,12 +313,12 @@ def main(_seed, _config, _run):
                 current_iteration = 0
                 if current_curriculum < max_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
-                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                    torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
                 elif current_behavior_curriculum < max_behavior_curriculum:
                     model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
-                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                    torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
                     current_curriculum = 0
                     current_behavior_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
@@ -324,7 +328,20 @@ def main(_seed, _config, _run):
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
-        value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        (
+            value_loss,
+            action_loss,
+            dist_entropy,
+            dormant_fraction_actor,
+            dormant_count_actor,
+            zero_fraction_actor,
+            zero_count_actor,
+            dormant_fraction_critic,
+            dormant_count_critic,
+            zero_fraction_critic,
+            zero_count_critic
+        ) = agent.update(rollouts, iteration)
+        print(f"UPDATED AT ITERATION {iteration}")
 
         rollouts.after_update()
 
@@ -332,15 +349,15 @@ def main(_seed, _config, _run):
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
             model_name = f"{save_name}_{int(next_checkpoint)}.pt"
             next_checkpoint += args.save_every
-            torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+            torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
 
         mean_ep_reward = sum(episode_rewards) / len(episode_rewards) if len(episode_rewards) > 0 else 0
         if len(episode_rewards) > 1 and mean_ep_reward > max_ep_reward:
             max_ep_reward = mean_ep_reward
             model_name = f"{save_name}_best.pt"
             optim_name = f"{save_name}_best.optim"
-            torch.save(actor_critic, os.path.join(args.save_dir, model_name))
-            torch.save(agent.optimizer, os.path.join(args.save_dir, optim_name))
+            torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
+            # torch.save(agent.optimizer, os.path.join(args.save_dir, optim_name))
 
         if len(episode_rewards) > 1:
             end = time.time()
@@ -374,6 +391,14 @@ def main(_seed, _config, _run):
                     "entropy": dist_entropy,
                     "value_loss": value_loss,
                     "action_loss": action_loss,
+                    "dormant_fraction_actor": dormant_fraction_actor,
+                    "dormant_count_actor": dormant_count_actor,
+                    "zero_fraction_actor": zero_fraction_actor,
+                    "zero_count_actor": zero_count_actor,
+                    "dormant_fraction_critic": dormant_fraction_critic,
+                    "dormant_count_critic": dormant_count_critic,
+                    "zero_fraction_critic": zero_fraction_critic,
+                    "zero_count_critic": zero_count_critic,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
                 },
