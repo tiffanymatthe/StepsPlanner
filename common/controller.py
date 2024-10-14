@@ -3,38 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 
-# def register_hook(net, hook_fn):
-#     for name, layer in net._modules.items():
-#         # If it is a sequential, don't register a hook on it but recursively register hook on all it's module children
-#         if isinstance(layer, nn.Sequential):
-#             register_hook(layer)
-#         else:
-#             # it's a non sequential. Register a hook
-#             layer.register_forward_hook(hook_fn)
-
-
-def get_activation_layers(model):
-    """
-    Returns a list of all activation layers in a PyTorch model.
-    
-    Args:
-        model (torch.nn.Module): The model containing layers.
-        
-    Returns:
-        activations (list): A list of activation layers (e.g., ReLU, Softsign).
-    """
-    activations = []
-    
-    for layer in model.children():
-        # Check if the layer is a common activation function
-        if isinstance(layer, (nn.ReLU, nn.Softsign, nn.Sigmoid, nn.Tanh, nn.LeakyReLU, nn.Softmax)):
-            activations.append(layer)
-        # Recursively check within submodules (in case of nested layers)
-        elif isinstance(layer, nn.Sequential) or isinstance(layer, nn.Module):
-            activations.extend(get_activation_layers(layer))
-    
-    return activations
-
 
 class FixedNormal(Normal):
     def __init__(self, loc, scale, validate_args=False):
@@ -126,7 +94,8 @@ class Policy(nn.Module):
         self.to_log_features = False
         # Prepare for logging
         self.activations = {}
-        self.feature_keys = get_activation_layers(self.critic)
+        self.feature_keys = [self.critic[i] for i in [1,3,5]]
+        self.layers_to_check = [self.critic[i] for i in [0,2,4,6]]
 
         def hook_fn(m, i, o):
             if self.to_log_features:
@@ -228,7 +197,8 @@ class SoftsignActor(nn.Module):
         self.to_log_features = False
         # Prepare for logging
         self.activations = {}
-        self.feature_keys = get_activation_layers(self.net)
+        self.feature_keys = [self.net[i] for i in [1,3,5,7]]
+        self.layers_to_check = [self.net[i] for i in [0,2,4,6,8]]
 
         def hook_fn(m, i, o):
             if self.to_log_features:

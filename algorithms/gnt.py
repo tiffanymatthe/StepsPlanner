@@ -3,7 +3,8 @@ import torch
 from math import sqrt
 import torch.nn.functional as F
 from algorithms.adamgnt import AdamGnT
-
+from torch import nn
+import numpy as np
 
 class GnT(object):
     """
@@ -11,12 +12,11 @@ class GnT(object):
     """
     def __init__(
             self,
-            net,
-            hidden_activations,
+            hidden_layers,
+            hidden_activations, # TODO how to use
             opt,
             decay_rate=0.99,
             replacement_rate=1e-4,
-            init='kaiming',
             device="cpu",
             maturity_threshold=20,
             util_type='contribution',
@@ -24,13 +24,15 @@ class GnT(object):
     ):
         super(GnT, self).__init__()
         self.device = device
-        self.net = net
-        self.num_hidden_layers = int(len(self.net)/2)
+        assert len(hidden_layers) == len(hidden_activations) + 1
         self.accumulate = accumulate
+
+        self.hidden_layers = hidden_layers
+        self.hidden_activations = hidden_activations
 
         self.opt = opt
         self.opt_type = 'sgd'
-        if isinstance(self.opt, AdamGnT):
+        if isinstance(self.opt, (AdamGnT, torch.optim.AdamW, torch.optim.Adam)):
             self.opt_type = 'adam'
 
         """
@@ -44,35 +46,13 @@ class GnT(object):
         """
         Utility of all features/neurons
         """
-        self.util = [torch.zeros(self.net[i * 2].out_features).to(self.device) for i in range(self.num_hidden_layers)]
+        self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
         self.bias_corrected_util = \
-            [torch.zeros(self.net[i * 2].out_features).to(self.device) for i in range(self.num_hidden_layers)]
-        self.ages = [torch.zeros(self.net[i * 2].out_features).to(self.device) for i in range(self.num_hidden_layers)]
+            [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
+        self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
         self.m = torch.nn.Softmax(dim=1)
-        self.mean_feature_act = [torch.zeros(self.net[i * 2].out_features).to(self.device) for i in range(self.num_hidden_layers)]
-        self.accumulated_num_features_to_replace = [0 for i in range(self.num_hidden_layers)]
-
-        """
-        Calculate uniform distribution's bound for random feature initialization
-        """
-        # if hidden_activation == 'selu': init = 'lecun'
-        self.bounds = self.compute_bounds(hidden_activations=hidden_activations, init=init)
-
-    def compute_bounds(self, hidden_activations, init='kaiming'):
-        # if hidden_activation in ['swish', 'elu']: hidden_activation = 'relu'
-        if init == 'default':
-            bounds = [sqrt(1 / self.net[i * 2].in_features) for i in range(self.num_hidden_layers)]
-        elif init == 'xavier':
-            bounds = [torch.nn.init.calculate_gain(nonlinearity=hidden_activations[i]) *
-                      sqrt(6 / (self.net[i * 2].in_features + self.net[i * 2].out_features)) for i in
-                      range(self.num_hidden_layers)]
-        elif init == 'lecun':
-            bounds = [sqrt(3 / self.net[i * 2].in_features) for i in range(self.num_hidden_layers)]
-        else:
-            bounds = [torch.nn.init.calculate_gain(nonlinearity=hidden_activations[i]) *
-                      sqrt(3 / self.net[i * 2].in_features) for i in range(self.num_hidden_layers)]
-        bounds.append(1 * sqrt(3 / self.net[self.num_hidden_layers * 2].in_features))
-        return bounds
+        self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
+        self.accumulated_num_features_to_replace = [0 for hidden_layer in hidden_layers]
 
     def update_utility(self, layer_idx=0, features=None, next_features=None):
         with torch.no_grad():
@@ -86,8 +66,8 @@ class GnT(object):
             self.mean_feature_act[layer_idx] -= - (1 - self.decay_rate) * features.mean(dim=0)
             bias_corrected_act = self.mean_feature_act[layer_idx] / bias_correction
 
-            current_layer = self.net[layer_idx * 2]
-            next_layer = self.net[layer_idx * 2 + 2]
+            current_layer = self.hidden_layers[layer_idx]
+            next_layer = self.hidden_layers[layer_idx + 1]
             output_wight_mag = next_layer.weight.data.abs().mean(dim=0)
             input_wight_mag = current_layer.weight.data.abs().mean(dim=1)
 
@@ -124,11 +104,13 @@ class GnT(object):
         Returns:
             Features to replace in each layer, Number of features to replace in each layer
         """
-        features_to_replace = [torch.empty(0, dtype=torch.long).to(self.device) for _ in range(self.num_hidden_layers)]
-        num_features_to_replace = [0 for _ in range(self.num_hidden_layers)]
+        # -1 since we don't want to replace features in outgoing layer
+        features_to_replace = [torch.empty(0, dtype=torch.long).to(self.device) for _ in range(len(self.hidden_layers)-1)]
+        num_features_to_replace = [0 for _ in range(len(self.hidden_layers) - 1)]
+        num_eligible_features = [0 for _ in range(len(self.hidden_layers) - 1)]
         if self.replacement_rate == 0:
             return features_to_replace, num_features_to_replace
-        for i in range(self.num_hidden_layers):
+        for i in range(len(self.hidden_layers)-1):
             self.ages[i] += 1
             """
             Update feature utility
@@ -138,6 +120,7 @@ class GnT(object):
             Find the no. of features to replace
             """
             eligible_feature_indices = torch.where(self.ages[i] > self.maturity_threshold)[0]
+            num_eligible_features[i] = eligible_feature_indices.shape[0]
             if eligible_feature_indices.shape[0] == 0:
                 continue
             num_new_features_to_replace = self.replacement_rate*eligible_feature_indices.shape[0]
@@ -174,24 +157,27 @@ class GnT(object):
             features_to_replace[i] = new_features_to_replace
             num_features_to_replace[i] = num_new_features_to_replace
 
-        return features_to_replace, num_features_to_replace
+        return features_to_replace, num_features_to_replace, num_eligible_features
 
     def gen_new_features(self, features_to_replace, num_features_to_replace):
         """
         Generate new features: Reset input and output weights for low utility features
         """
         with torch.no_grad():
-            for i in range(self.num_hidden_layers):
+            for i in range(len(self.hidden_layers) - 1):
                 if num_features_to_replace[i] == 0:
                     continue
-                current_layer = self.net[i * 2]
-                next_layer = self.net[i * 2 + 2]
+                current_layer = self.hidden_layers[i]
+                next_layer = self.hidden_layers[i + 1]
+
                 current_layer.weight.data[features_to_replace[i], :] *= 0.0
-                # noinspection PyArgumentList
-                current_layer.weight.data[features_to_replace[i], :] += \
-                    torch.empty(num_features_to_replace[i], current_layer.in_features).uniform_(
-                        -self.bounds[i], self.bounds[i]).to(self.device)
-                current_layer.bias.data[features_to_replace[i]] *= 0
+                nn.init.orthogonal_(
+                    current_layer.weight.data[features_to_replace[i], :],
+                    gain=nn.init.calculate_gain(self.hidden_activations[i])
+                )
+                nn.init.constant_(
+                    current_layer.bias.data[features_to_replace[i]], 0
+                )
                 """
                 # Update bias to correct for the removed features and set the outgoing weights and ages to zero
                 """
@@ -207,20 +193,20 @@ class GnT(object):
         Update Optimizer's state
         """
         if self.opt_type == 'adam':
-            for i in range(self.num_hidden_layers):
+            for i in range(len(self.hidden_layers)-1):
                 # input weights
                 if num_features_to_replace == 0:
                     continue
-                self.opt.state[self.net[i * 2].weight]['exp_avg'][features_to_replace[i], :] = 0.0
-                self.opt.state[self.net[i * 2].bias]['exp_avg'][features_to_replace[i]] = 0.0
-                self.opt.state[self.net[i * 2].weight]['exp_avg_sq'][features_to_replace[i], :] = 0.0
-                self.opt.state[self.net[i * 2].bias]['exp_avg_sq'][features_to_replace[i]] = 0.0
-                self.opt.state[self.net[i * 2].weight]['step'][features_to_replace[i], :] = 0
-                self.opt.state[self.net[i * 2].bias]['step'][features_to_replace[i]] = 0
+                self.opt.state[self.hidden_layers[i].weight]['exp_avg'][features_to_replace[i], :] = 0.0
+                self.opt.state[self.hidden_layers[i].bias]['exp_avg'][features_to_replace[i]] = 0.0
+                self.opt.state[self.hidden_layers[i].weight]['exp_avg_sq'][features_to_replace[i], :] = 0.0
+                self.opt.state[self.hidden_layers[i].bias]['exp_avg_sq'][features_to_replace[i]] = 0.0
+                self.opt.state[self.hidden_layers[i].weight]['step'].zero_()
+                self.opt.state[self.hidden_layers[i].bias]['step'].zero_()
                 # output weights
-                self.opt.state[self.net[i * 2 + 2].weight]['exp_avg'][:, features_to_replace[i]] = 0.0
-                self.opt.state[self.net[i * 2 + 2].weight]['exp_avg_sq'][:, features_to_replace[i]] = 0.0
-                self.opt.state[self.net[i * 2 + 2].weight]['step'][:, features_to_replace[i]] = 0
+                self.opt.state[self.hidden_layers[i+1].weight]['exp_avg'][:, features_to_replace[i]] = 0.0
+                self.opt.state[self.hidden_layers[i+1].weight]['exp_avg_sq'][:, features_to_replace[i]] = 0.0
+                self.opt.state[self.hidden_layers[i+1].weight]['step'].zero_()
 
     def gen_and_test(self, features):
         """
@@ -230,6 +216,11 @@ class GnT(object):
         if not isinstance(features, list):
             print('features passed to generate-and-test should be a list')
             sys.exit()
-        features_to_replace, num_features_to_replace = self.test_features(features=features)
+        features_to_replace, num_features_to_replace, num_eligible_features = self.test_features(features=features)
         self.gen_new_features(features_to_replace, num_features_to_replace)
         self.update_optim_params(features_to_replace, num_features_to_replace)
+
+        num_features_to_replace = np.array(num_features_to_replace)
+        num_eligible_features = np.array(num_eligible_features)
+
+        return np.sum(np.where(num_eligible_features != 0, num_features_to_replace / num_eligible_features, 0))

@@ -48,40 +48,37 @@ class PPO(object):
 
         self.mirror_function = mirror_function
 
-        # GNT stuff
         self.optimizer = optim.AdamW(
             actor_critic.parameters(),
             lr=lr,
             weight_decay=5e-4,
             eps=eps,
-            # betas=(0.99,0.99)
+            betas=(0.99,0.99)
         )
 
         # settings based on https://github.com/shibhansh/loss-of-plasticity/blob/7bf3dfe6723a43a543fa1057a38eaf4b480f2ff3/lop/rl/cfg/walker/cbp.yml
 
         self.actor_gnt = GnT(
-            net=self.actor_critic.actor.net,
-            hidden_activations=["sigmoid", "sigmoid", "sigmoid","relu", "relu"],
+            hidden_layers=self.actor_critic.actor.layers_to_check,
+            hidden_activations=["sigmoid", "sigmoid", "sigmoid","relu"],
             opt=self.optimizer,
             replacement_rate=1e-4,
             decay_rate=0.99,
             maturity_threshold=10000,
             util_type="contribution",
             device="cuda:0" if torch.cuda.is_available() else "cpu",
-            init="default",
             # accumulate=accumulate,
         )
 
         self.critic_gnt = GnT(
-            net=self.actor_critic.critic,
-            hidden_activations=["relu", "relu", "relu", "relu"],
+            hidden_layers=self.actor_critic.layers_to_check,
+            hidden_activations=["relu", "relu", "relu"],
             opt=self.optimizer,
             replacement_rate=1e-4,
             decay_rate=0.99,
             maturity_threshold=10000,
             util_type="contribution",
             device="cuda:0" if torch.cuda.is_available() else "cpu",
-            init="default",
             # accumulate=accumulate,
         )
 
@@ -93,6 +90,8 @@ class PPO(object):
         value_loss_epoch = torch.tensor(0.0).to(device)
         action_loss_epoch = torch.tensor(0.0).to(device)
         dist_entropy_epoch = torch.tensor(0.0).to(device)
+        critic_fraction_to_replace_epoch = torch.tensor(0.0).to(device)
+        actor_fraction_to_replace_epoch = torch.tensor(0.0).to(device)
 
         clip_param = self.clip_param
 
@@ -162,23 +161,29 @@ class PPO(object):
                 clip_grad_norm_(parameters, self.max_grad_norm)
                 self.optimizer.step()
 
-                # # continual backprop (wipe dormant neurons)
-                # self.optimizer.zero_grad()
-                # self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
-                # self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
+                # continual backprop (wipe dormant neurons)
+                self.optimizer.zero_grad()
+                critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
+                actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())
                 dist_entropy_epoch.add_(dist_entropy.detach())
+                critic_fraction_to_replace_epoch.add_(critic_fraction_to_replace)
+                actor_fraction_to_replace_epoch.add_(actor_fraction_to_replace)
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
         value_loss_epoch.div_(num_updates)
         action_loss_epoch.div_(num_updates)
         dist_entropy_epoch.div_(num_updates)
+        critic_fraction_to_replace_epoch.div_(num_updates)
+        actor_fraction_to_replace_epoch.div_(num_updates)
 
         return (
             value_loss_epoch.item(),
             action_loss_epoch.item(),
             dist_entropy_epoch.item(),
+            critic_fraction_to_replace_epoch.item(),
+            actor_fraction_to_replace_epoch.item()
         )
