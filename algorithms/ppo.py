@@ -163,31 +163,31 @@ class PPO(object):
                 action_loss_epoch.add_(action_loss.detach())
                 dist_entropy_epoch.add_(dist_entropy.detach())
 
-                # if e == self.ppo_epoch - 1:
-                redo_out_actor = run_redo(
-                    layers_to_reset=self.actor_critic.actor.feature_keys,
-                    activations=self.actor_critic.actor.get_activations(),
-                    optimizer=self.optimizer_actor,
-                    re_initialize=False,
-                    tau=self.tau
-                )
-                redo_out_critic = run_redo(
-                    layers_to_reset=self.actor_critic.feature_keys,
-                    activations=self.actor_critic.get_activations(),
-                    optimizer=self.optimizer_critic,
-                    re_initialize=False,
-                    tau=self.tau
-                )
+                if e == self.ppo_epoch - 1:
+                    redo_out_actor = run_redo(
+                        layers_to_reset=self.actor_critic.actor.feature_keys,
+                        activations=self.actor_critic.actor.get_activations(),
+                        optimizer=self.optimizer_actor,
+                        re_initialize=True,
+                        tau=self.tau
+                    )
+                    redo_out_critic = run_redo(
+                        layers_to_reset=self.actor_critic.feature_keys,
+                        activations=self.actor_critic.get_activations(),
+                        optimizer=self.optimizer_critic,
+                        re_initialize=True,
+                        tau=self.tau
+                    )
 
-                dormant_fraction_actor_epoch.add_(redo_out_actor["dormant_fraction"])
-                dormant_count_actor_epoch.add_(redo_out_actor["dormant_count"])
-                zero_fraction_actor_epoch.add_(redo_out_actor["zero_fraction"])
-                zero_count_actor_epoch.add_(redo_out_actor["zero_count"])
+                    dormant_fraction_actor_epoch.add_(redo_out_actor["dormant_fraction"])
+                    dormant_count_actor_epoch.add_(redo_out_actor["dormant_count"])
+                    zero_fraction_actor_epoch.add_(redo_out_actor["zero_fraction"])
+                    zero_count_actor_epoch.add_(redo_out_actor["zero_count"])
 
-                dormant_fraction_critic_epoch.add_(redo_out_critic["dormant_fraction"])
-                dormant_count_critic_epoch.add_(redo_out_critic["dormant_count"])
-                zero_fraction_critic_epoch.add_(redo_out_critic["zero_fraction"])
-                zero_count_critic_epoch.add_(redo_out_critic["zero_count"])
+                    dormant_fraction_critic_epoch.add_(redo_out_critic["dormant_fraction"])
+                    dormant_count_critic_epoch.add_(redo_out_critic["dormant_count"])
+                    zero_fraction_critic_epoch.add_(redo_out_critic["zero_fraction"])
+                    zero_count_critic_epoch.add_(redo_out_critic["zero_count"])
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
@@ -195,15 +195,15 @@ class PPO(object):
         action_loss_epoch.div_(num_updates)
         dist_entropy_epoch.div_(num_updates)
 
-        dormant_fraction_actor_epoch.div_(num_updates)
-        dormant_count_actor_epoch.div_(num_updates)
-        zero_fraction_actor_epoch.div_(num_updates)
-        zero_count_actor_epoch.div_(num_updates)
+        # dormant_fraction_actor_epoch.div_(num_updates)
+        # dormant_count_actor_epoch.div_(num_updates)
+        # zero_fraction_actor_epoch.div_(num_updates)
+        # zero_count_actor_epoch.div_(num_updates)
 
-        dormant_fraction_critic_epoch.div_(num_updates)
-        dormant_count_critic_epoch.div_(num_updates)
-        zero_fraction_critic_epoch.div_(num_updates)
-        zero_count_critic_epoch.div_(num_updates)
+        # dormant_fraction_critic_epoch.div_(num_updates)
+        # dormant_count_critic_epoch.div_(num_updates)
+        # zero_fraction_critic_epoch.div_(num_updates)
+        # zero_count_critic_epoch.div_(num_updates)
 
         return (
             value_loss_epoch.item(),
