@@ -221,7 +221,10 @@ class GnT(object):
             self.gen_new_features(features_to_replace, num_features_to_replace)
             self.update_optim_params(features_to_replace, num_features_to_replace)
 
-        num_features_to_replace = np.array(num_features_to_replace)
-        num_eligible_features = np.array(num_eligible_features)
+        num_features_to_replace = np.sum(np.array(num_features_to_replace))
+        num_eligible_features = np.sum(np.array(num_eligible_features))
 
-        return np.sum(np.where(num_eligible_features != 0, num_features_to_replace / num_eligible_features, 0))
+        if num_eligible_features == 0:
+            return 0
+        else:
+            return num_features_to_replace / num_eligible_features
