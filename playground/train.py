@@ -21,6 +21,10 @@ os.sys.path.insert(0, parent_dir)
 
 import numpy as np
 import torch
+try:
+    import cPickle as pickle
+except ModuleNotFoundError:
+    import pickle
 
 import mocca_envs
 from algorithms.ppo import PPO
@@ -96,6 +100,29 @@ def configs():
     }
 
 
+def save_all(agent, actor_critic, save_dir, model_name):
+    # model name should have no extension
+    # print(f"Saving {model_name} model.")
+    net_name = f"{model_name}.pt"
+    optim_name = f"{model_name}.optim"
+    gnts_name = f"{model_name}_gnts.pkl"
+    torch.save(actor_critic.state_dict(), os.path.join(save_dir, net_name))
+    torch.save(agent.optimizer.state_dict(), os.path.join(save_dir, optim_name))
+    with open(os.path.join(save_dir, gnts_name), "wb") as f:
+        pickle.dump({"critic_gnt": agent.critic_gnt, "actor_gnt": agent.actor_gnt}, f)
+
+def load_net(net_path, device, actor_class, dummy_env):
+    # net_path has .pt extension
+    controller = actor_class(dummy_env)
+    actor_critic = Policy(controller)
+    actor_critic.load_state_dict(torch.load(net_path, map_location=torch.device(device)))
+    if not hasattr(actor_critic, 'feature_keys'):
+        actor_critic.setup_feature_logging()
+        actor_critic.actor.setup_feature_logging()
+
+    return actor_critic
+
+
 @ex.automain
 def main(_seed, _config, _run):
     args = init(_seed, _config, _run)
@@ -139,6 +166,8 @@ def main(_seed, _config, _run):
     obs_shape = (obs_shape[0], *obs_shape[1:])
     action_dim = envs.action_space.shape[0]
 
+    optimizer, gnts_dict = None, None
+
     if args.net is not None:
         print(f"Loading model {args.net}")
         if args.only_use_critic:
@@ -153,10 +182,7 @@ def main(_seed, _config, _run):
             ):
                 parameter.data = trained_parameter.data
         else:
-            actor_critic = torch.load(args.net, map_location=torch.device(args.device))
-            if not hasattr(actor_critic, 'feature_keys'):
-                actor_critic.setup_feature_logging()
-                actor_critic.actor.setup_feature_logging()
+            actor_critic = load_net(args.net, args.device, globals().get(args.actor_class), dummy_env)
     else:
         actor_class = globals().get(args.actor_class)
         print(f"Actor Class: {actor_class}")
@@ -195,7 +221,7 @@ def main(_seed, _config, _run):
         indices = dummy_env.unwrapped.get_mirror_indices()
         mirror_function = get_mirror_function(indices, device=args.device)
 
-    agent = PPO(actor_critic, mirror_function=mirror_function, **args.ppo_params)
+    agent = PPO(actor_critic, mirror_function=mirror_function, net_path=args.net, device=args.device, **args.ppo_params)
 
     rollouts = RolloutStorage(args.num_steps, args.num_processes, obs_shape, action_dim)
     rollouts.to(args.device)
@@ -312,13 +338,11 @@ def main(_seed, _config, _run):
             ):
                 current_iteration = 0
                 if current_curriculum < max_curriculum:
-                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
-                    torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
+                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
                 elif current_behavior_curriculum < max_behavior_curriculum:
-                    model_name = f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}.pt"
-                    torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
+                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
                     current_curriculum = 0
                     current_behavior_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
@@ -334,17 +358,13 @@ def main(_seed, _config, _run):
 
         frame_count = (iteration + 1) * args.num_steps * args.num_processes
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
-            model_name = f"{save_name}_{int(next_checkpoint)}.pt"
             next_checkpoint += args.save_every
-            torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
+            save_all(agent, actor_critic, args.save_dir, f"{save_name}_{int(next_checkpoint)}")
 
         mean_ep_reward = sum(episode_rewards) / len(episode_rewards) if len(episode_rewards) > 0 else 0
         if len(episode_rewards) > 1 and mean_ep_reward > max_ep_reward:
             max_ep_reward = mean_ep_reward
-            model_name = f"{save_name}_best.pt"
-            optim_name = f"{save_name}_best.optim"
-            torch.save(actor_critic.state_dict(), os.path.join(args.save_dir, model_name))
-            torch.save(agent.optimizer, os.path.join(args.save_dir, optim_name))
+            save_all(agent, actor_critic, args.save_dir, f"{save_name}_best")
 
         if len(episode_rewards) > 1:
             end = time.time()

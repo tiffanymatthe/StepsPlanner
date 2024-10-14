@@ -11,6 +11,11 @@ import torch.optim as optim
 from algorithms.gnt import GnT
 # from algorithms.adamgnt import AdamGnT
 
+try:
+    import cPickle as pickle
+except ModuleNotFoundError:
+    import pickle
+
 def clip_grad_norm_(parameters, max_norm):
     total_norm = torch.cat([p.grad.detach().view(-1) for p in parameters]).norm()
     clip_coef = (max_norm / (total_norm + 1e-6)).clamp(max=1.0)
@@ -28,6 +33,8 @@ class PPO(object):
         num_mini_batch,
         value_loss_coef,
         entropy_coef,
+        net_path=None,
+        device="cuda:0",
         lr=None,
         eps=None,
         max_grad_norm=None,
@@ -84,6 +91,26 @@ class PPO(object):
             device="cuda:0" if torch.cuda.is_available() else "cpu",
             # accumulate=accumulate,
         )
+
+        if net_path is not None:
+            base_path = os.path.splitext(net_path)[0]
+            optimizer_path = f"{base_path}.optim"
+            if os.path.exists(optimizer_path):
+                print(f"Loading saved optimizer {optimizer_path}")
+                self.optimizer.load_state_dict(torch.load(optimizer_path, map_location=torch.device(device)))
+            
+            gnts_path = f"{base_path}_gnts.pkl"
+            if os.path.exists(gnts_path):
+                print(f"Loading saved gnts {gnts_path}")
+                with open(gnts_path, "rb") as f:
+                    gnt_dict = pickle.load(f)
+                    for (old_gnt, new_gnt) in [(gnt_dict["critic_gnt"], self.critic_gnt),(gnt_dict["actor_gnt"], self.actor_gnt)]:
+                        new_gnt.util = old_gnt.util
+                        new_gnt.bias_corrected_util = old_gnt.bias_corrected_util
+                        new_gnt.ages = old_gnt.ages
+                        new_gnt.m = old_gnt.m
+                        new_gnt.mean_feature_act = old_gnt.mean_feature_act
+                        new_gnt.accumulated_num_features_to_replace = old_gnt.accumulated_num_features_to_replace
 
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
