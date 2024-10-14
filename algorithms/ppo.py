@@ -33,6 +33,7 @@ class PPO(object):
         max_grad_norm=None,
         use_clipped_value_loss=True,
         mirror_function=None,
+        only_test_plasticity=False,
     ):
         self.actor_critic = actor_critic
 
@@ -47,6 +48,8 @@ class PPO(object):
         self.use_clipped_value_loss = use_clipped_value_loss
 
         self.mirror_function = mirror_function
+
+        self.only_test = only_test_plasticity
 
         self.optimizer = optim.AdamW(
             actor_critic.parameters(),
@@ -163,10 +166,8 @@ class PPO(object):
 
                 # continual backprop (wipe dormant neurons)
                 self.optimizer.zero_grad()
-                critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations() + [None])
-                actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations() + [None])
-                critic_fraction_to_replace = 0
-                actor_fraction_to_replace = 0
+                critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
+                actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())

@@ -92,6 +92,7 @@ def configs():
         "lr": lr,
         "eps": 1e-5,
         "max_grad_norm": 2.0,
+        "only_test_plasticity": False,
     }
 
 

@@ -208,7 +208,7 @@ class GnT(object):
                 self.opt.state[self.hidden_layers[i+1].weight]['exp_avg_sq'][:, features_to_replace[i]] = 0.0
                 self.opt.state[self.hidden_layers[i+1].weight]['step'].zero_()
 
-    def gen_and_test(self, features):
+    def gen_and_test(self, features, only_test = False):
         """
         Perform generate-and-test
         :param features: activation of hidden units in the neural network
@@ -217,8 +217,9 @@ class GnT(object):
             print('features passed to generate-and-test should be a list')
             sys.exit()
         features_to_replace, num_features_to_replace, num_eligible_features = self.test_features(features=features)
-        self.gen_new_features(features_to_replace, num_features_to_replace)
-        self.update_optim_params(features_to_replace, num_features_to_replace)
+        if not only_test:
+            self.gen_new_features(features_to_replace, num_features_to_replace)
+            self.update_optim_params(features_to_replace, num_features_to_replace)
 
         num_features_to_replace = np.array(num_features_to_replace)
         num_eligible_features = np.array(num_eligible_features)
