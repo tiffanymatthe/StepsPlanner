@@ -54,7 +54,7 @@ class PPO(object):
             lr=lr,
             weight_decay=5e-4,
             eps=eps,
-            betas=(0.99,0.99)
+            # betas=(0.99,0.99)
         )
 
         # settings based on https://github.com/shibhansh/loss-of-plasticity/blob/7bf3dfe6723a43a543fa1057a38eaf4b480f2ff3/lop/rl/cfg/walker/cbp.yml
