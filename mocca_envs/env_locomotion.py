@@ -1789,7 +1789,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
 
-        if self.selected_behavior in {"one_step_plant", "hopping"}:
+        if self.selected_behavior in {"one_step_plant"}: #, "hopping"}:
             reward += 2 * self.step_bonus_other_leg
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
@@ -2103,7 +2103,7 @@ class Walker3DStepperEnv(EnvBase):
                 )
             )
             foot_in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
+            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius # and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
             other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius + 0.1
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
         # else:
