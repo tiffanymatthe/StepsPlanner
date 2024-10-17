@@ -13,7 +13,7 @@ class GnT(object):
     def __init__(
             self,
             hidden_layers,
-            hidden_activations,
+            hidden_activations, # TODO how to use
             opt,
             decay_rate=0.99,
             replacement_rate=1e-4,
