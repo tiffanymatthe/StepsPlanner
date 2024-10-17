@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Walker3D
     robot_random_start = True
-    robot_init_position = [0, 0.3, 1.32]
+    robot_init_position = [0, 0.3, 1.52]
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
@@ -388,7 +388,7 @@ class Walker3DStepperEnv(EnvBase):
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
-        self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
+        self.applied_gain_curriculum = np.linspace(1.5, 1.5, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
