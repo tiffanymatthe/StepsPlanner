@@ -480,7 +480,11 @@ class Walker3DStepperEnv(EnvBase):
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
 
     def get_timing(self, N):
-        if self.selected_curriculum == 0 and self.selected_behavior == "one_step_plant":
+        if self.selected_behavior == "hopping":
+            half_cycle_times = np.ones(N) * 30
+            timing_0 = half_cycle_times * 0.3
+            timing_1 = half_cycle_times * 0.7 
+        elif self.selected_curriculum == 0 and self.selected_behavior == "one_step_plant":
             half_cycle_times = np.ones(N) * 40
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
@@ -1860,7 +1864,7 @@ class Walker3DStepperEnv(EnvBase):
 
         angle_delta = self.smallest_angle_between(self.robot.feet_rpy[self.swing_leg,2], self.terrain_info[self.next_step_index, 6])
 
-        multiplier = 2 # if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
+        multiplier = 2 if (self.selected_behavior != "hopping") else 0.1 # if (self.curriculum > 0 or self.behavior_curriculum > 0 or self.from_net) else 0.1
 
         if self.mask_info["heading"][2]:
             multiplier = 0
@@ -1883,7 +1887,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress * 2
+        self.progress = linear_progress * 1
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1933,8 +1937,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.body_stationary_count = 0
         count = 200
-        # if self.body_stationary_count > count:
-        #     self.legs_bonus -= 100
+        if self.body_stationary_count > count:
+            self.legs_bonus -= 100
 
         if self.mask_info["timing"][2]:
             self.timing_bonus = 0
@@ -1943,7 +1947,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
-        check_other_foot_on_ground = not self.mask_info["timing"][2] and np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
+        check_other_foot_on_ground = not self.mask_info["timing"][2] and self.terrain_info[self.next_step_index, 10] # np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
@@ -2244,8 +2248,8 @@ class Walker3DStepperEnv(EnvBase):
         #     # TODO: bad for mixing everything together
         #     walk_target_full = targets[self.walk_target_index]
         # else:
-        walk_target_full = self.terrain_info[self.next_step_index]
-        # walk_target_full = targets[self.walk_target_index]
+        # walk_target_full = self.terrain_info[self.next_step_index]
+        walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
         if int(walk_target_full[7]) == 1:
