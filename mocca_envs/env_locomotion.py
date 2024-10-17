@@ -323,7 +323,7 @@ class Walker3DStepperEnv(EnvBase):
     rendered_step_count = 4
     init_step_separation = 0.70
 
-    step_delay = 5
+    step_delay = 4
 
     lookahead = 2
     lookbehind = 1
@@ -1572,7 +1572,7 @@ class Walker3DStepperEnv(EnvBase):
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
         factor = 0 if self.determine else 0.35
-        train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
+        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if self.behaviors[self.behavior_curriculum] == "combine_all":
             self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
@@ -1883,7 +1883,7 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_potential()
 
         linear_progress = self.linear_potential - old_linear_potential
-        self.progress = linear_progress
+        self.progress = linear_progress * 2
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
@@ -1933,8 +1933,8 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.body_stationary_count = 0
         count = 200
-        if self.body_stationary_count > count:
-            self.legs_bonus -= 100
+        # if self.body_stationary_count > count:
+        #     self.legs_bonus -= 100
 
         if self.mask_info["timing"][2]:
             self.timing_bonus = 0
@@ -2244,8 +2244,8 @@ class Walker3DStepperEnv(EnvBase):
         #     # TODO: bad for mixing everything together
         #     walk_target_full = targets[self.walk_target_index]
         # else:
-        # walk_target_full = self.terrain_info[self.next_step_index]
-        walk_target_full = targets[self.walk_target_index]
+        walk_target_full = self.terrain_info[self.next_step_index]
+        # walk_target_full = targets[self.walk_target_index]
         self.walk_target = np.copy(walk_target_full[0:3])
         heading = walk_target_full[6]
         if int(walk_target_full[7]) == 1:
