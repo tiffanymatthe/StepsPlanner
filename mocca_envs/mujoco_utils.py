@@ -6,7 +6,10 @@ def modify_mujoco_sizes(xml_path, arm_scale_factor, leg_scale_factor, save_dir):
     base, ext = os.path.splitext(xml_path)
     folder = f"{os.path.dirname(save_dir)}/temp_xml"
     if not os.path.exists(folder):
-        os.makedirs(folder)
+        try:
+            os.makedirs(folder)
+        except FileExistsError:
+            print(f"Path {folder} already exists, not remaking.")
     output_path = f"{folder}/walker3d_modified_{arm_scale_factor}_{leg_scale_factor}{ext}"
 
     if os.path.isfile(output_path):
