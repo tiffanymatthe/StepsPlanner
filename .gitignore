@@ -8,8 +8,10 @@ dump/
 *.csv
 wandb/*
 *.out
+temp_xml/*
 
 videos/*
+models/*
 
 # editors
 .vscode/
