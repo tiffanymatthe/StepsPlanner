@@ -11,7 +11,6 @@ wandb/*
 
 videos/*
 models/*
-temp_xml/*
 
 # editors
 .vscode/
