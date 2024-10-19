@@ -97,6 +97,8 @@ def configs():
         "eps": 1e-5,
         "max_grad_norm": 2.0,
         "only_test_plasticity": False,
+        "replacement_rate": 1e-4,
+        "maturity_threshold": 10000,
     }
 
 

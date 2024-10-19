@@ -41,6 +41,8 @@ class PPO(object):
         use_clipped_value_loss=True,
         mirror_function=None,
         only_test_plasticity=False,
+        replacement_rate=1e-4,
+        maturity_threshold=10000,
     ):
         self.actor_critic = actor_critic
 
@@ -72,9 +74,9 @@ class PPO(object):
             hidden_layers=self.actor_critic.actor.layers_to_check,
             hidden_activations=["relu", "relu"],
             opt=self.optimizer,
-            replacement_rate=1e-4,
+            replacement_rate=replacement_rate,
             decay_rate=0.99,
-            maturity_threshold=10000,
+            maturity_threshold=maturity_threshold,
             util_type="contribution",
             device="cuda:0" if torch.cuda.is_available() else "cpu",
             # accumulate=accumulate,
@@ -84,9 +86,9 @@ class PPO(object):
             hidden_layers=self.actor_critic.layers_to_check,
             hidden_activations=["relu", "relu", "relu", "relu"],
             opt=self.optimizer,
-            replacement_rate=1e-4,
+            replacement_rate=replacement_rate,
             decay_rate=0.99,
-            maturity_threshold=10000,
+            maturity_threshold=maturity_threshold,
             util_type="contribution",
             device="cuda:0" if torch.cuda.is_available() else "cpu",
             # accumulate=accumulate,
