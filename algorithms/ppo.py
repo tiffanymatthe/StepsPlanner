@@ -70,9 +70,9 @@ class PPO(object):
 
         self.actor_gnt = GnT(
             hidden_layers=self.actor_critic.actor.layers_to_check,
-            hidden_activations=["relu"],
+            hidden_activations=["relu", "relu"],
             opt=self.optimizer,
-            replacement_rate=1e-2,
+            replacement_rate=1e-4,
             decay_rate=0.99,
             maturity_threshold=10000,
             util_type="contribution",
@@ -82,9 +82,9 @@ class PPO(object):
 
         self.critic_gnt = GnT(
             hidden_layers=self.actor_critic.layers_to_check,
-            hidden_activations=["relu", "relu", "relu"],
+            hidden_activations=["relu", "relu", "relu", "relu"],
             opt=self.optimizer,
-            replacement_rate=1e-2,
+            replacement_rate=1e-4,
             decay_rate=0.99,
             maturity_threshold=10000,
             util_type="contribution",
