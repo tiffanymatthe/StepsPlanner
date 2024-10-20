@@ -311,7 +311,7 @@ class Walker3DStepperEnv(EnvBase):
     sim_frame_skip = 4
     max_timestep = 1000
 
-    robot_class = Walker3D
+    robot_class = Mike
     robot_random_start = True
     robot_init_position = [0, 0.3, 1.32]
     robot_init_velocity = None
@@ -321,7 +321,7 @@ class Walker3DStepperEnv(EnvBase):
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 4
-    init_step_separation = 0.70
+    init_step_separation = 0.60
 
     step_delay = 4
 
@@ -387,7 +387,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # Robot settings
         N = self.max_curriculum + 1
-        self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
+        self.terminal_height_curriculum = np.linspace(0.65, 0.45, N)
         self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
@@ -414,26 +414,26 @@ class Walker3DStepperEnv(EnvBase):
             "one_step_plant": np.linspace(0, np.pi / 4, N),
         }
         self.dist_range = {
-            "to_standstill": np.array([0.65, 0]),
-            "random_walks": np.array([0.55, 0.75]),
+            "to_standstill": np.array([0.55, 0]),
+            "random_walks": np.array([0.55, 0.60]),
             "random_walks_backward": np.array([-0.3, -0.43]),
             "turn_in_place": np.array([0.7, 0.1]),
-            "side_step": np.array([0.2, 0.7]),
+            "side_step": np.array([0.2, 0.5]),
             "backward": np.array([0.0, -0.43]),
-            "heading_var": np.array([0.65, 0.65]),
-            "timing_gaits": np.array([0.65, 0.65]),
-            "one_step_plant": np.array([0.65, 0.65]),
+            "heading_var": np.array([0.55, 0.55]),
+            "timing_gaits": np.array([0.55, 0.55]),
+            "one_step_plant": np.array([0.55, 0.55]),
         }
 
         self.foot_sep_range = {
-            "to_standstill": np.array([-0.04,0.16]),
-            "random_walks": np.array([-0.04,0.10]),
-            "random_walks_backward": np.array([-0.04,0.10]),
-            "turn_in_place": np.array([-0.04,0.04]),
-            "side_step": np.array([-0.04,0.04]),
-            "backward": np.array([-0.04,0.12]),
-            "heading_var": np.array([-0.04,0.16]),
-            "timing_gaits": np.array([-0.04,0.16]),
+            "to_standstill": np.array([-0.02,0.08]),
+            "random_walks": np.array([-0.02,0.08]),
+            "random_walks_backward": np.array([-0.02,0.08]),
+            "turn_in_place": np.array([-0.02,0.04]),
+            "side_step": np.array([-0.02,0.04]),
+            "backward": np.array([-0.02,0.08]),
+            "heading_var": np.array([-0.02,0.08]),
+            "timing_gaits": np.array([-0.02,0.08]),
             "one_step_plant": np.array([0,0.3]),
         }
 
