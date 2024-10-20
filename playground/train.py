@@ -364,8 +364,8 @@ def main(_seed, _config, _run):
 
         frame_count = (iteration + 1) * args.num_steps * args.num_processes
         if frame_count >= next_checkpoint or iteration == num_updates - 1:
-            next_checkpoint += args.save_every
             save_all(agent, actor_critic, args.save_dir, f"{save_name}_{int(next_checkpoint)}")
+            next_checkpoint += args.save_every
 
         mean_ep_reward = sum(episode_rewards) / len(episode_rewards) if len(episode_rewards) > 0 else 0
         if len(episode_rewards) > 1 and mean_ep_reward > max_ep_reward:
