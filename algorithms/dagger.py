@@ -34,9 +34,10 @@ def train(
         student_policy = Policy(controller)
 
     envs_per_task = [
-        make_vec_envs(
-            env_name, seed, num_processes, None, **env_per_task_kwargs[i]
-        )
+        make_env(env_name, seed=seed, **env_per_task_kwargs[i])
+        # make_vec_envs(
+        #     env_name, seed, num_processes, None, **env_per_task_kwargs[i]
+        # )
         for i in range(num_tasks)
     ]
 
