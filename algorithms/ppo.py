@@ -94,25 +94,25 @@ class PPO(object):
             # accumulate=accumulate,
         )
 
-        if net_path is not None:
-            base_path = os.path.splitext(net_path)[0]
-            optimizer_path = f"{base_path}.optim"
-            if os.path.exists(optimizer_path):
-                print(f"Loading saved optimizer {optimizer_path}")
-                self.optimizer.load_state_dict(torch.load(optimizer_path, map_location=torch.device(device)))
+        # if net_path is not None:
+        #     base_path = os.path.splitext(net_path)[0]
+        #     optimizer_path = f"{base_path}.optim"
+        #     if os.path.exists(optimizer_path):
+        #         print(f"Loading saved optimizer {optimizer_path}")
+        #         self.optimizer.load_state_dict(torch.load(optimizer_path, map_location=torch.device(device)))
             
-            gnts_path = f"{base_path}_gnts.pkl"
-            if os.path.exists(gnts_path):
-                print(f"Loading saved gnts {gnts_path}")
-                with open(gnts_path, "rb") as f:
-                    gnt_dict = pickle.load(f)
-                    for (old_gnt, new_gnt) in [(gnt_dict["critic_gnt"], self.critic_gnt),(gnt_dict["actor_gnt"], self.actor_gnt)]:
-                        new_gnt.util = old_gnt.util
-                        new_gnt.bias_corrected_util = old_gnt.bias_corrected_util
-                        new_gnt.ages = old_gnt.ages
-                        new_gnt.m = old_gnt.m
-                        new_gnt.mean_feature_act = old_gnt.mean_feature_act
-                        new_gnt.accumulated_num_features_to_replace = old_gnt.accumulated_num_features_to_replace
+        #     gnts_path = f"{base_path}_gnts.pkl"
+        #     if os.path.exists(gnts_path):
+        #         print(f"Loading saved gnts {gnts_path}")
+        #         with open(gnts_path, "rb") as f:
+        #             gnt_dict = pickle.load(f)
+        #             for (old_gnt, new_gnt) in [(gnt_dict["critic_gnt"], self.critic_gnt),(gnt_dict["actor_gnt"], self.actor_gnt)]:
+        #                 new_gnt.util = old_gnt.util
+        #                 new_gnt.bias_corrected_util = old_gnt.bias_corrected_util
+        #                 new_gnt.ages = old_gnt.ages
+        #                 new_gnt.m = old_gnt.m
+        #                 new_gnt.mean_feature_act = old_gnt.mean_feature_act
+        #                 new_gnt.accumulated_num_features_to_replace = old_gnt.accumulated_num_features_to_replace
 
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
@@ -195,14 +195,14 @@ class PPO(object):
 
                 # continual backprop (wipe dormant neurons)
                 self.optimizer.zero_grad()
-                critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
-                actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
+                # critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
+                # actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())
                 dist_entropy_epoch.add_(dist_entropy.detach())
-                critic_fraction_to_replace_epoch.add_(critic_fraction_to_replace)
-                actor_fraction_to_replace_epoch.add_(actor_fraction_to_replace)
+                critic_fraction_to_replace_epoch.add_(0) # critic_fraction_to_replace)
+                actor_fraction_to_replace_epoch.add_(0) #actor_fraction_to_replace)
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 

@@ -1,7 +1,7 @@
 from algorithms.dagger import train
 import torch
 
-def distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, base_env_kwargs, seed, env):
+def distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, base_env_kwargs, seed, env, device):
     env_kwargs = {
         **base_env_kwargs,
         "start_curriculum": current_curriculum,
@@ -15,8 +15,6 @@ def distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_beha
         "start_behavior_curriculum": prev_behavior_curriculum,
         "determine": True,
     }
-
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     torch.set_num_threads(1)
 

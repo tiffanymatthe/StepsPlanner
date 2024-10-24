@@ -25,6 +25,10 @@ def train(
 
     dummy_env = make_env(env_name, **env_per_task_kwargs[0])
 
+    # for param in student_policy.parameters():
+    #     param.requires_grad = True
+    # student_policy.train()
+
     if student_policy is None:
         controller = SoftsignActor(dummy_env).to(device)
         student_policy = Policy(controller)
@@ -108,7 +112,6 @@ def train(
                 action_loss = F.mse_loss(pred_actions, actions_batch)
                 value_loss = F.mse_loss(pred_values, values_batch)
 
-                # can we apply this twice????
                 (action_loss + value_loss).backward()
 
                 ep_action_loss.add_(action_loss.detach())

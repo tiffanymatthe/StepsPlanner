@@ -219,9 +219,7 @@ def main(_seed, _config, _run):
             bias.requires_grad = False
 
     actor_critic = actor_critic.to(args.device)
-    prev_actor_critic = None
-    prev_curriculum = 0
-    prev_behavior_curriculum = 0
+    prev_actor_critic = copy.deepcopy(actor_critic)
 
     mirror_function = None
     if args.use_mirror:
@@ -241,6 +239,9 @@ def main(_seed, _config, _run):
         max_behavior_curriculum = dummy_env.unwrapped.max_behavior_curriculum
         advance_threshold = dummy_env.unwrapped.advance_threshold
         envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+
+    prev_curriculum = current_curriculum
+    prev_behavior_curriculum = current_behavior_curriculum
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
@@ -323,6 +324,7 @@ def main(_seed, _config, _run):
                 avg_timing_met_nanmean = nanmean(avg_timing_mets[i])
                 avg_curriculum_nanmean = nanmean(curriculum_metrics[i])
                 avg_dist_err_nanmean = nanmean(avg_dist_errs[i])
+                print(f"{i}: {avg_heading_err_nanmean}, {avg_timing_met_nanmean}, {avg_curriculum_nanmean}, {avg_dist_err_nanmean}")
                 if (
                     iteration > 0
                     and (
@@ -343,29 +345,30 @@ def main(_seed, _config, _run):
                     update_curriculum = False
                     break
 
-            # Update curriculum after roll-out
-            if (
-                update_curriculum and current_iteration >= 50
-            ):
-                current_iteration = 0
-                if current_curriculum < max_curriculum:
-                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-                    distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env)
-                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
-                    prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
-                    current_curriculum += 1
-                    envs.set_env_params({"curriculum": current_curriculum})
-                elif current_behavior_curriculum < max_behavior_curriculum:
-                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-                    distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env)
-                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
-                    prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
-                    current_curriculum = 0
-                    current_behavior_curriculum += 1
-                    envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
-                else:
-                    pass
-                prev_actor_critic = copy.deepcopy(actor_critic)
+        # Update curriculum after roll-out
+        if (
+            update_curriculum #  and current_iteration >= 50
+        ):
+            print("UPDATING")
+            current_iteration = 0
+            if current_curriculum < max_curriculum:
+                save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
+                distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env, args.device)
+                save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
+                prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
+                current_curriculum += 1
+                envs.set_env_params({"curriculum": current_curriculum})
+            elif current_behavior_curriculum < max_behavior_curriculum:
+                save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
+                distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env, args.device)
+                save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
+                prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
+                current_curriculum = 0
+                current_behavior_curriculum += 1
+                envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+            else:
+                pass
+            prev_actor_critic = copy.deepcopy(actor_critic)
 
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
