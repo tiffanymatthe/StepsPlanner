@@ -10,6 +10,7 @@ python train.py with env=<ENV>
 import os
 import time
 from collections import deque
+import copy
 
 import wandb
 
@@ -27,6 +28,7 @@ except ModuleNotFoundError:
     import pickle
 
 import mocca_envs
+from algorithms.plaid import distill_policies
 from algorithms.ppo import PPO
 from algorithms.storage import RolloutStorage
 from common.controller import SoftsignActor, MixedActor, Policy, init_r_
@@ -109,9 +111,9 @@ def save_all(agent, actor_critic, save_dir, model_name):
     optim_name = f"{model_name}.optim"
     gnts_name = f"{model_name}_gnts.pkl"
     torch.save(actor_critic.state_dict(), os.path.join(save_dir, net_name))
-    torch.save(agent.optimizer.state_dict(), os.path.join(save_dir, optim_name))
-    with open(os.path.join(save_dir, gnts_name), "wb") as f:
-        pickle.dump({"critic_gnt": agent.critic_gnt, "actor_gnt": agent.actor_gnt}, f)
+    # torch.save(agent.optimizer.state_dict(), os.path.join(save_dir, optim_name))
+    # with open(os.path.join(save_dir, gnts_name), "wb") as f:
+    #     pickle.dump({"critic_gnt": agent.critic_gnt, "actor_gnt": agent.actor_gnt}, f)
 
 def load_net(net_path, device, actor_class, dummy_env):
     # net_path has .pt extension
@@ -217,6 +219,9 @@ def main(_seed, _config, _run):
             bias.requires_grad = False
 
     actor_critic = actor_critic.to(args.device)
+    prev_actor_critic = None
+    prev_curriculum = 0
+    prev_behavior_curriculum = 0
 
     mirror_function = None
     if args.use_mirror:
@@ -345,15 +350,22 @@ def main(_seed, _config, _run):
                 current_iteration = 0
                 if current_curriculum < max_curriculum:
                     save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
+                    distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env)
+                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
+                    prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
                 elif current_behavior_curriculum < max_behavior_curriculum:
                     save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
+                    distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env)
+                    save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
+                    prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                     current_curriculum = 0
                     current_behavior_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
                 else:
                     pass
+                prev_actor_critic = copy.deepcopy(actor_critic)
 
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)

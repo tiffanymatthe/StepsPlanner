@@ -1572,7 +1572,7 @@ class Walker3DStepperEnv(EnvBase):
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
         factor = 0 if self.determine else 0.35
-        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
+        train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if "combine_all" in self.behaviors[self.behavior_curriculum]:
             self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
