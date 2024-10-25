@@ -23,23 +23,20 @@ def train(
     # student_actor = student_policy.actor
     # student_actor = torch.load("daggered.pt", map_location=torch.device(device)) #  SoftsignActor(dummy_env).to(device)
 
-    dummy_env = make_env(env_name, **env_per_task_kwargs[0])
-
-    print("made dummy env")
-
     # for param in student_policy.parameters():
     #     param.requires_grad = True
     # student_policy.train()
 
     if student_policy is None:
+        dummy_env = make_env(env_name, **env_per_task_kwargs[0])
         controller = SoftsignActor(dummy_env).to(device)
         student_policy = Policy(controller)
 
     envs_per_task = [
-        make_env(env_name, seed=seed, **env_per_task_kwargs[i])
-        # make_vec_envs(
-        #     env_name, seed, num_processes, None, **env_per_task_kwargs[i]
-        # )
+        # make_env(env_name, seed=seed, **env_per_task_kwargs[i])
+        make_vec_envs(
+            env_name, seed, num_processes, None, **env_per_task_kwargs[i]
+        )
         for i in range(num_tasks)
     ]
 
