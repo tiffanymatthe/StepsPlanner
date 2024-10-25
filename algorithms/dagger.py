@@ -7,12 +7,12 @@ import time
 def train(
     expert_policy,
     student_policy,
-    envs,
-    env_per_task_kwargs, # list of kwargs
+    envs_per_task,
+    # env_per_task_kwargs, # list of kwargs
     num_epochs=20,
-    num_processes=4, # per task
     num_steps=5000,
     mini_batch_size=512,
+    num_processes=4,
     device="cuda:0",
 ) -> None:
     
@@ -28,10 +28,10 @@ def train(
 
     optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
 
-    obs_shape = envs.observation_space.shape
+    obs_shape = envs_per_task[0].observation_space.shape
     obs_shape = (obs_shape[0], *obs_shape[1:])
     obs_dim = obs_shape[0]
-    act_dim = envs.action_space.shape[0]
+    act_dim = envs_per_task[0].action_space.shape[0]
     
     buffer_observations_per_task = [torch.zeros(num_steps * num_epochs + 1, num_processes, *obs_shape, device=device) for _ in range(num_tasks)]
     buffer_expert_actions_per_task = [torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(num_tasks)]
@@ -49,8 +49,7 @@ def train(
         expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
         expert_values_shaped_per_task = [None for _ in range(num_tasks)]
         for task_i in range(num_tasks):
-            envs.set_env_params(env_per_task_kwargs[task_i])
-            obs = envs.reset()
+            obs = envs_per_task[task_i].reset()
             buffer_observations_per_task[task_i][epoch * num_steps].copy_(torch.from_numpy(obs))
             with torch.no_grad():
                 for step in range(num_steps):
@@ -66,7 +65,7 @@ def train(
                         cpu_actions = expert_action.cpu().numpy()
                     else:
                         cpu_actions = student_action.cpu().numpy()
-                    obs, _, _, _ = envs.step(cpu_actions)
+                    obs, _, _, _ = envs_per_task[task_i].step(cpu_actions)
 
                     buffer_observations_per_task[task_i][buffer_index + 1].copy_(torch.from_numpy(obs))
                     buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
