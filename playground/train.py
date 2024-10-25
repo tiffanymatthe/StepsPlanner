@@ -353,14 +353,14 @@ def main(_seed, _config, _run):
             current_iteration = 0
             if current_curriculum < max_curriculum:
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-                distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env, args.device)
+                distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, envs, args.device, args.num_processes)
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
                 prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum += 1
                 envs.set_env_params({"curriculum": current_curriculum})
             elif current_behavior_curriculum < max_behavior_curriculum:
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-                distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, args.seed, args.env, args.device)
+                distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, env_kwargs, envs, args.device, args.num_processes)
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
                 prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum = 0

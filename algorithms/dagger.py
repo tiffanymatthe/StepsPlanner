@@ -7,47 +7,31 @@ import time
 def train(
     expert_policy,
     student_policy,
-    env_name,
+    envs,
     env_per_task_kwargs, # list of kwargs
     num_epochs=20,
     num_processes=4, # per task
     num_steps=5000,
     mini_batch_size=512,
     device="cuda:0",
-    seed=0,
 ) -> None:
     
     num_tasks = 2
-    
-    # dummy_env = make_env(env_name, **env_kwargs)
-    # student_actor = student_policy.actor
-    # student_actor = torch.load("daggered.pt", map_location=torch.device(device)) #  SoftsignActor(dummy_env).to(device)
 
-    # for param in student_policy.parameters():
-    #     param.requires_grad = True
-    # student_policy.train()
-
-    if student_policy is None:
-        dummy_env = make_env(env_name, **env_per_task_kwargs[0])
-        controller = SoftsignActor(dummy_env).to(device)
-        student_policy = Policy(controller)
-
-    envs_per_task = [
-        make_env(env_name, seed=seed, **env_per_task_kwargs[i])
-        # make_vec_envs(
-        #     env_name, seed, num_processes, None, **env_per_task_kwargs[i]
-        # )
-        for i in range(num_tasks)
-    ]
-
-    print("Done making envs.")
+    # envs_per_task = [
+    #     make_env(env_name, seed=seed, **env_per_task_kwargs[i])
+    #     # make_vec_envs(
+    #     #     env_name, seed, num_processes, None, **env_per_task_kwargs[i]
+    #     # )
+    #     for i in range(num_tasks)
+    # ]
 
     optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
 
-    obs_shape = envs_per_task[0].observation_space.shape
+    obs_shape = envs.observation_space.shape
     obs_shape = (obs_shape[0], *obs_shape[1:])
     obs_dim = obs_shape[0]
-    act_dim = envs_per_task[0].action_space.shape[0]
+    act_dim = envs.action_space.shape[0]
     
     buffer_observations_per_task = [torch.zeros(num_steps * num_epochs + 1, num_processes, *obs_shape, device=device) for _ in range(num_tasks)]
     buffer_expert_actions_per_task = [torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(num_tasks)]
@@ -65,7 +49,8 @@ def train(
         expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
         expert_values_shaped_per_task = [None for _ in range(num_tasks)]
         for task_i in range(num_tasks):
-            obs = envs_per_task[task_i].reset()
+            envs.set_env_params(env_per_task_kwargs[task_i])
+            obs = envs.reset()
             buffer_observations_per_task[task_i][epoch * num_steps].copy_(torch.from_numpy(obs))
             with torch.no_grad():
                 for step in range(num_steps):
@@ -81,7 +66,7 @@ def train(
                         cpu_actions = expert_action.cpu().numpy()
                     else:
                         cpu_actions = student_action.cpu().numpy()
-                    obs, _, _, _ = envs_per_task[task_i].step(cpu_actions)
+                    obs, _, _, _ = envs.step(cpu_actions)
 
                     buffer_observations_per_task[task_i][buffer_index + 1].copy_(torch.from_numpy(obs))
                     buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
@@ -140,8 +125,8 @@ def train(
         if ep_action_loss.item() <= 0.0002:
             print("Quitting early.")
             break
-    # student_file_name = "daggered_hopping_2_tasks.pt"
-    # torch.save(student_policy, student_file_name)
-    # print(f"Saved student policy to {student_file_name}")
-    for i in range(num_tasks):
-        envs_per_task[i].close()
+    # # student_file_name = "daggered_hopping_2_tasks.pt"
+    # # torch.save(student_policy, student_file_name)
+    # # print(f"Saved student policy to {student_file_name}")
+    # for i in range(num_tasks):
+    #     envs_per_task[i].close()
