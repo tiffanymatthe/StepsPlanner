@@ -25,6 +25,8 @@ def train(
 
     dummy_env = make_env(env_name, **env_per_task_kwargs[0])
 
+    print("made dummy env")
+
     # for param in student_policy.parameters():
     #     param.requires_grad = True
     # student_policy.train()
@@ -40,6 +42,8 @@ def train(
         # )
         for i in range(num_tasks)
     ]
+
+    print("Done making envs.")
 
     optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
 
