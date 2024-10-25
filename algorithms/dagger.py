@@ -136,6 +136,10 @@ def train(
                 f"Value Loss: {ep_value_loss.item():8.4f} | "
             )
         )
+
+        if ep_action_loss.item() <= 0.0002:
+            print("Quitting early.")
+            break
     # student_file_name = "daggered_hopping_2_tasks.pt"
     # torch.save(student_policy, student_file_name)
     # print(f"Saved student policy to {student_file_name}")
