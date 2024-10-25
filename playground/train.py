@@ -326,7 +326,6 @@ def main(_seed, _config, _run):
                 avg_timing_met_nanmean = nanmean(avg_timing_mets[i])
                 avg_curriculum_nanmean = nanmean(curriculum_metrics[i])
                 avg_dist_err_nanmean = nanmean(avg_dist_errs[i])
-                print(f"{i}: {avg_heading_err_nanmean}, {avg_timing_met_nanmean}, {avg_curriculum_nanmean}, {avg_dist_err_nanmean}")
                 if (
                     iteration > 0
                     and (
@@ -349,7 +348,7 @@ def main(_seed, _config, _run):
 
         # Update curriculum after roll-out
         if (
-            update_curriculum #  and current_iteration >= 50
+            update_curriculum and current_iteration >= 50
         ):
             print("UPDATING")
             current_iteration = 0

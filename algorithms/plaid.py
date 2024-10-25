@@ -19,6 +19,9 @@ class Distiller:
         self.num_processes = num_processes
 
     def distill_policies(self, prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum):
+        if prev_curriculum == 0 and prev_behavior_curriculum == 0:
+            print("Not distilling the first curriculum.")
+            return
         env_kwargs = {
             "start_curriculum": current_curriculum,
             "start_behavior_curriculum": current_behavior_curriculum,
