@@ -368,7 +368,8 @@ def main(_seed, _config, _run):
                 envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
             else:
                 pass
-            prev_actor_critic = copy.deepcopy(actor_critic)
+            with torch.no_grad():
+                prev_actor_critic = copy.deepcopy(actor_critic)
 
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
