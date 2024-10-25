@@ -58,7 +58,8 @@ def train(
 
     # assume first task is hopping, second task is everything else
     import copy
-    expert_policy_for_previous_task = copy.deepcopy(student_policy)
+    with torch.no_grad():
+        expert_policy_for_previous_task = copy.deepcopy(student_policy)
     expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
 
     start = time.time()
