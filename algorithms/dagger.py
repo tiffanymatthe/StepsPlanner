@@ -8,7 +8,7 @@ def train(
     expert_policy,
     student_policy,
     envs_per_task,
-    env_per_task_kwargs, # list of kwargs
+    # env_per_task_kwargs, # list of kwargs
     num_epochs=20,
     num_steps=5000,
     mini_batch_size=512,
@@ -26,8 +26,6 @@ def train(
     #     for i in range(num_tasks)
     # ]
 
-    envs_per_task[0].set_env_params({"determine": True})
-    
     optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
 
     obs_shape = envs_per_task[0].observation_space.shape
@@ -51,7 +49,6 @@ def train(
         expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
         expert_values_shaped_per_task = [None for _ in range(num_tasks)]
         for task_i in range(num_tasks):
-            envs_per_task[task_i].set_env_params(env_per_task_kwargs[task_i])
             obs = envs_per_task[task_i].reset()
             buffer_observations_per_task[task_i][0].copy_(torch.from_numpy(obs))
             with torch.no_grad():
