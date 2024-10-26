@@ -33,9 +33,9 @@ def train(
     obs_dim = obs_shape[0]
     act_dim = envs_per_task[0].action_space.shape[0]
     
-    buffer_observations_per_task = [torch.zeros(num_steps * num_epochs + 1, num_processes, *obs_shape, device=device) for _ in range(num_tasks)]
-    buffer_expert_actions_per_task = [torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(num_tasks)]
-    buffer_expert_values_per_task = [torch.zeros(num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(num_tasks)]
+    buffer_observations_per_task = [torch.zeros(num_steps + 1, num_processes, *obs_shape, device=device) for _ in range(num_tasks)]
+    buffer_expert_actions_per_task = [torch.zeros(num_steps, num_processes, act_dim, device=device) for _ in range(num_tasks)]
+    buffer_expert_values_per_task = [torch.zeros(num_steps, num_processes, act_dim, device=device) for _ in range(num_tasks)]
 
     # assume first task is hopping, second task is everything else
     import copy
@@ -50,10 +50,10 @@ def train(
         expert_values_shaped_per_task = [None for _ in range(num_tasks)]
         for task_i in range(num_tasks):
             obs = envs_per_task[task_i].reset()
-            buffer_observations_per_task[task_i][epoch * num_steps].copy_(torch.from_numpy(obs))
+            buffer_observations_per_task[task_i][0].copy_(torch.from_numpy(obs))
             with torch.no_grad():
                 for step in range(num_steps):
-                    buffer_index = epoch * num_steps + step
+                    buffer_index = step
                     expert_value, expert_action, _ = expert_policies_per_task[task_i].act(
                         buffer_observations_per_task[task_i][buffer_index], deterministic=True
                     )
@@ -71,7 +71,7 @@ def train(
                     buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
                     buffer_expert_values_per_task[task_i][buffer_index].copy_(expert_value)
 
-            batch_size = num_steps * (epoch + 1) * num_processes
+            batch_size = num_steps * num_processes
             num_mini_batch = batch_size // mini_batch_size
             shuffled_indices = torch.randperm(
                 num_mini_batch * mini_batch_size, generator=None, device=device

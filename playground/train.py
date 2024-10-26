@@ -348,7 +348,7 @@ def main(_seed, _config, _run):
 
         # Update curriculum after roll-out
         if (
-            update_curriculum and current_iteration >= 50
+            update_curriculum # and current_iteration >= 50
         ):
             print("UPDATING")
             current_iteration = 0
