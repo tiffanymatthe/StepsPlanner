@@ -243,7 +243,7 @@ def main(_seed, _config, _run):
     prev_curriculum = current_curriculum
     prev_behavior_curriculum = current_behavior_curriculum
 
-    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, 10)
+    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, args.num_processes, envs)
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
