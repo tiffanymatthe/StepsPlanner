@@ -10,7 +10,9 @@ class Distiller:
             "determine": True,
         }
 
-        self.envs_per_task = [envs, envs]
+        num_processes = 10 # overwrite
+
+        # self.envs_per_task = [envs, envs]
 
         obs_shape = self.envs_per_task[0].observation_space.shape
         obs_shape = (obs_shape[0], *obs_shape[1:])
@@ -23,13 +25,14 @@ class Distiller:
         self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps, num_processes, act_dim, device=device) for _ in range(2)]
         self.buffer_expert_values_per_task = [torch.zeros(self.num_steps, num_processes, act_dim, device=device) for _ in range(2)]
 
-        # self.envs_per_task = [
-        #     # make_env(env_name, seed=seed, **env_kwargs)
-        #     make_vec_envs(
-        #         env_name, seed, num_processes, None, **env_kwargs
-        #     )
-        #     for i in range(2)
-        # ]
+        self.envs_per_task = [
+            # make_env(env_name, seed=seed, **env_kwargs)
+            make_vec_envs(
+                env_name, seed, num_processes, None, **env_kwargs
+            )
+            for i in range(2)
+        ]
+
         self.device = device
         self.num_processes = num_processes
 
@@ -40,15 +43,17 @@ class Distiller:
         env_kwargs = {
             "start_curriculum": current_curriculum,
             "start_behavior_curriculum": current_behavior_curriculum,
+            "determine": True,
         }
 
         env_kwargs_normal = {
             "start_curriculum": prev_curriculum,
             "start_behavior_curriculum": prev_behavior_curriculum,
+            "determine": True,
         }
 
-        # self.envs_per_task[0].set_env_params(env_kwargs)
-        # self.envs_per_task[1].set_env_params(env_kwargs_normal)
+        self.envs_per_task[0].set_env_params(env_kwargs)
+        self.envs_per_task[1].set_env_params(env_kwargs_normal)
 
         self.train(
             actor_critic,
@@ -61,7 +66,7 @@ class Distiller:
             num_processes=self.num_processes,
         )
 
-        self.envs_per_task[0].set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+        # self.envs_per_task[0].set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
 
 
     def train(
@@ -79,7 +84,7 @@ class Distiller:
         
         num_tasks = 2
 
-        envs_per_task[0].set_env_params({"determine": True})
+        # envs_per_task[0].set_env_params({"determine": True})
         
         optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
 
@@ -100,7 +105,7 @@ class Distiller:
             expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
             expert_values_shaped_per_task = [None for _ in range(num_tasks)]
             for task_i in range(num_tasks):
-                envs_per_task[task_i].set_env_params(env_per_task_kwargs[task_i])
+                # envs_per_task[task_i].set_env_params(env_per_task_kwargs[task_i])
                 obs = envs_per_task[task_i].reset()
                 self.buffer_observations_per_task[task_i][0].copy_(torch.from_numpy(obs))
                 with torch.no_grad():
