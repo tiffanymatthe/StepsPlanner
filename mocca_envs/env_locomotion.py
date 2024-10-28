@@ -1718,8 +1718,10 @@ class Walker3DStepperEnv(EnvBase):
         if self.mask_info["timing"][0]:
             threshold = self.mask_info["timing"][1] # if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
             self.mask_info["timing"][2] = self.np_random.rand() < threshold
-        if self.mask_info["heading"][0] or self.behaviors[self.behavior_curriculum] == "combine_all_heading":
+        if self.mask_info["heading"][0]:
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
+        if self.behaviors[self.behavior_curriculum] == "combine_all_heading":
+            self.mask_info["heading"][2] = True
 
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             self.mask_info["timing"][2] = False
