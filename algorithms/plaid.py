@@ -36,20 +36,21 @@ class Distiller:
         self.device = device
         self.num_processes = num_processes
 
-    def distill_policies(self, prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum):
+    def distill_policies(self, prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, small_update):
         if prev_curriculum == 0 and prev_behavior_curriculum == 0:
             print("Not distilling the first curriculum.")
             return
         env_kwargs = {
             "start_curriculum": current_curriculum,
             "start_behavior_curriculum": current_behavior_curriculum,
-            "determine": True,
+            "determine": 2 if small_update else 1,
         }
 
+        # expert
         env_kwargs_normal = {
             "start_curriculum": prev_curriculum,
             "start_behavior_curriculum": prev_behavior_curriculum,
-            "determine": True,
+            "determine": 1 if small_update else 0,
         }
 
         self.envs_per_task[0].set_env_params(env_kwargs)

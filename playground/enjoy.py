@@ -54,7 +54,7 @@ def main():
     parser.add_argument("--render", type=int, default=1)
     parser.add_argument("--save", type=int, default=0)
     parser.add_argument("--heading", default=False, action=argparse.BooleanOptionalAction)
-    parser.add_argument("--determine", default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--determine", type=int, default=0)
     parser.add_argument("--timing", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--ffmpeg", type=int, default=0)
     parser.add_argument("--csv", type=str, default=None)

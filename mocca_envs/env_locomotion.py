@@ -347,7 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
         self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "transition_all", "one_step_plant", "combine_all", "combine_all_heading"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
-        self.behavior_timing_thresholds = [1.85, 1.85, 1.65, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
+        self.behavior_timing_thresholds = [1.85, 1.85, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -381,7 +381,7 @@ class Walker3DStepperEnv(EnvBase):
         self.reached_last_step = False
         self.finished_all = False
 
-        self.determine = kwargs.pop("determine", False)
+        self.determine = kwargs.pop("determine", 0)
 
         self.selected_curriculum = 0
 
@@ -450,13 +450,6 @@ class Walker3DStepperEnv(EnvBase):
             "heading_var": np.array([0.0, 0.0]),
             "timing_gaits": np.array([0.0, 0.0]),
             "one_step_plant": np.array([0.0, 0.0]),
-        }
-
-        self.generated_paths_cache = {
-            # "to_standstill":  [[None, None] for _ in range(self.max_curriculum+1)],
-            # "turn_in_place": [[None, None] for _ in range(self.max_curriculum+1)],
-            # "side_step": [[None, None] for _ in range(self.max_curriculum+1)],
-            # "backward": [[None, None] for _ in range(self.max_curriculum+1)],
         }
 
         self.step_param_dim = 7 + 3 # steps and mask
@@ -1542,12 +1535,7 @@ class Walker3DStepperEnv(EnvBase):
         for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
             selected_step_placement_fcn, behavior_str = selected_step_placement_fcn_tuple
             selected_step_curriculum = self.np_random.choice(list(range(0,curriculum+1)))
-            if behavior_str in self.generated_paths_cache and self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] is not None:
-                step_placements_part = np.copy(self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)])
-            else:
-                step_placements_part = selected_step_placement_fcn(selected_step_curriculum)
-                if behavior_str in self.generated_paths_cache:
-                    self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] = np.copy(step_placements_part)
+            step_placements_part = selected_step_placement_fcn(selected_step_curriculum)
 
             if i == 0:
                 step_placements = step_placements_part
@@ -1571,27 +1559,29 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        factor = 0 if self.determine else 0.35
-        train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
+        # factor = 0 if self.determine else 0.35
+        # train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if "combine_all" in self.behaviors[self.behavior_curriculum]:
-            self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+            self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
             self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-        elif self.determine:
+        elif self.determine == 2:
             self.selected_curriculum = self.curriculum
             self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        else:
-            if train_on_past:
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+        elif self.determine == 1:
+            self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
+            self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        elif self.determine == 0:
+            self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum + 1])
+            if self.selected_behavior == self.behaviors[self.behavior_curriculum]:
+                self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
             else:
-                weights = np.linspace(1,10,self.curriculum+1)
-                weights /= sum(weights)
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-                self.selected_behavior = self.behaviors[self.behavior_curriculum]
-
-        if self.selected_behavior in self.generated_paths_cache and self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
-            return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
+                self.selected_curriculum = self.np_random.randint(0, self.max_curriculum + 1)
+            # else:
+            #     weights = np.linspace(1,10,self.curriculum+1)
+            #     weights /= sum(weights)
+            #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+            #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         if self.selected_behavior == "to_standstill":
             if self.np_random.rand() < 0.8:
@@ -1621,9 +1611,6 @@ class Walker3DStepperEnv(EnvBase):
             path = self.generate_timing_gaits_step_placements(self.selected_curriculum, method="hopping")
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
-        
-        if self.selected_behavior in self.generated_paths_cache:
-            self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] = np.copy(path)
 
         return path
 
