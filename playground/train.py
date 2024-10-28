@@ -345,6 +345,7 @@ def main(_seed, _config, _run):
                 ):
                     continue
                 else:
+                    print(f"heading: {avg_heading_err_nanmean}, timing: {avg_timing_met_nanmean}, curr: {avg_curriculum_nanmean}, dist: {avg_dist_err_nanmean}")
                     update_curriculum = False
                     break
 
@@ -377,9 +378,10 @@ def main(_seed, _config, _run):
 
                 with torch.no_grad():
                     if prev_behavior_actor_critic is None:
-                        prev_behavior_actor_critic = copy.deepcopy(actor_critic)
-                    else:
-                        prev_behavior_actor_critic.load_state_dict(actor_critic.state_dict())
+                        controller = globals().get(args.actor_class)(dummy_env)
+                        prev_behavior_actor_critic = Policy(controller)
+
+                    prev_behavior_actor_critic.load_state_dict(actor_critic.state_dict())
             else:
                 pass
             print("FINISHED UPDATING")
