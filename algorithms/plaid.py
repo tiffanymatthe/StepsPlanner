@@ -14,6 +14,14 @@ class Distiller:
 
         # self.envs_per_task = [envs, envs]
 
+        self.envs_per_task = [
+            # make_env(env_name, seed=seed, **env_kwargs)
+            make_vec_envs(
+                env_name, seed, num_processes, None, **env_kwargs
+            )
+            for i in range(2)
+        ]
+
         obs_shape = self.envs_per_task[0].observation_space.shape
         obs_shape = (obs_shape[0], *obs_shape[1:])
         obs_dim = obs_shape[0]
@@ -24,14 +32,6 @@ class Distiller:
         self.buffer_observations_per_task = [torch.zeros(self.num_steps + 1, num_processes, *obs_shape, device=device) for _ in range(2)]
         self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps, num_processes, act_dim, device=device) for _ in range(2)]
         self.buffer_expert_values_per_task = [torch.zeros(self.num_steps, num_processes, act_dim, device=device) for _ in range(2)]
-
-        self.envs_per_task = [
-            # make_env(env_name, seed=seed, **env_kwargs)
-            make_vec_envs(
-                env_name, seed, num_processes, None, **env_kwargs
-            )
-            for i in range(2)
-        ]
 
         self.device = device
         self.num_processes = num_processes
