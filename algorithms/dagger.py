@@ -4,6 +4,16 @@ from common.envs_utils import make_env, make_vec_envs
 import torch.nn.functional as F
 import time
 
+def last_five_same_with_tolerance(lst, tolerance=1e-5):
+    # Check if the list has fewer than 5 elements
+    if len(lst) < 5:
+        # If so, check if all elements in the list are approximately the same
+        return all(abs(lst[i] - lst[0]) <= tolerance for i in range(1, len(lst)))
+    else:
+        # Otherwise, check if the last 5 elements are approximately the same
+        last_five = lst[-5:]
+        return all(abs(last_five[i] - last_five[0]) <= tolerance for i in range(1, 5))
+
 def train(
     expert_policy,
     student_policy,
@@ -46,6 +56,9 @@ def train(
     expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
 
     start = time.time()
+
+    value_losses = []
+
     for epoch in range(num_epochs):
         observations_shaped_per_task = [None for _ in range(num_tasks)]
         expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
@@ -124,7 +137,9 @@ def train(
             )
         )
 
-        if ep_action_loss.item() <= 0.0002:
+        value_losses.append(ep_value_loss.item())
+
+        if ep_action_loss.item() <= 0.0002 or last_five_same_with_tolerance(value_losses, tolerance=0.00001):
             print("Quitting early.")
             break
     # # student_file_name = "daggered_hopping_2_tasks.pt"
