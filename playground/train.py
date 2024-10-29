@@ -61,6 +61,8 @@ def configs():
     use_wandb = True
     foot_angle_weight = 0.1
 
+    determine = 3
+
     # Network settings
     actor_class = "SoftsignActor"
     fix_experts = False
@@ -151,6 +153,7 @@ def main(_seed, _config, _run):
         "start_behavior_curriculum": args.start_behavior_curriculum,
         "foot_angle_weight": args.foot_angle_weight,
         "from_net": args.net is not None,
+        "determine": args.determine,
     }
 
     dummy_env = make_env(env_name, **env_kwargs)
@@ -357,8 +360,8 @@ def main(_seed, _config, _run):
             current_iteration = 0
             if current_curriculum < max_curriculum:
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-                distiller.distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, small_update=True)
-                save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
+                # distiller.distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, small_update=True)
+                # save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
                 prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum += 1
                 envs.set_env_params({"curriculum": current_curriculum})
