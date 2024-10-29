@@ -1920,8 +1920,8 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
             self.legs_bonus += self.tilt_bonus_weight
-
-        if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
+        print(f"{self.body_stationary_count} and {abs(self.progress)}")
+        if abs(self.progress) < 1 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
         else:
             self.body_stationary_count = 0
