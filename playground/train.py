@@ -242,7 +242,7 @@ def main(_seed, _config, _run):
     if args.net is not None:
         prev_net_path = replace_first_number(args.net)
         if os.path.exists(prev_net_path):
-            load_net(prev_net_path, args.device, actor_class, dummy_env)
+            load_net(prev_net_path, args.device, globals().get(args.actor_class), dummy_env)
         else:
             print(f"Unable to load {prev_net_path}")
 
