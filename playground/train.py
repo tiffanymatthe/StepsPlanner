@@ -45,6 +45,20 @@ from common.sacred_utils import ex, init
 DEG2RAD = np.pi / 180
 RAD2DEG = 180 / np.pi
 
+import re
+
+def replace_first_number(path):
+    # Find the first number after "_curr_"
+    match = re.search(r"_curr_(\d+)", path)
+    if match:
+        # Extract the first number and decrease it by 1
+        old_number = int(match.group(1))
+        new_number = old_number - 1
+        # Replace the old number with the new number in the path
+        new_path = path[:match.start(1)] + str(new_number) + path[match.end(1):]
+        return new_path
+    return path
+
 @ex.config
 def configs():
     env = "Walker3DStepperEnv-v0"
@@ -225,6 +239,12 @@ def main(_seed, _config, _run):
     prev_actor_critic = copy.deepcopy(actor_critic)
 
     prev_behavior_actor_critic = None
+    if args.net is not None:
+        prev_net_path = replace_first_number(args.net)
+        if os.path.exists(prev_net_path):
+            load_net(prev_net_path, args.device, actor_class, dummy_env)
+        else:
+            print(f"Unable to load {prev_net_path}")
 
     mirror_function = None
     if args.use_mirror:
@@ -383,6 +403,7 @@ def main(_seed, _config, _run):
                     if prev_behavior_actor_critic is None:
                         controller = globals().get(args.actor_class)(dummy_env)
                         prev_behavior_actor_critic = Policy(controller)
+                        prev_behavior_actor_critic.to(args.device)
 
                     prev_behavior_actor_critic.load_state_dict(actor_critic.state_dict())
             else:
