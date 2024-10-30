@@ -6,7 +6,7 @@ import numpy as np
 column_to_plot = 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
 
 # Number of behavior curricula and curricula per behavior curriculum
-num_behavior_curricula = 8
+num_behavior_curricula = 10
 num_curricula = 10
 
 # Prepare subplots
@@ -28,7 +28,7 @@ for behavior_curriculum in range(num_behavior_curricula):
     curricula = list(range(num_curricula))
 
     for curriculum in curricula:
-        file = f"data_{behavior_curriculum}_{curriculum}.csv"
+        file = f"non_heading_data/data_{behavior_curriculum}_{curriculum}.csv"
         
         try:
             data = pd.read_csv(file)
