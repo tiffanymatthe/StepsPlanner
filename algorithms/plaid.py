@@ -117,11 +117,14 @@ class Distiller:
                         expert_value, expert_action, _ = expert_policies_per_task[task_i].act(
                             self.buffer_observations_per_task[task_i][buffer_index], deterministic=True
                         )
-                        if epoch > 0:
+
+                        use_expert = np.random.rand() > min(epoch / 10, 1)
+
+                        if not use_expert:
                             # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
                             _, student_action, _ = student_policy.act(self.buffer_observations_per_task[task_i][buffer_index], deterministic=(np.random.rand() < epoch / num_epochs))
 
-                        if epoch == 0:
+                        if use_expert:
                             cpu_actions = expert_action.cpu().numpy()
                         else:
                             cpu_actions = student_action.cpu().numpy()
