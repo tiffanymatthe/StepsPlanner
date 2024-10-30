@@ -102,6 +102,9 @@ class Distiller:
             expert_policy_for_previous_task = copy.deepcopy(student_policy)
         expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
 
+        prev_ep_action_loss = 0
+        same_action_loss_count = 0
+
         start = time.time()
         for epoch in range(num_epochs):
             observations_shaped_per_task = [None for _ in range(num_tasks)]
@@ -118,7 +121,7 @@ class Distiller:
                             self.buffer_observations_per_task[task_i][buffer_index], deterministic=True
                         )
 
-                        use_expert = np.random.rand() > min(epoch / 10, 1)
+                        use_expert = np.random.rand() > min(epoch / 20, 1)
 
                         if not use_expert:
                             # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
@@ -179,7 +182,7 @@ class Distiller:
                 (
                     f"Epoch {epoch+1:4d}/{num_epochs:4d} | "
                     f"Elapsed Time {elapsed_time:8.2f} |"
-                    f"Action Loss: {ep_action_loss.item():8.4f} | "
+                    f"Action Loss: {ep_action_loss.item():8.5f} | "
                     f"Value Loss: {ep_value_loss.item():8.4f} | "
                 )
             )
@@ -187,3 +190,13 @@ class Distiller:
             if ep_action_loss.item() <= 0.0002:
                 print("Quitting early.")
                 break
+
+            if epoch > 20 and abs(ep_action_loss.item() - prev_ep_action_loss) <= 0.00005:
+                # do not update prev action loss
+                same_action_loss_count += 1
+                if same_action_loss_count > 10:
+                    print("Quitting early.")
+                    break
+            else:
+                prev_ep_action_loss = ep_action_loss.item()
+                same_action_loss_count = 0
