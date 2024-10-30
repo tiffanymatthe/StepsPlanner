@@ -1,10 +1,11 @@
 import torch
 import time
+import numpy as np
 import torch.nn.functional as F
 from common.envs_utils import make_env, make_vec_envs
 
 class Distiller:
-    def __init__(self, env_name, base_env_kwargs, seed, device, num_processes, envs):
+    def __init__(self, env_name, base_env_kwargs, seed, device, num_processes, num_epochs, envs):
         env_kwargs = {
             **base_env_kwargs,
             "determine": True,
@@ -28,10 +29,11 @@ class Distiller:
         act_dim = self.envs_per_task[0].action_space.shape[0]
 
         self.num_steps = 5000
+        self.num_epochs = num_epochs
     
-        self.buffer_observations_per_task = [torch.zeros(self.num_steps + 1, num_processes, *obs_shape, device=device) for _ in range(2)]
-        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps, num_processes, act_dim, device=device) for _ in range(2)]
-        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps, num_processes, act_dim, device=device) for _ in range(2)]
+        self.buffer_observations_per_task = [torch.zeros(self.num_steps * num_epochs + 1, num_processes, *obs_shape, device=device) for _ in range(2)]
+        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(2)]
+        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(2)]
 
         self.device = device
         self.num_processes = num_processes
@@ -61,7 +63,7 @@ class Distiller:
             prev_actor_critic,
             self.envs_per_task,
             [env_kwargs, env_kwargs_normal],
-            num_epochs=40,
+            num_epochs=self.num_epochs,
             num_steps=self.num_steps,
             device=self.device,
             num_processes=self.num_processes,
@@ -111,13 +113,13 @@ class Distiller:
                 self.buffer_observations_per_task[task_i][0].copy_(torch.from_numpy(obs))
                 with torch.no_grad():
                     for step in range(num_steps):
-                        buffer_index = step
+                        buffer_index = step + epoch * num_steps
                         expert_value, expert_action, _ = expert_policies_per_task[task_i].act(
                             self.buffer_observations_per_task[task_i][buffer_index], deterministic=True
                         )
                         if epoch > 0:
                             # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
-                            student_action = student_policy.actor(self.buffer_observations_per_task[task_i][buffer_index]) #, deterministic=True) # deterministic
+                            student_action = student_policy.actor(self.buffer_observations_per_task[task_i][buffer_index], deterministic=(np.random.rand() <= epoch / num_epochs))
 
                         if epoch == 0:
                             cpu_actions = expert_action.cpu().numpy()
@@ -129,7 +131,7 @@ class Distiller:
                         self.buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
                         self.buffer_expert_values_per_task[task_i][buffer_index].copy_(expert_value)
 
-                batch_size = num_steps * num_processes
+                batch_size = num_steps * (epoch + 1) * num_processes
                 num_mini_batch = batch_size // mini_batch_size
                 shuffled_indices = torch.randperm(
                     num_mini_batch * mini_batch_size, generator=None, device=device
