@@ -791,7 +791,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.walk_target = np.copy(self.terrain_info[self.next_step_index, 0:2])
         heading = self.terrain_info[self.next_step_index, 3]
-        if self.terrain_info[self.next_step_index, 4] == 1:
+        if self.terrain_info[self.next_step_index, 4] == 0:
             self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
             self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
         else:
@@ -809,6 +809,7 @@ class Walker3DStepperEnv(EnvBase):
             targets[1, 7],
             targets[1, 8]
         ])
+
         if self.current_step_time <= time_left[0]:
             time_left[0] -= self.current_step_time
             time_left[2] -= self.current_step_time
