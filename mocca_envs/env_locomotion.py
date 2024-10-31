@@ -325,7 +325,8 @@ class Walker3DStepperEnv(EnvBase):
     step_delay = 4
     lookahead = 2
     lookbehind = 1
-    walk_target_index = -1 # TODO: maybe not needed
+
+    use_timing = False
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -536,8 +537,10 @@ class Walker3DStepperEnv(EnvBase):
         reward += -self.elbow_penalty * 0.4
         # reward for stepping stones
         reward += self.step_bonus
-        # reward for timing
-        reward += self.timing_bonus * 1.5
+
+        if self.use_timing:
+            # reward for timing
+            reward += self.timing_bonus * 1.5
         # print(f"Elbow penalty: {self.elbow_penalty * 0.4} and foot tilt penalty: {self.foot_tilt_penalty} vs total reward: {reward}")
 
         # targets is calculated by calc_env_state()
@@ -654,7 +657,8 @@ class Walker3DStepperEnv(EnvBase):
         self.tall_bonus = 2 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2]
 
-        self.calc_timing_reward()
+        if self.use_timing:
+            self.calc_timing_reward()
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.legs_not_on_step
 
@@ -706,7 +710,7 @@ class Walker3DStepperEnv(EnvBase):
             ]
         
             foot_in_target = self.foot_dist_to_target[swing_leg] < self.step_radius
-            foot_in_prev_target = dist_to_prev_target[swing_leg] < self.step_radius and self.current_step_time < next_step_time[0] + next_step_time[1]
+            foot_in_prev_target = dist_to_prev_target[swing_leg] < self.step_radius and (not self.use_timing or self.current_step_time < next_step_time[0] + next_step_time[1])
             other_foot_in_prev_target = dist_to_prev_target[1-swing_leg] < self.step_radius + 0.1 # allow a bit more tolerance
             swing_leg_not_on_step = not self._foot_target_contacts[swing_leg, 0] == 0 and not (foot_in_target or foot_in_prev_target)
             other_leg_not_on_step = not self._foot_target_contacts[1-swing_leg, 0] == 0 and not other_foot_in_prev_target
@@ -720,7 +724,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.target_reached = self._foot_target_contacts[swing_leg, 0] > 0 and self.foot_dist_to_target[swing_leg] < self.step_radius and self.swing_leg_lifted
 
-        if self.target_reached and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
+        if self.target_reached and self.use_timing and self.next_step_index > 2 and self.current_step_time < next_step_time[0] + next_step_time[1]:
             self.target_reached = False
 
         if self.target_reached:
@@ -828,6 +832,9 @@ class Walker3DStepperEnv(EnvBase):
             ],
             axis = 1,
         )
+
+        if not self.use_timing:
+            time_left *= 0
 
         return deltas, time_left
 
