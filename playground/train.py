@@ -183,6 +183,8 @@ def main(_seed, _config, _run):
         env_name, args.seed, args.num_processes, args.log_dir, **env_kwargs
     )
 
+    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, args.num_processes, 40, envs)
+
     obs_shape = envs.observation_space.shape
     obs_shape = (obs_shape[0], *obs_shape[1:])
     action_dim = envs.action_space.shape[0]
@@ -267,8 +269,6 @@ def main(_seed, _config, _run):
 
     prev_curriculum = current_curriculum
     prev_behavior_curriculum = current_behavior_curriculum
-
-    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, args.num_processes, 40, envs)
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
