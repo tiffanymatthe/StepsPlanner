@@ -187,7 +187,7 @@ class Distiller:
                 )
             )
 
-            if ep_action_loss.item() <= 0.0002:
+            if ep_action_loss.item() <= 0.0002 and epoch > 11:
                 print("Quitting early.")
                 break
 
