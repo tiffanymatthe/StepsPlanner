@@ -191,7 +191,7 @@ class Distiller:
                 print("Quitting early.")
                 break
 
-            if epoch > 20 and abs(ep_action_loss.item() - prev_ep_action_loss) <= 0.00005:
+            if epoch > 20 and abs(ep_action_loss.item() - prev_ep_action_loss) <= 0.00001:
                 # do not update prev action loss
                 same_action_loss_count += 1
                 if same_action_loss_count > 10:
