@@ -78,7 +78,7 @@ class PPO(object):
             decay_rate=0.99,
             maturity_threshold=maturity_threshold,
             util_type="contribution",
-            device="cuda:0" if torch.cuda.is_available() else "cpu",
+            device=device,
             # accumulate=accumulate,
         )
 
@@ -90,7 +90,7 @@ class PPO(object):
             decay_rate=0.99,
             maturity_threshold=maturity_threshold,
             util_type="contribution",
-            device="cuda:0" if torch.cuda.is_available() else "cpu",
+            device=device,
             # accumulate=accumulate,
         )
 

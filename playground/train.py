@@ -122,7 +122,7 @@ def configs():
 
 def save_all(agent, actor_critic, save_dir, model_name):
     # model name should have no extension
-    # print(f"Saving {model_name} model.")
+    print(f"Saving {model_name} model.")
     net_name = f"{model_name}.pt"
     optim_name = f"{model_name}.optim"
     gnts_name = f"{model_name}_gnts.pkl"
