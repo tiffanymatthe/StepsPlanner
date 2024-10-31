@@ -46,13 +46,16 @@ class GnT(object):
         """
         Utility of all features/neurons
         """
-        self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
+        self.reset()
+
+    def reset(self):
+        self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
         self.bias_corrected_util = \
-            [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
-        self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
+            [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
         self.m = torch.nn.Softmax(dim=1)
-        self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
-        self.accumulated_num_features_to_replace = [0 for hidden_layer in hidden_layers]
+        self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.accumulated_num_features_to_replace = [0 for hidden_layer in self.hidden_layers]
 
     def update_utility(self, layer_idx=0, features=None, next_features=None):
         with torch.no_grad():

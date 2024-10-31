@@ -127,9 +127,9 @@ def save_all(agent, actor_critic, save_dir, model_name):
     optim_name = f"{model_name}.optim"
     gnts_name = f"{model_name}_gnts.pkl"
     torch.save(actor_critic.state_dict(), os.path.join(save_dir, net_name))
-    # torch.save(agent.optimizer.state_dict(), os.path.join(save_dir, optim_name))
-    # with open(os.path.join(save_dir, gnts_name), "wb") as f:
-    #     pickle.dump({"critic_gnt": agent.critic_gnt, "actor_gnt": agent.actor_gnt}, f)
+    torch.save(agent.optimizer.state_dict(), os.path.join(save_dir, optim_name))
+    with open(os.path.join(save_dir, gnts_name), "wb") as f:
+        pickle.dump({"critic_gnt": agent.critic_gnt, "actor_gnt": agent.actor_gnt}, f)
 
 def load_net(net_path, device, actor_class, dummy_env):
     # net_path has .pt extension
@@ -376,12 +376,9 @@ def main(_seed, _config, _run):
         if (
             update_curriculum # and current_iteration >= 50
         ):
-            print("UPDATING")
             current_iteration = 0
             if current_curriculum < max_curriculum:
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-                # distiller.distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, small_update=True)
-                # save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
                 prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum += 1
                 envs.set_env_params({"curriculum": current_curriculum})
@@ -392,7 +389,8 @@ def main(_seed, _config, _run):
                 # now do big update with previous behavior curriculum
                 if prev_behavior_actor_critic is not None:
                     distiller.distill_policies(prev_behavior_actor_critic, actor_critic, max_curriculum, current_behavior_curriculum - 1, current_curriculum, current_behavior_curriculum, small_update=False)
-
+                agent.actor_gnt.reset()
+                agent.critic_gnt.reset()
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
                 prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum = 0
@@ -408,7 +406,6 @@ def main(_seed, _config, _run):
                     prev_behavior_actor_critic.load_state_dict(actor_critic.state_dict())
             else:
                 pass
-            print("FINISHED UPDATING")
             with torch.no_grad():
                 prev_actor_critic.load_state_dict(actor_critic.state_dict())
 
