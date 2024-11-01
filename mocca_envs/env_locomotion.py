@@ -1559,41 +1559,34 @@ class Walker3DStepperEnv(EnvBase):
         self.curriculum = min(self.curriculum, self.max_curriculum)
         self.behavior_curriculum = min(self.behavior_curriculum, self.max_behavior_curriculum)
 
-        factor = 0 if self.determine else 0.35
-        train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
+        # factor = 0 if self.determine else 0.35
+        # train_on_past = False # self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if "combine_all" in self.behaviors[self.behavior_curriculum]:
             self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
             self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-        # elif self.determine == 3: # normal training
-        #     weights = np.linspace(1,10,self.curriculum+1)
-        #     weights /= sum(weights)
-        #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        # elif self.determine == 2: # only train current thing
-        #     self.selected_curriculum = self.curriculum
-        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        # elif self.determine == 1: # test on previous things, same behavior curriculum
-        #     self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
-        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        # elif self.determine == 0: # test on all
-        #     self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum + 1])
-        #     if self.selected_behavior == self.behaviors[self.behavior_curriculum]:
-        #         self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
-        #     else:
-        #         self.selected_curriculum = self.np_random.randint(0, self.max_curriculum + 1)
-        # elif self.determine != 0:
-        #     self.selected_curriculum = self.curriculum
-        #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
-        else:
-            if train_on_past:
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+        elif self.determine == 3: # normal training
+            weights = np.linspace(1,10,self.curriculum+1)
+            weights /= sum(weights)
+            self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+            self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        elif self.determine == 2: # only train current thing
+            self.selected_curriculum = self.curriculum
+            self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        elif self.determine == 1: # test on previous things, same behavior curriculum
+            self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
+            self.selected_behavior = self.behaviors[self.behavior_curriculum]
+        elif self.determine == 0: # test on all
+            self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum + 1])
+            if self.selected_behavior == self.behaviors[self.behavior_curriculum]:
+                self.selected_curriculum = self.np_random.randint(0, self.curriculum + 1)
             else:
-                weights = np.linspace(1,10,self.curriculum+1)
-                weights /= sum(weights)
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-                self.selected_behavior = self.behaviors[self.behavior_curriculum]
+                self.selected_curriculum = self.np_random.randint(0, self.max_curriculum + 1)
+            # else:
+            #     weights = np.linspace(1,10,self.curriculum+1)
+            #     weights /= sum(weights)
+            #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+            #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         if self.selected_behavior == "to_standstill":
             path = self.generate_to_standstill_step_placements(self.selected_curriculum)
