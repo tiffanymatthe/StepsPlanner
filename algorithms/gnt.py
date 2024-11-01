@@ -46,7 +46,6 @@ class GnT(object):
         """
         Utility of all features/neurons
         """
-        self.m = torch.nn.Softmax(dim=1)
         self.reset()
 
     def reset(self):
@@ -54,6 +53,7 @@ class GnT(object):
         self.bias_corrected_util = \
             [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
         self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.m = torch.nn.Softmax(dim=1)
         self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
         self.accumulated_num_features_to_replace = [0 for hidden_layer in self.hidden_layers]
 
