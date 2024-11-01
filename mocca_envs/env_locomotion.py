@@ -1927,7 +1927,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
             self.legs_bonus += self.tilt_bonus_weight
-        if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
+        if abs(self.progress) < 1 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
         else:
             self.body_stationary_count = 0
@@ -1942,8 +1942,7 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.calc_timing_reward()
 
-        check_other_foot_on_ground = not self.mask_info["timing"][2] and self.current_step_time <= self.terrain_info[self.next_step_index, 10]
-        #  np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
+        check_other_foot_on_ground = not self.mask_info["timing"][2] and np.array([self.right_expected_contact, self.left_expected_contact])[1-self.swing_leg] == 1
 
         if self.mask_info["heading"][2]:
             self.heading_bonus = 0
@@ -2103,7 +2102,7 @@ class Walker3DStepperEnv(EnvBase):
                 )
             )
             foot_in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius # and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
+            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
             other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius + 0.1
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
         # else:
