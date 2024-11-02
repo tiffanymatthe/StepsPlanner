@@ -104,6 +104,7 @@ class Distiller:
             controller = SoftsignActor(self.dummy_env)
             actor_critic = Policy(controller)
             actor_critic.load_state_dict(copy.deepcopy(current_expert_policy.state_dict()))
+            actor_critic.to(device)
             expert_policies_per_task = [actor_critic, prev_expert_policy]
 
         prev_ep_action_loss = 0
