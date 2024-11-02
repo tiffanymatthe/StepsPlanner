@@ -185,7 +185,7 @@ def main(_seed, _config, _run):
         env_name, args.seed, args.num_processes, args.log_dir, **env_kwargs
     )
 
-    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, args.num_processes, 40, envs)
+    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, args.num_processes, 40, envs, dummy_env)
 
     obs_shape = envs.observation_space.shape
     obs_shape = (obs_shape[0], *obs_shape[1:])
@@ -420,7 +420,7 @@ def main(_seed, _config, _run):
                     #     prev_actor_critic = Policy(controller)
                     #     prev_actor_critic.to(args.device)
 
-                    prev_behavior_actor_critic.load_state_dict(actor_critic.state_dict())
+                    prev_behavior_actor_critic.load_state_dict(copy.deepcopy(actor_critic.state_dict()))
             else:
                 pass
             # with torch.no_grad():

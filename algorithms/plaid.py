@@ -5,9 +5,10 @@ from collections import deque
 import copy
 import torch.nn.functional as F
 from common.envs_utils import make_env, make_vec_envs
+from common.controller import SoftsignActor, Policy
 
 class Distiller:
-    def __init__(self, env_name, base_env_kwargs, seed, device, num_processes, num_epochs, envs):
+    def __init__(self, env_name, base_env_kwargs, seed, device, num_processes, num_epochs, envs, dummy_env):
         env_kwargs = {
             **base_env_kwargs,
             "determine": True,
@@ -36,6 +37,8 @@ class Distiller:
         self.buffer_observations_per_task = [torch.zeros(self.num_steps * num_epochs + 1, num_processes, *obs_shape, device=device) for _ in range(2)]
         self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(2)]
         self.buffer_expert_values_per_task = [torch.zeros(self.num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(2)]
+
+        self.dummy_env = dummy_env
 
         self.device = device
         self.num_processes = num_processes
@@ -98,7 +101,10 @@ class Distiller:
         act_dim = envs_per_task[0].action_space.shape[0]
 
         with torch.no_grad():
-            expert_policies_per_task = [copy.deepcopy(current_expert_policy), prev_expert_policy]
+            controller = SoftsignActor(self.dummy_env)
+            actor_critic = Policy(controller)
+            actor_critic.load_state_dict(copy.deepcopy(current_expert_policy.state_dict()))
+            expert_policies_per_task = [actor_critic, prev_expert_policy]
 
         prev_ep_action_loss = 0
         same_action_loss_count = 0
