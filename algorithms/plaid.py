@@ -2,6 +2,7 @@ import torch
 import time
 import numpy as np
 from collections import deque
+import copy
 import torch.nn.functional as F
 from common.envs_utils import make_env, make_vec_envs
 
@@ -46,37 +47,38 @@ class Distiller:
         env_kwargs = {
             "start_curriculum": current_curriculum,
             "start_behavior_curriculum": current_behavior_curriculum,
+            "curriculum": current_curriculum,
+            "behavior_curriculum": current_behavior_curriculum,
             "determine": 2 if small_update else 1,
         }
 
         # expert
-        env_kwargs_normal = {
+        env_kwargs_prev = {
             "start_curriculum": prev_curriculum,
             "start_behavior_curriculum": prev_behavior_curriculum,
+            "curriculum": current_curriculum,
+            "behavior_curriculum": current_behavior_curriculum,
             "determine": 1 if small_update else 0,
         }
 
         self.envs_per_task[0].set_env_params(env_kwargs)
-        self.envs_per_task[1].set_env_params(env_kwargs_normal)
+        self.envs_per_task[1].set_env_params(env_kwargs_prev)
 
         self.train(
             actor_critic,
             prev_actor_critic,
             self.envs_per_task,
-            [env_kwargs, env_kwargs_normal],
+            [env_kwargs, env_kwargs_prev],
             num_epochs=self.num_epochs,
             num_steps=self.num_steps,
             device=self.device,
             num_processes=self.num_processes,
         )
 
-        # self.envs_per_task[0].set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
-
-
     def train(
         self,
-        expert_policy,
-        student_policy,
+        current_expert_policy,
+        prev_expert_policy,
         envs_per_task,
         env_per_task_kwargs, # list of kwargs
         num_epochs=20,
@@ -87,21 +89,16 @@ class Distiller:
     ) -> None:
         
         num_tasks = 2
-
-        # envs_per_task[0].set_env_params({"determine": True})
         
-        optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
+        optimizer = torch.optim.Adam(current_expert_policy.parameters(), lr=3e-4)
 
         obs_shape = envs_per_task[0].observation_space.shape
         obs_shape = (obs_shape[0], *obs_shape[1:])
         obs_dim = obs_shape[0]
         act_dim = envs_per_task[0].action_space.shape[0]
 
-        # assume first task is hopping, second task is everything else
-        import copy
         with torch.no_grad():
-            expert_policy_for_previous_task = copy.deepcopy(student_policy)
-        expert_policies_per_task = [expert_policy, expert_policy_for_previous_task]
+            expert_policies_per_task = [copy.deepcopy(current_expert_policy), prev_expert_policy]
 
         prev_ep_action_loss = 0
         same_action_loss_count = 0
@@ -119,7 +116,7 @@ class Distiller:
                 avg_timing_mets = [deque(maxlen=self.num_processes) for _ in range(4)]
                 # envs_per_task[task_i].set_env_params(env_per_task_kwargs[task_i])
                 obs = envs_per_task[task_i].reset()
-                self.buffer_observations_per_task[task_i][0].copy_(torch.from_numpy(obs))
+                self.buffer_observations_per_task[task_i][epoch * num_steps].copy_(torch.from_numpy(obs))
                 with torch.no_grad():
                     for step in range(num_steps):
                         buffer_index = step + epoch * num_steps
@@ -131,7 +128,7 @@ class Distiller:
 
                         if not use_expert:
                             # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
-                            _, student_action, _ = student_policy.act(self.buffer_observations_per_task[task_i][buffer_index], deterministic=(np.random.rand() < epoch / num_epochs))
+                            _, student_action, _ = current_expert_policy.act(self.buffer_observations_per_task[task_i][buffer_index], deterministic=(np.random.rand() < epoch / num_epochs))
 
                         if use_expert:
                             cpu_actions = expert_action.cpu().numpy()
@@ -194,8 +191,8 @@ class Distiller:
                     actions_batch = expert_actions_shaped_per_task[task_i][indices]
                     values_batch = expert_values_shaped_per_task[task_i][indices]
 
-                    pred_actions = student_policy.actor(observations_batch)
-                    pred_values = student_policy.get_value(observations_batch)
+                    pred_actions = current_expert_policy.actor(observations_batch)
+                    pred_values = current_expert_policy.get_value(observations_batch)
 
                     action_loss = F.mse_loss(pred_actions, actions_batch)
                     value_loss = F.mse_loss(pred_values, values_batch)
