@@ -248,9 +248,11 @@ def main(_seed, _config, _run):
         if os.path.exists(prev_net_path):
             prev_behavior_actor_critic = load_net(prev_net_path, args.device, globals().get(args.actor_class), dummy_env)
             prev_behavior_actor_critic.to(args.device)
+            print(f"Loaded {prev_net_path} for prev_behavior_actor_critic")
         elif os.path.exists(prev_net_path_backup):
             prev_behavior_actor_critic = load_net(prev_net_path_backup, args.device, globals().get(args.actor_class), dummy_env)
             prev_behavior_actor_critic.to(args.device)
+            print(f"Loaded {prev_net_path_backup} for prev_behavior_actor_critic")
         else:
             print(f"Unable to load {prev_net_path} or {prev_net_path_backup} for prev_behavior_actor_critic")
 
