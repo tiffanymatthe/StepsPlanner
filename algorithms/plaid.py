@@ -4,6 +4,7 @@ import numpy as np
 from collections import deque
 import copy
 import torch.nn.functional as F
+from bottleneck import nanmean
 from common.envs_utils import make_env, make_vec_envs
 from common.controller import SoftsignActor, Policy
 
@@ -179,11 +180,12 @@ class Distiller:
 
                 print(
                     (
-                        f"Epoch {epoch} | env {task_i} | "
-                        f"curriculum_metric {[np.mean(x) for x in curriculum_metrics]} | "
-                        f"avg_heading_err {[np.mean(x) for x in avg_heading_errs]} | "
-                        f"avg_timing_met {[np.mean(x) for x in avg_timing_mets]} | "
-                        f"avg_dist_err {[np.mean(x) for x in avg_dist_errs]} | "
+                        f"Epoch {epoch+1:4d}/{num_epochs:4d} | "
+                        f"env {task_i} | "
+                        f"curriculum_metric {[nanmean(x) for x in curriculum_metrics]} | "
+                        f"avg_heading_err {[nanmean(x) for x in avg_heading_errs]} | "
+                        f"avg_timing_met {[nanmean(x) for x in avg_timing_mets]} | "
+                        f"avg_dist_err {[nanmean(x) for x in avg_dist_errs]} | "
                     )
                 )
 

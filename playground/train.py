@@ -380,8 +380,6 @@ def main(_seed, _config, _run):
                     update_curriculum = False
                     break
 
-        update_curriculum = True
-
         # Update curriculum after roll-out
         if (
             update_curriculum # and current_iteration >= 50
