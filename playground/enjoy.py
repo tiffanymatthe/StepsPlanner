@@ -88,7 +88,7 @@ def main():
     actor_critic = Policy(controller)
     actor_critic.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
-    if args.plot:
+    if args.render and args.plot:
         fig1, ax1 = plt.subplots(figsize=(12,4))
 
         # ax1.set_xlim(0, 800)
@@ -124,7 +124,7 @@ def main():
         "use_ffmpeg": use_ffmpeg,
         "max_steps": args.len,
         "csv": args.csv,
-        "ax": ax1 if args.plot else None,
+        "ax": ax1 if (args.plot and args.render) else None,
         "dir": os.path.join(parent_dir, "videos"),
         "video_filename": f"{args.behavior_curriculum}_{args.curriculum}_rgb.mp4",
         "plot_writer": writer,
@@ -139,7 +139,8 @@ def main():
         env.set_env_params({"curriculum": int(curriculum), "behavior_curriculum": int(behavior_curriculum)})
 
         obs = env.reset(force=True)
-        env.camera._cam_yaw = 90
+        if args.render:
+            env.camera._cam_yaw = 90
         ep_reward = 0
 
         left_foot_headings = []
@@ -162,7 +163,7 @@ def main():
 
         done = False
 
-        if args.plot:
+        if args.render and args.plot:
             if env.mask_info["timing"][2]:
                 ax1.clear()
                 ax1.set_xlim(0, 800)
@@ -207,7 +208,8 @@ def main():
             cpu_actions = action.squeeze().cpu().numpy()
 
             obs, reward, done, _ = env.step(cpu_actions)
-            env.camera.lookat(env.robot.body_xyz)
+            if args.render:
+                env.camera.lookat(env.robot.body_xyz)
 
             ep_reward += reward
 
@@ -218,7 +220,7 @@ def main():
                 actual_other_foot.append(env.right_actual_contact)
                 index_switch.append(env.current_step_time == 0)
 
-            if args.plot and not env.past_last_step:
+            if args.render and args.plot and not env.past_last_step:
                 fig1.canvas.restore_region(background_1)
                 if env.mask_info["timing"][2]:
                     time = env.timestep
@@ -294,13 +296,13 @@ def main():
                     actual_start_foot = []
                     actual_other_foot = []
                     index_switch = []
-                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
+                print(f"--- Episode reward: {ep_reward} and steps {env.next_step_index} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
                 obs = env.reset(reset_runner=False)
                 if args.heading:
                     foot_heading_targets = env.terrain_info[:, 6]
                     foot_position_targets = env.terrain_info[:, 0:2]
                     swing_targets = env.terrain_info[:, 7]
-                if args.plot:
+                if args.render and args.plot:
                     if env.mask_info["timing"][2]:
                         ax1.clear()
                         ax1.set_xlim(0, 800)
