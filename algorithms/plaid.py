@@ -1,6 +1,7 @@
 import torch
 import time
 import numpy as np
+from collections import deque
 import torch.nn.functional as F
 from common.envs_utils import make_env, make_vec_envs
 
@@ -111,6 +112,11 @@ class Distiller:
             expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
             expert_values_shaped_per_task = [None for _ in range(num_tasks)]
             for task_i in range(num_tasks):
+                episode_rewards = deque(maxlen=self.num_processes)
+                curriculum_metrics = [deque(maxlen=self.num_processes) for _ in range(4)]
+                avg_heading_errs = [deque(maxlen=self.num_processes) for _ in range(4)]
+                avg_dist_errs = [deque(maxlen=self.num_processes) for _ in range(4)]
+                avg_timing_mets = [deque(maxlen=self.num_processes) for _ in range(4)]
                 # envs_per_task[task_i].set_env_params(env_per_task_kwargs[task_i])
                 obs = envs_per_task[task_i].reset()
                 self.buffer_observations_per_task[task_i][0].copy_(torch.from_numpy(obs))
@@ -131,7 +137,26 @@ class Distiller:
                             cpu_actions = expert_action.cpu().numpy()
                         else:
                             cpu_actions = student_action.cpu().numpy()
-                        obs, _, _, _ = envs_per_task[task_i].step(cpu_actions)
+                        obs, _, dones, infos = envs_per_task[task_i].step(cpu_actions)
+
+                        masks = torch.FloatTensor(~dones).unsqueeze(1)
+                        bad_masks = torch.ones((self.num_processes, 1))
+                        for p_index, info in enumerate(infos):
+                            # This information is added by common.envs_utils.TimeLimitMask
+                            if "bad_transition" in info:
+                                bad_masks[p_index] = 0.0
+                            # This information is added by common.envs_utils.Monitor
+                            if "episode" in info:
+                                episode_rewards.append(info["episode"]["r"])
+                            if "curriculum_metric" in info:
+                                curriculum_metrics[info["mask_combo_id"]].append(info["curriculum_metric"])
+                            if "avg_heading_err" in info:
+                                avg_heading_errs[info["mask_combo_id"]].append(info["avg_heading_err"])
+                            if "avg_timing_met" in info:
+                                avg_timing_mets[info["mask_combo_id"]].append(info["avg_timing_met"])
+                            if "avg_dist_err" in info:
+                                avg_dist_errs[info["mask_combo_id"]].append(info["avg_dist_err"])
+
 
                         self.buffer_observations_per_task[task_i][buffer_index + 1].copy_(torch.from_numpy(obs))
                         self.buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
@@ -147,6 +172,16 @@ class Distiller:
                 observations_shaped_per_task[task_i] = self.buffer_observations_per_task[task_i].view(-1, obs_dim)
                 expert_actions_shaped_per_task[task_i] = self.buffer_expert_actions_per_task[task_i].view(-1, act_dim)
                 expert_values_shaped_per_task[task_i] = self.buffer_expert_values_per_task[task_i].view(-1, 1)
+
+                print(
+                    (
+                        f"Epoch {epoch} | env {task_i} | "
+                        f"curriculum_metric {[np.mean(x) for x in curriculum_metrics]} | "
+                        f"avg_heading_err {[np.mean(x) for x in avg_heading_errs]} | "
+                        f"avg_timing_met {[np.mean(x) for x in avg_timing_mets]} | "
+                        f"avg_dist_err {[np.mean(x) for x in avg_dist_errs]} | "
+                    )
+                )
 
             ep_action_loss = torch.tensor(0.0, device=device).float()
             ep_value_loss = torch.tensor(0.0, device=device).float()
