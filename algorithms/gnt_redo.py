@@ -124,4 +124,4 @@ class GnTREDO(object):
 
         fraction_to_replace = sum(num_features_to_replace) / features.numel()
 
-        return fraction_to_replace, num_features_to_replace, fraction_to_replace
+        return fraction_to_replace, sum(num_features_to_replace), fraction_to_replace
