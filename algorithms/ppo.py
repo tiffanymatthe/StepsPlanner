@@ -84,7 +84,7 @@ class PPO(object):
 
         # settings based on https://github.com/shibhansh/loss-of-plasticity/blob/7bf3dfe6723a43a543fa1057a38eaf4b480f2ff3/lop/rl/cfg/walker/cbp.yml
 
-        self.normal_gnt = False
+        self.normal_gnt = True
         if self.normal_gnt:
             self.actor_gnt = GnT(
                 hidden_layers=self.actor_critic.actor.layers_to_check,
