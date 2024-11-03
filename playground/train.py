@@ -427,7 +427,7 @@ def main(_seed, _config, _run):
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
-        value_loss, action_loss, dist_entropy, critic_frac, actor_frac = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy, critic_frac, actor_frac, dormant_critic_count, dormant_critic_fraction, dormant_actor_count, dormant_actor_fraction = agent.update(rollouts)
 
         rollouts.after_update()
 
@@ -477,6 +477,10 @@ def main(_seed, _config, _run):
                     "actor_frac_to_replace": actor_frac,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
+                    "dormant_critic_count": dormant_critic_count,
+                    "dormant_critic_fraction": dormant_critic_fraction,
+                    "dormant_actor_count": dormant_actor_count,
+                    "dormant_actor_fraction": dormant_actor_fraction,
                 },
                 wandb if args.use_wandb else None
             )

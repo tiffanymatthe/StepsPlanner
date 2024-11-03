@@ -50,8 +50,7 @@ class GnT(object):
 
     def reset(self):
         self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
-        self.bias_corrected_util = \
-            [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.bias_corrected_util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
         self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
         self.m = torch.nn.Softmax(dim=1)
         self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
@@ -159,8 +158,13 @@ class GnT(object):
 
             features_to_replace[i] = new_features_to_replace
             num_features_to_replace[i] = num_new_features_to_replace
+        
+        threshold = 0.025
+        all_elements = torch.cat(self.bias_corrected_util)
+        dormant_count = (all_elements < threshold).sum().item()
+        dormant_fraction = dormant_count / all_elements.numel()
 
-        return features_to_replace, num_features_to_replace, num_eligible_features
+        return features_to_replace, num_features_to_replace, num_eligible_features, dormant_count, dormant_fraction
 
     def gen_new_features(self, features_to_replace, num_features_to_replace):
         """
@@ -219,7 +223,7 @@ class GnT(object):
         if not isinstance(features, list):
             print('features passed to generate-and-test should be a list')
             sys.exit()
-        features_to_replace, num_features_to_replace, num_eligible_features = self.test_features(features=features)
+        features_to_replace, num_features_to_replace, num_eligible_features, dormant_unit_count, dormant_unit_fraction = self.test_features(features=features)
         if not only_test:
             self.gen_new_features(features_to_replace, num_features_to_replace)
             self.update_optim_params(features_to_replace, num_features_to_replace)
@@ -230,4 +234,4 @@ class GnT(object):
         if num_eligible_features == 0:
             return 0
         else:
-            return num_features_to_replace / num_eligible_features
+            return num_features_to_replace / num_eligible_features, dormant_unit_count, dormant_unit_fraction

@@ -124,6 +124,10 @@ class PPO(object):
         dist_entropy_epoch = torch.tensor(0.0).to(device)
         critic_fraction_to_replace_epoch = torch.tensor(0.0).to(device)
         actor_fraction_to_replace_epoch = torch.tensor(0.0).to(device)
+        dormant_critic_count_epoch = torch.tensor(0.0).to(device)
+        dormant_critic_fraction_epoch = torch.tensor(0.0).to(device)
+        dormant_actor_count_epoch = torch.tensor(0.0).to(device)
+        dormant_actor_fraction_epoch = torch.tensor(0.0).to(device)
 
         clip_param = self.clip_param
 
@@ -195,14 +199,18 @@ class PPO(object):
 
                 # continual backprop (wipe dormant neurons)
                 self.optimizer.zero_grad()
-                critic_fraction_to_replace = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
-                actor_fraction_to_replace = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
+                critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
+                actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())
                 dist_entropy_epoch.add_(dist_entropy.detach())
                 critic_fraction_to_replace_epoch.add_(critic_fraction_to_replace)
                 actor_fraction_to_replace_epoch.add_(actor_fraction_to_replace)
+                dormant_critic_count_epoch.add_(dormant_critic_count)
+                dormant_critic_fraction_epoch.add_(dormant_critic_fraction)
+                dormant_actor_count_epoch.add_(dormant_actor_count)
+                dormant_actor_fraction_epoch.add_(dormant_actor_fraction)
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
@@ -211,11 +219,20 @@ class PPO(object):
         dist_entropy_epoch.div_(num_updates)
         critic_fraction_to_replace_epoch.div_(num_updates)
         actor_fraction_to_replace_epoch.div_(num_updates)
+        dormant_critic_count_epoch.div_(num_updates)
+        dormant_critic_fraction_epoch.div_(num_updates)
+        dormant_actor_count_epoch.div_(num_updates)
+        dormant_actor_fraction_epoch.div_(num_updates)
+    
 
         return (
             value_loss_epoch.item(),
             action_loss_epoch.item(),
             dist_entropy_epoch.item(),
             critic_fraction_to_replace_epoch.item(),
-            actor_fraction_to_replace_epoch.item()
+            actor_fraction_to_replace_epoch.item(),
+            dormant_critic_count_epoch.item(),
+            dormant_critic_fraction_epoch.item(),
+            dormant_actor_count_epoch.item(),
+            dormant_actor_fraction_epoch.item(),
         )
