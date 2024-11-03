@@ -2095,7 +2095,9 @@ class Walker3DStepperEnv(EnvBase):
                 )
             )
             foot_in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
-            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
+            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius
+            if self.selected_behavior == "one_step_plant":
+                foot_in_prev_target = foot_in_prev_target and (self.mask_info["timing"][2] or self.current_step_time < next_step_time[0] + next_step_time[1])
             other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius + 0.1
             swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
         # else:
