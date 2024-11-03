@@ -164,6 +164,11 @@ class GnT(object):
 
             features_to_replace[i] = new_features_to_replace
             num_features_to_replace[i] = num_new_features_to_replace
+        
+        threshold = 0.001
+        all_elements = torch.cat(self.bias_corrected_util)
+        dormant_count = (all_elements < threshold).sum().item()
+        dormant_fraction = dormant_count / all_elements.numel()
 
         return features_to_replace, num_features_to_replace, num_eligible_features
 
