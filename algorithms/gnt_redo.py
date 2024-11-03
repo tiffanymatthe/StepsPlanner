@@ -122,6 +122,6 @@ class GnTREDO(object):
             self.update_optim_params(features_to_replace, num_features_to_replace)
         self.steps_since_last_redo = 0
 
-        fraction_to_replace = num_features_to_replace / features.numel()
+        fraction_to_replace = sum(num_features_to_replace) / features.numel()
 
         return fraction_to_replace, num_features_to_replace, fraction_to_replace
