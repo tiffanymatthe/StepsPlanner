@@ -51,15 +51,15 @@ class GnT(object):
         self.bounds = self.compute_bounds()
 
     def reset(self):
-        self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
-        self.bias_corrected_util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
-        self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers[:-1]]
+        self.bias_corrected_util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers[:-1]]
+        self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers[:-1]]
         self.m = torch.nn.Softmax(dim=1)
-        self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
-        self.accumulated_num_features_to_replace = [0 for hidden_layer in self.hidden_layers]
+        self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers[:-1]]
+        self.accumulated_num_features_to_replace = [0 for hidden_layer in self.hidden_layers[:-1]]
 
     def compute_bounds(self):
-        bounds = [sqrt(1 / hidden_layer.in_features) for hidden_layer in self.hidden_layers]
+        bounds = [sqrt(1 / hidden_layer.in_features) for hidden_layer in self.hidden_layers[:-1]]
         return bounds
 
     def update_utility(self, layer_idx=0, features=None, next_features=None):
@@ -170,6 +170,8 @@ class GnT(object):
         dormant_count = (all_elements < threshold).sum().item()
         dormant_fraction = dormant_count / all_elements.numel()
 
+        # print(f"{dormant_count}, {dormant_fraction}, {all_elements.numel()}, {self.bias_corrected_util}")
+
         return features_to_replace, num_features_to_replace, num_eligible_features, dormant_count, dormant_fraction
 
     def gen_new_features(self, features_to_replace, num_features_to_replace):
@@ -194,6 +196,7 @@ class GnT(object):
                 nn.init.constant_(
                     current_layer.bias.data[features_to_replace[i]], 0
                 )
+                # print(f"{current_layer.weight.data[features_to_replace[i], :]} and {current_layer.bias.data[features_to_replace[i]]}")
                 """
                 # Update bias to correct for the removed features and set the outgoing weights and ages to zero
                 """

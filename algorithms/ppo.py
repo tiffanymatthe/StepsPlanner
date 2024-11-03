@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from algorithms.gnt import GnT
+from algorithms.gnt_redo import GnTREDO
 # from algorithms.adamgnt import AdamGnT
 
 try:
@@ -83,49 +84,64 @@ class PPO(object):
 
         # settings based on https://github.com/shibhansh/loss-of-plasticity/blob/7bf3dfe6723a43a543fa1057a38eaf4b480f2ff3/lop/rl/cfg/walker/cbp.yml
 
-        self.actor_gnt = GnT(
-            hidden_layers=self.actor_critic.actor.layers_to_check,
-            hidden_activations=["relu"],
-            opt=self.optimizer,
-            replacement_rate=replacement_rate,
-            decay_rate=0.99,
-            maturity_threshold=maturity_threshold,
-            util_type="contribution",
-            device=device,
-            # accumulate=accumulate,
-        )
+        self.normal_gnt = False
+        if self.normal_gnt:
+            self.actor_gnt = GnT(
+                hidden_layers=self.actor_critic.actor.layers_to_check,
+                hidden_activations=["relu"],
+                opt=self.optimizer,
+                replacement_rate=replacement_rate,
+                decay_rate=0.99,
+                maturity_threshold=maturity_threshold,
+                util_type="contribution",
+                device=device,
+                # accumulate=accumulate,
+            )
 
-        self.critic_gnt = GnT(
-            hidden_layers=self.actor_critic.layers_to_check,
-            hidden_activations=["relu", "relu", "relu"],
-            opt=self.optimizer,
-            replacement_rate=replacement_rate,
-            decay_rate=0.99,
-            maturity_threshold=maturity_threshold,
-            util_type="contribution",
-            device=device,
-            # accumulate=accumulate,
-        )
+            self.critic_gnt = GnT(
+                hidden_layers=self.actor_critic.layers_to_check,
+                hidden_activations=["relu", "relu", "relu"],
+                opt=self.optimizer,
+                replacement_rate=replacement_rate,
+                decay_rate=0.99,
+                maturity_threshold=maturity_threshold,
+                util_type="contribution",
+                device=device,
+                # accumulate=accumulate,
+            )
 
-        if net_path is not None:
-            base_path = os.path.splitext(net_path)[0]
-            optimizer_path = f"{base_path}.optim"
-            if os.path.exists(optimizer_path):
-                print(f"Loading saved optimizer {optimizer_path}")
-                self.optimizer.load_state_dict(torch.load(optimizer_path, map_location=torch.device(device)))
-            
-            gnts_path = f"{base_path}_gnts.pkl"
-            if os.path.exists(gnts_path):
-                print(f"Loading saved gnts {gnts_path}")
-                with open(gnts_path, "rb") as f:
-                    gnt_dict = CPU_Unpickler(f, device=device).load()
-                    for (old_gnt, new_gnt) in [(gnt_dict["critic_gnt"], self.critic_gnt),(gnt_dict["actor_gnt"], self.actor_gnt)]:
-                        new_gnt.util = old_gnt.util
-                        new_gnt.bias_corrected_util = old_gnt.bias_corrected_util
-                        new_gnt.ages = old_gnt.ages
-                        new_gnt.m = old_gnt.m
-                        new_gnt.mean_feature_act = old_gnt.mean_feature_act
-                        new_gnt.accumulated_num_features_to_replace = old_gnt.accumulated_num_features_to_replace
+            if net_path is not None:
+                base_path = os.path.splitext(net_path)[0]
+                optimizer_path = f"{base_path}.optim"
+                if os.path.exists(optimizer_path):
+                    print(f"Loading saved optimizer {optimizer_path}")
+                    self.optimizer.load_state_dict(torch.load(optimizer_path, map_location=torch.device(device)))
+                
+                gnts_path = f"{base_path}_gnts.pkl"
+                if os.path.exists(gnts_path):
+                    print(f"Loading saved gnts {gnts_path}")
+                    with open(gnts_path, "rb") as f:
+                        gnt_dict = CPU_Unpickler(f, device=device).load()
+                        for (old_gnt, new_gnt) in [(gnt_dict["critic_gnt"], self.critic_gnt),(gnt_dict["actor_gnt"], self.actor_gnt)]:
+                            new_gnt.util = old_gnt.util
+                            new_gnt.bias_corrected_util = old_gnt.bias_corrected_util
+                            new_gnt.ages = old_gnt.ages
+                            new_gnt.m = old_gnt.m
+                            new_gnt.mean_feature_act = old_gnt.mean_feature_act
+                            new_gnt.accumulated_num_features_to_replace = old_gnt.accumulated_num_features_to_replace
+        else:
+            self.actor_gnt = GnTREDO(
+                hidden_layers=self.actor_critic.actor.layers_to_check,
+                hidden_activations=["relu"],
+                opt=self.optimizer,
+                device=device,
+            )
+            self.critic_gnt = GnTREDO(
+                hidden_layers=self.actor_critic.layers_to_check,
+                hidden_activations=["relu", "relu", "relu"],
+                opt=self.optimizer,
+                device=device,
+            )
 
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
@@ -212,8 +228,14 @@ class PPO(object):
 
                 # continual backprop (wipe dormant neurons)
                 self.optimizer.zero_grad()
-                critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
-                actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
+                if self.normal_gnt:
+                    critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
+                    actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
+                else:
+                    critic_history = torch.stack(self.actor_critic.get_activations()).permute(1, 0, 2)
+                    actor_history = torch.stack(self.actor_critic.actor.get_activations()).permute(1, 0, 2)
+                    critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=critic_history, only_test=self.only_test)
+                    actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = self.actor_gnt.gen_and_test(features=actor_history, only_test=self.only_test)
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())
