@@ -161,6 +161,7 @@ class GnT(object):
         
         threshold = 0.025
         all_elements = torch.cat(self.bias_corrected_util)
+        print(f"{self.bias_corrected_util} and {self.util}")
         dormant_count = (all_elements < threshold).sum().item()
         dormant_fraction = dormant_count / all_elements.numel()
 
