@@ -46,13 +46,21 @@ class GnT(object):
         """
         Utility of all features/neurons
         """
-        self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
-        self.bias_corrected_util = \
-            [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
-        self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
+        self.reset()
+
+        self.bounds = self.compute_bounds()
+
+    def reset(self):
+        self.util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.bias_corrected_util = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.ages = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
         self.m = torch.nn.Softmax(dim=1)
-        self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in hidden_layers]
-        self.accumulated_num_features_to_replace = [0 for hidden_layer in hidden_layers]
+        self.mean_feature_act = [torch.zeros(hidden_layer.out_features).to(self.device) for hidden_layer in self.hidden_layers]
+        self.accumulated_num_features_to_replace = [0 for hidden_layer in self.hidden_layers]
+
+    def compute_bounds(self):
+        bounds = [sqrt(1 / hidden_layer.in_features) for hidden_layer in self.hidden_layers]
+        return bounds
 
     def update_utility(self, layer_idx=0, features=None, next_features=None):
         with torch.no_grad():
@@ -171,6 +179,9 @@ class GnT(object):
                 next_layer = self.hidden_layers[i + 1]
 
                 current_layer.weight.data[features_to_replace[i], :] *= 0.0
+                current_layer.weight.data[features_to_replace[i], :] += \
+                    torch.empty(num_features_to_replace[i], current_layer.in_features).uniform_(
+                        -self.bounds[i], self.bounds[i]).to(self.device)
                 nn.init.orthogonal_(
                     current_layer.weight.data[features_to_replace[i], :],
                     gain=nn.init.calculate_gain(self.hidden_activations[i])
@@ -225,6 +236,6 @@ class GnT(object):
         num_eligible_features = np.sum(np.array(num_eligible_features))
 
         if num_eligible_features == 0:
-            return 0
+            return 0, dormant_unit_count, dormant_unit_fraction
         else:
             return num_features_to_replace / num_eligible_features

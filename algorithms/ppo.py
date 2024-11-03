@@ -16,6 +16,19 @@ try:
 except ModuleNotFoundError:
     import pickle
 
+import io
+
+class CPU_Unpickler(pickle.Unpickler):
+    def __init__(self, *args, device='cpu', **kwargs):
+        super().__init__(*args, **kwargs)
+        self.device = device
+
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return lambda b: torch.load(io.BytesIO(b), map_location=self.device)
+        else:
+            return super().find_class(module, name)
+
 def clip_grad_norm_(parameters, max_norm):
     total_norm = torch.cat([p.grad.detach().view(-1) for p in parameters]).norm()
     clip_coef = (max_norm / (total_norm + 1e-6)).clamp(max=1.0)
@@ -105,7 +118,7 @@ class PPO(object):
             if os.path.exists(gnts_path):
                 print(f"Loading saved gnts {gnts_path}")
                 with open(gnts_path, "rb") as f:
-                    gnt_dict = pickle.load(f)
+                    gnt_dict = CPU_Unpickler(f, device=device).load()
                     for (old_gnt, new_gnt) in [(gnt_dict["critic_gnt"], self.critic_gnt),(gnt_dict["actor_gnt"], self.actor_gnt)]:
                         new_gnt.util = old_gnt.util
                         new_gnt.bias_corrected_util = old_gnt.bias_corrected_util
