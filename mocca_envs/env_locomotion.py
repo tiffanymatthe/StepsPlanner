@@ -347,7 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
         self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "transition_all", "one_step_plant", "combine_all", "combine_all_heading"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
-        self.behavior_timing_thresholds = [1.85, 1.7, 1.7, 1.73, 1.73, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
+        self.behavior_timing_thresholds = [1.8, 1.7, 1.7, 1.7, 1.7, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
         self.from_net = kwargs.pop("from_net", False)
@@ -1728,6 +1728,9 @@ class Walker3DStepperEnv(EnvBase):
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             self.mask_info["timing"][2] = False
             self.mask_info["heading"][2] = False
+
+        if self.selected_behavior  == "to_standstill" and self.selected_curriculum == self.max_curriculum:
+            self.mask_info["timing"][2] = False
     
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
         self.starting_leg = self.swing_leg

@@ -60,8 +60,8 @@ class Distiller:
         env_kwargs_prev = {
             "start_curriculum": prev_curriculum,
             "start_behavior_curriculum": prev_behavior_curriculum,
-            "curriculum": current_curriculum,
-            "behavior_curriculum": current_behavior_curriculum,
+            "curriculum": prev_curriculum,
+            "behavior_curriculum": prev_behavior_curriculum,
             "determine": 1 if small_update else 0,
         }
 
