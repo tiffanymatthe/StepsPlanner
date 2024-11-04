@@ -123,6 +123,8 @@ class PPO(object):
                     with open(gnts_path, "rb") as f:
                         gnt_dict = CPU_Unpickler(f, device=device).load()
                         for (old_gnt, new_gnt) in [(gnt_dict["critic_gnt"], self.critic_gnt),(gnt_dict["actor_gnt"], self.actor_gnt)]:
+                            if isinstance(old_gnt, GnTREDO):
+                                continue
                             new_gnt.util = old_gnt.util
                             new_gnt.bias_corrected_util = old_gnt.bias_corrected_util
                             new_gnt.ages = old_gnt.ages
