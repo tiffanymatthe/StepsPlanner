@@ -490,8 +490,12 @@ class Walker3DStepperEnv(EnvBase):
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
         else:
-            half_cycle_times = self.np_random.choice([10,20,30,40,50], size=N)
-            ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7], size=N)
+            if self.selected_behavior == "random_walks_backward":
+                half_cycle_times = self.np_random.choice([20,30,40,50], size=N)
+                ground_ratio = self.np_random.choice([0.1,0.2,0.3,0.4,0.5,0.6], size=N)
+            else:
+                half_cycle_times = self.np_random.choice([10,20,30,40,50], size=N)
+                ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7], size=N)
             half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
             ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
             timing_0 = half_cycle_times * ground_ratio
