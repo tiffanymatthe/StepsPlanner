@@ -52,6 +52,7 @@ def decrement_curr(filename):
     match = re.search(r'(curr_)(\d+)_(\d+)', filename)
     if match:
         prefix, first_num, second_num = match.groups()
+        second_num = 9 # overwrite
         # Decrement the first number by 1
         new_first_num = str(int(first_num) - 1)
         # Replace 'curr_' with 'curr_distilled_' and update the numbers
