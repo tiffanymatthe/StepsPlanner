@@ -8,6 +8,9 @@ from bottleneck import nanmean
 from common.envs_utils import make_env, make_vec_envs
 from common.controller import SoftsignActor, Policy
 
+def list_string(array):
+    return ', '.join(f"{num:.2f}" for num in array)
+
 class Distiller:
     def __init__(self, env_name, base_env_kwargs, seed, device, num_processes, num_epochs, envs, dummy_env):
         env_kwargs = {
@@ -182,10 +185,10 @@ class Distiller:
                     (
                         f"Epoch {epoch+1:4d}/{num_epochs:4d} | "
                         f"env {task_i} | "
-                        f"curriculum_metric {[nanmean(x) for x in curriculum_metrics]} | "
-                        f"avg_heading_err {[nanmean(x) for x in avg_heading_errs]} | "
-                        f"avg_timing_met {[nanmean(x) for x in avg_timing_mets]} | "
-                        f"avg_dist_err {[nanmean(x) for x in avg_dist_errs]} | "
+                        f"curriculum_metric {list_string([nanmean(x) for x in curriculum_metrics[0:2]])} | "
+                        f"avg_heading_err {list_string([nanmean(x) for x in avg_heading_errs[0:2]])} | "
+                        f"avg_timing_met {list_string([nanmean(x) for x in avg_timing_mets[0:2]])} | "
+                        f"avg_dist_err {list_string([nanmean(x) for x in avg_dist_errs[0:2]])} | "
                     )
                 )
 
