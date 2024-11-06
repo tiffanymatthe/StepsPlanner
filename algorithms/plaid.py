@@ -32,12 +32,14 @@ class Distiller:
         obs_dim = obs_shape[0]
         act_dim = self.envs_per_task[0].action_space.shape[0]
 
-        self.num_steps = 5000
+        # order: current, previous
+
+        self.num_steps_per_task = [5000,10000]
         self.num_epochs = num_epochs
     
-        self.buffer_observations_per_task = [torch.zeros(self.num_steps * num_epochs + 1, num_processes, *obs_shape, device=device) for _ in range(2)]
-        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(2)]
-        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps * num_epochs, num_processes, act_dim, device=device) for _ in range(2)]
+        self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device=device) for i in range(2)]
+        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device=device) for i in range(2)]
+        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device=device) for i in range(2)]
 
         self.dummy_env = dummy_env
 
@@ -74,7 +76,6 @@ class Distiller:
             self.envs_per_task,
             [env_kwargs, env_kwargs_prev],
             num_epochs=self.num_epochs,
-            num_steps=self.num_steps,
             device=self.device,
             num_processes=self.num_processes,
         )
@@ -86,7 +87,6 @@ class Distiller:
         envs_per_task,
         env_per_task_kwargs, # list of kwargs
         num_epochs=20,
-        num_steps=5000,
         mini_batch_size=512,
         num_processes=4,
         device="cuda:0",
@@ -124,10 +124,10 @@ class Distiller:
                 avg_timing_mets = [deque(maxlen=self.num_processes) for _ in range(4)]
                 # envs_per_task[task_i].set_env_params(env_per_task_kwargs[task_i])
                 obs = envs_per_task[task_i].reset()
-                self.buffer_observations_per_task[task_i][epoch * num_steps].copy_(torch.from_numpy(obs))
+                self.buffer_observations_per_task[task_i][epoch * self.num_steps_per_task[task_i]].copy_(torch.from_numpy(obs))
                 with torch.no_grad():
-                    for step in range(num_steps):
-                        buffer_index = step + epoch * num_steps
+                    for step in range(self.num_steps_per_task[task_i]):
+                        buffer_index = step + epoch * self.num_steps_per_task[task_i]
                         expert_value, expert_action, _ = expert_policies_per_task[task_i].act(
                             self.buffer_observations_per_task[task_i][buffer_index], deterministic=True
                         )
@@ -167,7 +167,7 @@ class Distiller:
                         self.buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
                         self.buffer_expert_values_per_task[task_i][buffer_index].copy_(expert_value)
 
-                batch_size = num_steps * (epoch + 1) * num_processes
+                batch_size = self.num_steps_per_task[task_i] * (epoch + 1) * num_processes
                 num_mini_batch = batch_size // mini_batch_size
                 shuffled_indices = torch.randperm(
                     num_mini_batch * mini_batch_size, generator=None, device=device
