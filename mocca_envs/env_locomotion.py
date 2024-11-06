@@ -363,6 +363,8 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
 
+        self.termination_penalty = 0
+
         self.current_step_time = 0
         self.current_time_index = 1
 
@@ -1792,6 +1794,7 @@ class Walker3DStepperEnv(EnvBase):
             "heading": self.heading_bonus * self.heading_bonus_weight if not self.mask_info["heading"][2] else 0,
             "timing": self.timing_bonus * self.timing_bonus_weight if not self.mask_info["timing"][2] else 0,
             "other leg": 2 * self.step_bonus_other_leg if self.selected_behavior in {"one_step_plant", "hopping"} else 0,
+            "termination": -self.termination_penalty,
         }
 
         reward = sum(all_rewards.values())
@@ -1968,6 +1971,9 @@ class Walker3DStepperEnv(EnvBase):
             )
             dist = dist_to_prev_target[1-self.swing_leg]
             self.step_bonus_other_leg = self.step_radius - dist
+
+        self.termination_penalty = 2 if self.swing_leg_has_fallen or self.other_leg_has_fallen else 0
+        self.termination_penalty = 100 if self.body_stationary_count > count else 0
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
 
