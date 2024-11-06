@@ -383,7 +383,7 @@ def main(_seed, _config, _run):
 
         # Update curriculum after roll-out
         if (
-            update_curriculum and current_iteration >= 10
+            (update_curriculum and current_iteration >= 10) or (current_behavior_curriculum == 5 and current_curriculum == 9)
         ):
             current_iteration = 0
             if current_curriculum < max_curriculum:
