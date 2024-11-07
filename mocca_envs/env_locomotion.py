@@ -320,7 +320,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 4
+    rendered_step_count = 3
     init_step_separation = 0.70
 
     step_delay = 4
@@ -1653,7 +1653,7 @@ class Walker3DStepperEnv(EnvBase):
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
         heading = self.terrain_info[info_index, 6]
         left = self.terrain_info[info_index, 7]
-        self.rendered_steps[step_index].set_position(pos=pos) #, quat=quaternion)
+        self.rendered_steps[step_index].set_position(pos=pos, left=left) #, quat=quaternion)
         new_pos = np.copy(pos)
         new_pos[2] += 0.005
         if self.mask_info["heading"][2]:
@@ -1672,10 +1672,11 @@ class Walker3DStepperEnv(EnvBase):
         if self.rendered_step_count == self.num_steps or not (self.is_rendered or self.use_egl):
             return
 
-        if self.next_step_index >= self.rendered_step_count:
-            oldest = self.next_step_index % self.rendered_step_count
-            next = min(self.next_step_index, len(self.terrain_info) - 1)
-            self.set_step_state(next, oldest)
+        # if self.next_step_index >= self.rendered_step_count:
+        render_lookahead = self.rendered_step_count - 2
+        oldest = (self.next_step_index + render_lookahead) % self.rendered_step_count
+        next = min(self.next_step_index + render_lookahead, len(self.terrain_info) - 1)
+        self.set_step_state(next, oldest)
 
     def reset(self, force=False):
         if self.state_id >= 0:
@@ -1747,8 +1748,8 @@ class Walker3DStepperEnv(EnvBase):
         if self.is_rendered or self.use_egl:
             self.camera.lookat(self.robot.body_xyz)
 
-            for step in self.rendered_steps:
-                step.set_color(Colors["lightgrey"])
+            # for step in self.rendered_steps:
+            #     step.set_color(Colors["lightgrey"])
 
         self.targets, self.extra_param = self.delta_to_k_targets()
         assert self.targets.shape[-1] == self.step_param_dim
@@ -1816,8 +1817,8 @@ class Walker3DStepperEnv(EnvBase):
                 if self.distance_to_target < 0.15
                 else Colors["lightgrey"]
             )
-            self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(Colors["lightgrey"])
-            self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(Colors["dodgerblue"])
+            self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(full=False)
+            self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(full=True)
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
