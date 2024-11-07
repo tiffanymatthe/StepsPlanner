@@ -87,8 +87,9 @@ class VFoot:
 
         heading = 0 if heading is None else heading
         pos = (0, 0, 1) if pos is None else pos
-        # right is 0, so yellow, left is 1 so red
-        rgbas = [(1.0, 1.0, 0.0, 1.0), (0.8627450980392157, 0.0784313725490196, 0.23529411764705882, 1.0)]
+        # right is index 0
+        # rgbas = [(0.38,0.74,0.86,1.0), (0.97,0.596,0.38,1.0)]
+        rgbas = [(1,1,1,1),(1,1,1,1)]
 
         model_path = os.path.join(
             current_dir, "data", "objects", "misc", "left_foot.urdf"
@@ -97,7 +98,7 @@ class VFoot:
         if left:
             orientation = self._p.getQuaternionFromEuler((0,0,heading))
         else:
-            orientation = self._p.getQuaternionFromEuler((np.pi,0,heading))
+            orientation = self._p.getQuaternionFromEuler((0,0,heading))
 
         self.id = self._p.loadURDF(
             model_path,
@@ -122,7 +123,7 @@ class VFoot:
         if left:
             quat = self._quat if heading is None else self._p.getQuaternionFromEuler((0,0,heading))
         else:
-            quat = self._quat if heading is None else self._p.getQuaternionFromEuler((np.pi,0,heading))
+            quat = self._quat if heading is None else self._p.getQuaternionFromEuler((0,0,heading))
         self.set_color(self._rgbas[left])
 
         self._p.resetBasePositionAndOrientation(self.id, posObj=pos, ornObj=quat)
@@ -215,19 +216,20 @@ class VMultiSphere:
 
 
 class VCylinder:
-    def __init__(self, bc, radius=None, pos=None, rgba=None, length=None):
+    def __init__(self, bc, radius=None, pos=None, rgba=None, length=None, left=True):
         self._p = bc
 
         radius = 0.3 if radius is None else radius
         length = 0.2 if length is None else length
         pos = (0, 0, 1) if pos is None else pos
-        rgba = (219 / 255, 72 / 255, 72 / 255, 1.0) if rgba is None else rgba
+        rgbas = [(0.38,0.74,0.86,0.5), (0.97,0.596,0.38,0.5)]
+        rgbas_full = [(0.38,0.74,0.86,1), (0.97,0.596,0.38,1)]
 
         shape = self._p.createVisualShape(
             self._p.GEOM_CYLINDER,
             radius=radius,
             length=length,
-            rgbaColor=rgba,
+            rgbaColor=rgbas[0],
             specularColor=[0.4, 0.4, 0],
         )
 
@@ -236,19 +238,29 @@ class VCylinder:
         )
         self._pos = pos
         self._quat = (0, 0, 0, 1)
-        self._rgba = rgba
+        self._rgbas = rgbas
+        self._rgbas_full = rgbas_full
+        self._left = left
 
-    def set_position(self, pos=None):
+        self.set_color(rgbas[left])
+
+    def set_position(self, pos=None, left=None):
 
         pos = self._pos if pos is None else pos
+        left = self._left if left is None else bool(left)
+        self._left = left
 
         self._p.resetBasePositionAndOrientation(self.id, posObj=pos, ornObj=self._quat)
 
-    def set_color(self, rgba):
+        self.set_color(self._rgbas[left])
+
+    def set_color(self, rgba=None, full=False):
+        if rgba is None:
+            rgba = self._rgbas_full[self._left] if full else self._rgbas[self._left]
         t_rgba = tuple(rgba)
-        if t_rgba != self._rgba:
-            self._p.changeVisualShape(self.id, -1, rgbaColor=rgba)
-            self._rgba = t_rgba
+        # if t_rgba != self._rgba:
+        self._p.changeVisualShape(self.id, -1, rgbaColor=rgba)
+        self._rgba = t_rgba
 
 class VBox:
     def __init__(self, bc, radius=None, pos=None, rgba=None, length=None):
