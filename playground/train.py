@@ -48,7 +48,6 @@ RAD2DEG = 180 / np.pi
 import re
 
 def decrement_curr(filename):
-    return filename, filename
     # Match the pattern 'curr_' followed by two numbers separated by '_'
     match = re.search(r'(curr(?:_distilled)?_)(\d+)_(\d+)', filename)
     if match:
@@ -366,14 +365,14 @@ def main(_seed, _config, _run):
                     and (
                         np.isnan(avg_curriculum_nanmean) or 
                         avg_curriculum_nanmean > (advance_threshold if (current_curriculum > 0 or current_behavior_curriculum > 0) else 5)
-                        or (avg_curriculum_nanmean >= advance_threshold - 3 and (current_iteration >= 3000 or current_behavior_curriculum == 5))
+                        or (avg_curriculum_nanmean >= advance_threshold - 3 and (current_iteration >= 3000))
                     )
                     and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
                     and (
                         np.isnan(avg_timing_met_nanmean)
                         or (avg_timing_met_nanmean >= dummy_env.unwrapped.behavior_timing_thresholds[current_behavior_curriculum])
                         or (avg_timing_met_nanmean >= 1.7 and (current_iteration >= 3000))
-                        or (current_behavior_curriculum == 6 and current_curriculum >= 8 and avg_timing_met_nanmean >= 1.65)
+                        or (current_behavior_curriculum == 5 and current_curriculum >= 8 and avg_timing_met_nanmean >= 1.65)
                     )
                     and (np.isnan(avg_dist_err_nanmean) or avg_dist_err_nanmean <= 0.15)
                 ):
@@ -385,7 +384,7 @@ def main(_seed, _config, _run):
 
         # Update curriculum after roll-out
         if (
-            (update_curriculum and current_iteration >= 10) or current_behavior_curriculum == 5
+            (update_curriculum and current_iteration >= 10)
         ):
             current_iteration = 0
             if current_curriculum < max_curriculum:
