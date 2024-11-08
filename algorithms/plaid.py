@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from bottleneck import nanmean
 from common.envs_utils import make_env, make_vec_envs
 from common.controller import SoftsignActor, Policy
+import itertools
 
 def list_string(array):
     return ', '.join(f"{num:.2f}" for num in array)
@@ -37,7 +38,7 @@ class Distiller:
 
         # order: current, previous
 
-        self.num_steps_per_task = [4000,7000]
+        self.num_steps_per_task = [4000,8000]
         self.num_epochs = num_epochs
     
         self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device=device) for i in range(2)]
@@ -119,6 +120,7 @@ class Distiller:
             observations_shaped_per_task = [None for _ in range(num_tasks)]
             expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
             expert_values_shaped_per_task = [None for _ in range(num_tasks)]
+            shuffled_indices_batch_per_task = [None for _ in range(num_tasks)]
             for task_i in range(num_tasks):
                 episode_rewards = deque(maxlen=self.num_processes)
                 curriculum_metrics = [deque(maxlen=self.num_processes) for _ in range(4)]
@@ -175,7 +177,7 @@ class Distiller:
                 shuffled_indices = torch.randperm(
                     num_mini_batch * mini_batch_size, generator=None, device=device
                 )
-                shuffled_indices_batch = shuffled_indices.view(num_mini_batch, -1)
+                shuffled_indices_batch_per_task[task_i] = shuffled_indices.view(num_mini_batch, -1)
 
                 observations_shaped_per_task[task_i] = self.buffer_observations_per_task[task_i].view(-1, obs_dim)
                 expert_actions_shaped_per_task[task_i] = self.buffer_expert_actions_per_task[task_i].view(-1, act_dim)
@@ -195,10 +197,12 @@ class Distiller:
             ep_action_loss = torch.tensor(0.0, device=device).float()
             ep_value_loss = torch.tensor(0.0, device=device).float()
 
-            for indices in shuffled_indices_batch:
+            for batch_tuples in itertools.zip_longest(*shuffled_indices_batch_per_task):
                 optimizer.zero_grad()
+                for task_i, indices in enumerate(batch_tuples):
+                    if indices is None:  # This task has no more batches
+                        continue
 
-                for task_i in range(num_tasks):
                     observations_batch = observations_shaped_per_task[task_i][indices]
                     actions_batch = expert_actions_shaped_per_task[task_i][indices]
                     values_batch = expert_values_shaped_per_task[task_i][indices]
@@ -216,7 +220,7 @@ class Distiller:
 
                 optimizer.step()
 
-            L = shuffled_indices_batch.shape[0] * num_tasks
+            L = shuffled_indices_batch_per_task[0].shape[0] + shuffled_indices_batch_per_task[1].shape[0]
             ep_action_loss.div_(L)
             ep_value_loss.div_(L)
 
