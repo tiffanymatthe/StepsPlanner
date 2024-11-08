@@ -48,6 +48,7 @@ RAD2DEG = 180 / np.pi
 import re
 
 def decrement_curr(filename):
+    return filename, filename
     # Match the pattern 'curr_' followed by two numbers separated by '_'
     match = re.search(r'(curr(?:_distilled)?_)(\d+)_(\d+)', filename)
     if match:
