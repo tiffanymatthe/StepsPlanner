@@ -373,6 +373,7 @@ def main(_seed, _config, _run):
                         np.isnan(avg_timing_met_nanmean)
                         or (avg_timing_met_nanmean >= dummy_env.unwrapped.behavior_timing_thresholds[current_behavior_curriculum])
                         or (avg_timing_met_nanmean >= 1.7 and (current_iteration >= 3000))
+                        or (current_behavior_curriculum == 6 and current_curriculum >= 8 and avg_timing_met_nanmean >= 1.65)
                     )
                     and (np.isnan(avg_dist_err_nanmean) or avg_dist_err_nanmean <= 0.15)
                 ):
