@@ -1936,7 +1936,7 @@ class Walker3DStepperEnv(EnvBase):
             self.body_stationary_count += 1
         else:
             self.body_stationary_count = 0
-        count = 100
+        count = 200
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
