@@ -37,7 +37,7 @@ class Distiller:
 
         # order: current, previous
 
-        self.num_steps_per_task = [5000,10000]
+        self.num_steps_per_task = [4000,7000]
         self.num_epochs = num_epochs
     
         self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device=device) for i in range(2)]
