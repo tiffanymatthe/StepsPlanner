@@ -1594,6 +1594,9 @@ class Walker3DStepperEnv(EnvBase):
             #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
             #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
+        if self.selected_behavior == "random_walks":
+            self.selected_behavior = "to_standstill"
+
         if self.selected_behavior == "to_standstill":
             path = self.generate_to_standstill_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "heading_var":
