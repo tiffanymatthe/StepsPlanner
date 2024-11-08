@@ -49,15 +49,15 @@ import re
 
 def decrement_curr(filename):
     # Match the pattern 'curr_' followed by two numbers separated by '_'
-    match = re.search(r'(curr_)(\d+)_(\d+)', filename)
+    match = re.search(r'(curr(?:_distilled)?_)(\d+)_(\d+)', filename)
     if match:
         prefix, first_num, second_num = match.groups()
         second_num = 9 # overwrite
         # Decrement the first number by 1
         new_first_num = str(int(first_num) - 1)
         # Replace 'curr_' with 'curr_distilled_' and update the numbers
-        new_filename = re.sub(r'curr_\d+_\d+', f'curr_distilled_{new_first_num}_{second_num}', filename)
-        new_filename_2 = re.sub(r'curr_\d+_\d+', f'curr_{new_first_num}_{second_num}', filename)
+        new_filename = re.sub(r'curr(?:_distilled)?_\d+_\d+', f'curr_distilled_{new_first_num}_{second_num}', filename)
+        new_filename_2 = re.sub(r'curr(?:_distilled)?_\d+_\d+', f'curr_{new_first_num}_{second_num}', filename)
         return new_filename, new_filename_2
     else:
         return filename, filename # Return the original if pattern not found
