@@ -399,10 +399,12 @@ def main(_seed, _config, _run):
 
                 # now do big update with previous behavior curriculum
                 if prev_behavior_actor_critic is not None:
+                    rollouts.to("cpu")
                     distiller.distill_policies(prev_behavior_actor_critic, actor_critic, max_curriculum, current_behavior_curriculum - 1, current_curriculum, current_behavior_curriculum, small_update=False)
                     agent.actor_gnt.reset()
                     agent.critic_gnt.reset()
                     save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
+                    rollouts.to(args.device)
                 # prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum = 0
                 current_behavior_curriculum += 1
