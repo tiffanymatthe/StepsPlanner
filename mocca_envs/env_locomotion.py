@@ -1736,7 +1736,7 @@ class Walker3DStepperEnv(EnvBase):
             self.mask_info["timing"][2] = False
             self.mask_info["heading"][2] = False
 
-        if (self.selected_behavior  == "to_standstill" and self.selected_curriculum == self.max_curriculum) or (self.selected_behavior == "turn_in_place" and self.selected_curriculum == 0):
+        if self.selected_behavior  == "to_standstill" and self.selected_curriculum == self.max_curriculum:
             self.mask_info["timing"][2] = False
     
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
@@ -1889,7 +1889,6 @@ class Walker3DStepperEnv(EnvBase):
 
         linear_progress = self.linear_potential - old_linear_potential
         self.progress = linear_progress * 2
-        # print(f"{self.next_step_index}: {self.progress}")
 
         self.posture_penalty = 0
         if not -0.2 < self.robot.body_rpy[1] < 0.4:
