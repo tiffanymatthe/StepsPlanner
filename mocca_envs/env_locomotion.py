@@ -408,7 +408,7 @@ class Walker3DStepperEnv(EnvBase):
             "to_standstill": np.linspace(np.pi / 12, np.pi / 3, N),
             "random_walks": np.linspace(np.pi / 12, np.pi / 3, N),
             "random_walks_backward": np.linspace(np.pi / 12, np.pi / 3, N),
-            "turn_in_place": np.linspace(np.pi/12, np.pi / 2, N),
+            "turn_in_place": np.linspace(np.pi/24, np.pi / 2, N),
             "side_step": None,
             "backward": np.linspace(np.pi / 12, np.pi / 4, N),
             "heading_var": np.linspace(0, np.pi / 3 - np.pi / 8, N),
@@ -1936,7 +1936,7 @@ class Walker3DStepperEnv(EnvBase):
             self.body_stationary_count += 1
         else:
             self.body_stationary_count = 0
-        count = 200
+        count = 100
         # if self.body_stationary_count > count:
         #     self.legs_bonus -= 100
 
