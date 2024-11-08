@@ -278,6 +278,7 @@ def main(_seed, _config, _run):
 
     prev_curriculum = current_curriculum
     prev_behavior_curriculum = current_behavior_curriculum
+    freeze_actor = False
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
@@ -383,7 +384,7 @@ def main(_seed, _config, _run):
 
         # Update curriculum after roll-out
         if (
-            (update_curriculum and current_iteration >= 10) or current_behavior_curriculum == 5
+            not freeze_actor and ((update_curriculum and current_iteration >= 10) or current_behavior_curriculum == 5)
         ):
             current_iteration = 0
             if current_curriculum < max_curriculum:
@@ -425,11 +426,18 @@ def main(_seed, _config, _run):
             # with torch.no_grad():
             #     prev_actor_critic.load_state_dict(actor_critic.state_dict())
 
+        freeze_actor = prev_behavior_actor_critic is not None and current_curriculum == 0 and current_iteration < 50
+
+        if freeze_actor:
+            print(f"It {current_iteration}: Freezing actor parameters for {current_behavior_curriculum}-{current_curriculum}")
+            for param in agent.actor_critic.actor.parameters():
+                param.requires_grad = False
+        else:
+            for param in agent.actor_critic.actor.parameters():
+                param.requires_grad = True
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
-
-        value_loss, action_loss, dist_entropy, critic_frac, actor_frac, dormant_critic_count, dormant_critic_fraction, dormant_actor_count, dormant_actor_fraction = agent.update(rollouts)
-
+        value_loss, action_loss, dist_entropy, critic_frac, actor_frac, dormant_critic_count, dormant_critic_fraction, dormant_actor_count, dormant_actor_fraction = agent.update(rollouts, only_update_critic=freeze_actor)
         rollouts.after_update()
 
         frame_count = (iteration + 1) * args.num_steps * args.num_processes
