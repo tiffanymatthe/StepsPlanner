@@ -741,12 +741,8 @@ class Walker3DStepperEnv(EnvBase):
                     ratios = [0.2,0.3,0.4]
                 elif curriculum == 2:
                     ratios = [0.1,0.2,0.3,0.4]
-                elif curriculum == 3:
-                    ratios = [0.1,0.2,0.3,0.4,0.5]
-                elif curriculum == 4:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6]
                 else:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
+                    ratios = [0.1,0.2,0.3,0.4,0.5]
                 ground_ratio = self.np_random.choice(ratios, size=N)
                 half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
                 ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
