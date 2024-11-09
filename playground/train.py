@@ -367,7 +367,11 @@ def main(_seed, _config, _run):
                         avg_curriculum_nanmean > (advance_threshold if (current_curriculum > 0 or current_behavior_curriculum > 0) else 5)
                         or (avg_curriculum_nanmean >= advance_threshold - 3 and (current_iteration >= 3000))
                     )
-                    and (np.isnan(avg_heading_err_nanmean) or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD))
+                    and (
+                        np.isnan(avg_heading_err_nanmean)
+                        or avg_heading_err_nanmean < (7 * DEG2RAD if (current_curriculum > 0 or args.net is not None) else 25 * DEG2RAD)
+                        or (avg_heading_err_nanmean < 11 * DEG2RAD and current_behavior_curriculum == 5 and current_curriculum == 9)
+                    )
                     and (
                         np.isnan(avg_timing_met_nanmean)
                         or (avg_timing_met_nanmean >= dummy_env.unwrapped.behavior_timing_thresholds[current_behavior_curriculum])
