@@ -241,7 +241,6 @@ def main(_seed, _config, _run):
             bias.requires_grad = False
 
     actor_critic = actor_critic.to(args.device)
-    # prev_actor_critic = None
 
     prev_behavior_actor_critic = None
     if args.net is not None:
@@ -275,9 +274,6 @@ def main(_seed, _config, _run):
         max_behavior_curriculum = dummy_env.unwrapped.max_behavior_curriculum
         advance_threshold = dummy_env.unwrapped.advance_threshold
         envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
-
-    prev_curriculum = current_curriculum
-    prev_behavior_curriculum = current_behavior_curriculum
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
@@ -393,14 +389,10 @@ def main(_seed, _config, _run):
             current_iteration = 0
             if current_curriculum < max_curriculum:
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-                # prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum += 1
                 envs.set_env_params({"curriculum": current_curriculum})
             elif current_behavior_curriculum < max_behavior_curriculum:
                 save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
-
-                # if prev_actor_critic is not None:
-                #     distiller.distill_policies(prev_actor_critic, actor_critic, prev_curriculum, prev_behavior_curriculum, current_curriculum, current_behavior_curriculum, small_update=True)
 
                 # now do big update with previous behavior curriculum
                 if prev_behavior_actor_critic is not None:
@@ -408,7 +400,6 @@ def main(_seed, _config, _run):
                     agent.actor_gnt.reset()
                     agent.critic_gnt.reset()
                     save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_distilled_{current_behavior_curriculum}_{current_curriculum}")
-                # prev_curriculum, prev_behavior_curriculum = current_curriculum, current_behavior_curriculum
                 current_curriculum = 0
                 current_behavior_curriculum += 1
                 envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
@@ -419,16 +410,9 @@ def main(_seed, _config, _run):
                         prev_behavior_actor_critic = Policy(controller)
                         prev_behavior_actor_critic.to(args.device)
 
-                    # if prev_actor_critic is None:
-                    #     controller = globals().get(args.actor_class)(dummy_env)
-                    #     prev_actor_critic = Policy(controller)
-                    #     prev_actor_critic.to(args.device)
-
                     prev_behavior_actor_critic.load_state_dict(copy.deepcopy(actor_critic.state_dict()))
             else:
                 pass
-            # with torch.no_grad():
-            #     prev_actor_critic.load_state_dict(actor_critic.state_dict())
 
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
