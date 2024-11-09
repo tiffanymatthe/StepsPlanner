@@ -186,7 +186,7 @@ def main(_seed, _config, _run):
         env_name, args.seed, args.num_processes, args.log_dir, **env_kwargs
     )
 
-    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, args.num_processes, 40, envs, dummy_env)
+    distiller = Distiller(env_name, env_kwargs, args.seed, args.device, args.num_processes, 40, envs, dummy_env, args.log_dir)
 
     obs_shape = envs.observation_space.shape
     obs_shape = (obs_shape[0], *obs_shape[1:])

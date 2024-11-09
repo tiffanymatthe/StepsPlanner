@@ -8,16 +8,19 @@ from bottleneck import nanmean
 from common.envs_utils import make_env, make_vec_envs
 from common.controller import SoftsignActor, Policy
 import itertools
+from common.csv_utils import CSVLogger
 
 def list_string(array):
     return ', '.join(f"{num:.2f}" for num in array)
 
 class Distiller:
-    def __init__(self, env_name, base_env_kwargs, seed, device, num_processes, num_epochs, envs, dummy_env):
+    def __init__(self, env_name, base_env_kwargs, seed, device, num_processes, num_epochs, envs, dummy_env, log_dir):
         env_kwargs = {
             **base_env_kwargs,
             "determine": True,
         }
+
+        self.csv_logger = CSVLogger(log_dir=log_dir, filename="plaid.csv")
 
         num_processes = 10 # overwrite
 
@@ -38,7 +41,7 @@ class Distiller:
 
         # order: current, previous
 
-        self.num_steps_per_task = [4000,8000]
+        self.num_steps_per_task = [400,800]
         self.num_epochs = num_epochs
     
         self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device=device) for i in range(2)]
@@ -121,15 +124,24 @@ class Distiller:
             expert_actions_shaped_per_task = [None for _ in range(num_tasks)]
             expert_values_shaped_per_task = [None for _ in range(num_tasks)]
             shuffled_indices_batch_per_task = [None for _ in range(num_tasks)]
+            curriculum_metric_per_task = [None for _ in range(num_tasks)]
+            timing_met_per_task = [None for _ in range(num_tasks)]
+            dist_err_per_task = [None for _ in range(num_tasks)]
+            heading_err_per_task = [None for _ in range(num_tasks)]
+            use_expert_min_threshold = 0 if epoch < 15 else min((epoch-15) / 50, 1)
+            deterministic_max_threshold = epoch / num_epochs
             for task_i in range(num_tasks):
-                episode_rewards = deque(maxlen=self.num_processes)
-                curriculum_metrics = [deque(maxlen=self.num_processes) for _ in range(4)]
-                avg_heading_errs = [deque(maxlen=self.num_processes) for _ in range(4)]
-                avg_dist_errs = [deque(maxlen=self.num_processes) for _ in range(4)]
-                avg_timing_mets = [deque(maxlen=self.num_processes) for _ in range(4)]
+                max_episodes = int(self.num_processes * self.num_steps_per_task[task_i])
+                episode_rewards = deque(maxlen=max_episodes)
+                curriculum_metrics = [deque(maxlen=max_episodes) for _ in range(4)]
+                avg_heading_errs = [deque(maxlen=max_episodes) for _ in range(4)]
+                avg_dist_errs = [deque(maxlen=max_episodes) for _ in range(4)]
+                avg_timing_mets = [deque(maxlen=max_episodes) for _ in range(4)]
                 # envs_per_task[task_i].set_env_params(env_per_task_kwargs[task_i])
-                obs = envs_per_task[task_i].reset()
-                self.buffer_observations_per_task[task_i][epoch * self.num_steps_per_task[task_i]].copy_(torch.from_numpy(obs))
+                if epoch == 0:
+                    obs = envs_per_task[task_i].reset()
+                    self.buffer_observations_per_task[task_i][epoch * self.num_steps_per_task[task_i]].copy_(torch.from_numpy(obs))
+                # num_dones = 0
                 with torch.no_grad():
                     for step in range(self.num_steps_per_task[task_i]):
                         buffer_index = step + epoch * self.num_steps_per_task[task_i]
@@ -137,11 +149,11 @@ class Distiller:
                             self.buffer_observations_per_task[task_i][buffer_index], deterministic=True
                         )
 
-                        use_expert = np.random.rand() > min(epoch / 10, 1)
+                        use_expert = np.random.rand() > use_expert_min_threshold
 
                         if not use_expert:
                             # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
-                            _, student_action, _ = current_expert_policy.act(self.buffer_observations_per_task[task_i][buffer_index], deterministic=(np.random.rand() < epoch / num_epochs))
+                            _, student_action, _ = current_expert_policy.act(self.buffer_observations_per_task[task_i][buffer_index], deterministic=(np.random.rand() < deterministic_max_threshold))
 
                         if use_expert:
                             cpu_actions = expert_action.cpu().numpy()
@@ -150,6 +162,7 @@ class Distiller:
                         obs, _, dones, infos = envs_per_task[task_i].step(cpu_actions)
 
                         masks = torch.FloatTensor(~dones).unsqueeze(1)
+                        # num_dones += (num_processes - torch.count_nonzero(masks))
                         bad_masks = torch.ones((self.num_processes, 1))
                         for p_index, info in enumerate(infos):
                             # This information is added by common.envs_utils.TimeLimitMask
@@ -183,14 +196,20 @@ class Distiller:
                 expert_actions_shaped_per_task[task_i] = self.buffer_expert_actions_per_task[task_i].view(-1, act_dim)
                 expert_values_shaped_per_task[task_i] = self.buffer_expert_values_per_task[task_i].view(-1, 1)
 
+                curriculum_metric_per_task[task_i] = [nanmean(x) for x in curriculum_metrics[0:2]]
+                timing_met_per_task[task_i] = [nanmean(x) for x in avg_timing_mets[0:2]]
+                dist_err_per_task[task_i] = [nanmean(x) for x in avg_dist_errs[0:2]]
+                heading_err_per_task[task_i] = [nanmean(x) for x in avg_heading_errs[0:2]]
+
                 print(
                     (
                         f"Epoch {epoch+1:4d}/{num_epochs:4d} | "
                         f"env {task_i} | "
-                        f"curriculum_metric {list_string([nanmean(x) for x in curriculum_metrics[0:2]])} | "
-                        f"avg_heading_err {list_string([nanmean(x) for x in avg_heading_errs[0:2]])} | "
-                        f"avg_timing_met {list_string([nanmean(x) for x in avg_timing_mets[0:2]])} | "
-                        f"avg_dist_err {list_string([nanmean(x) for x in avg_dist_errs[0:2]])} | "
+                        f"curriculum_metric {list_string(curriculum_metric_per_task[task_i])} | "
+                        f"avg_heading_err {list_string(heading_err_per_task[task_i])} | "
+                        f"avg_timing_met {list_string(timing_met_per_task[task_i])} | "
+                        f"avg_dist_err {list_string(dist_err_per_task[task_i])} | "
+                        # f"num dones {num_dones} / {self.num_steps_per_task[task_i] * num_processes} |"
                     )
                 )
 
@@ -226,12 +245,35 @@ class Distiller:
 
             elapsed_time = time.time() - start
 
+            self.csv_logger.log_epoch({
+                "prev_expert_task": f"{env_per_task_kwargs[1]['behavior_curriculum']}",
+                "prev_expert_curriculum": f"{env_per_task_kwargs[1]['curriculum']}",
+                "expert_task": f"{env_per_task_kwargs[0]['behavior_curriculum']}",
+                "expert_curriculum": f"{env_per_task_kwargs[0]['curriculum']}",
+                "epoch": epoch + 1,
+                "elapsed_time": elapsed_time,
+                "action_loss": ep_action_loss.item(),
+                "value_loss": ep_value_loss.item(),
+                "curriculum_metric": curriculum_metric_per_task[0],
+                "curriculum_metric_prev": curriculum_metric_per_task[1],
+                "timing_met": timing_met_per_task[0],
+                "timing_met_prev": timing_met_per_task[1],
+                "dist_err": dist_err_per_task[0],
+                "dist_err_prev": dist_err_per_task[1],
+                "heading_err": heading_err_per_task[0],
+                "heading_err_prev": heading_err_per_task[1],
+                "use_expert_min_threshold": use_expert_min_threshold,
+                "deterministic_max_threshold": deterministic_max_threshold,
+            })
+
             print(
                 (
                     f"Epoch {epoch+1:4d}/{num_epochs:4d} | "
                     f"Elapsed Time {elapsed_time:8.2f} |"
                     f"Action Loss: {ep_action_loss.item():8.5f} | "
                     f"Value Loss: {ep_value_loss.item():8.4f} | "
+                    f"Use Expert: rand > {use_expert_min_threshold:.4f} | "
+                    f"Deterministic Student: rand < {deterministic_max_threshold:.4f} | "
                 )
             )
 

@@ -26,8 +26,8 @@ if __name__ == "__main__":
     determine = 3
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    prev_net_path = "runs/dream/nov_3/plaid_plasticity_elaho_wait_longer_cont_again/models/Walker3DStepperEnv-v0_curr_distilled_2_9.pt"
-    curr_net_path = "runs/dream/nov_3/plaid_plasticity_elaho_wait_longer_cont_again/models/Walker3DStepperEnv-v0_curr_3_9.pt"
+    prev_net_path = "runs/dream/nov_8/plaid_plasticity_elaho_new_5/models/Walker3DStepperEnv-v0_curr_distilled_4_9.pt"
+    curr_net_path = "runs/dream/nov_8/plaid_plasticity_elaho_new_5/models/Walker3DStepperEnv-v0_curr_5_9.pt"
 
     env_kwargs = {
         "plank_class": plank_class,
@@ -49,9 +49,10 @@ if __name__ == "__main__":
         seed=seed,
         device=device,
         num_processes=10,
-        num_epochs=40,
+        num_epochs=300,
         envs=None,
         dummy_env=dummy_env,
+        log_dir=""
     )
 
     prev_behavior_actor_critic = load_net(prev_net_path, device, SoftsignActor, dummy_env)
@@ -60,4 +61,6 @@ if __name__ == "__main__":
     actor_critic = load_net(curr_net_path, device, SoftsignActor, dummy_env)
     actor_critic.to(device)
 
-    distiller.distill_policies(prev_behavior_actor_critic, actor_critic, 9, 2, 9, 3, False)
+    distiller.distill_policies(prev_behavior_actor_critic, actor_critic, 9, 4, 9, 5, False)
+
+    torch.save(actor_critic.state_dict(), "plaid_distilled_5_9.pt")

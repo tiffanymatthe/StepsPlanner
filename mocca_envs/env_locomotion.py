@@ -1827,11 +1827,15 @@ class Walker3DStepperEnv(EnvBase):
         if self.done or self.timestep == self.max_timestep - 1:
             behavior_str_index = self.behaviors[self.behavior_curriculum]
             if (
-                behavior_str_index == self.selected_behavior or "combine_all" in behavior_str_index
-                and (
-                    self.curriculum == self.selected_curriculum
-                    or "combine_all" in behavior_str_index
+                (
+                    self.determine == 3
+                    and (behavior_str_index == self.selected_behavior or "combine_all" in behavior_str_index)
+                    and (
+                        self.curriculum == self.selected_curriculum
+                        or "combine_all" in behavior_str_index
+                    )
                 )
+                or self.determine != 3
             ):
                 if self.next_step_index == self.num_steps - 1 and self.reached_last_step:
                     info["curriculum_metric"] = self.next_step_index + 1
