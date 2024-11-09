@@ -1944,8 +1944,6 @@ class Walker3DStepperEnv(EnvBase):
         else:
             self.body_stationary_count = 0
         count = 200
-        # if self.body_stationary_count > count:
-        #     self.legs_bonus -= 100
 
         if self.mask_info["timing"][2]:
             self.timing_bonus = 0
@@ -1980,9 +1978,9 @@ class Walker3DStepperEnv(EnvBase):
             dist = dist_to_prev_target[1-self.swing_leg]
             self.step_bonus_other_leg = self.step_radius - dist
 
-        self.termination_penalty = 3 if self.swing_leg_has_fallen or self.other_leg_has_fallen else 0
+        self.termination_penalty = 4 if self.swing_leg_has_fallen or self.other_leg_has_fallen else 0
         if self.body_stationary_count > count:
-            self.termination_penalty = 100
+            self.termination_penalty = 4
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
 
