@@ -417,12 +417,7 @@ def main(_seed, _config, _run):
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
-        if prev_behavior_actor_critic is not None and current_behavior_curriculum > 1 and current_curriculum == 0 and current_iteration < 10:
-            freeze_actor = True
-        else:
-            freeze_actor = False
-
-        value_loss, action_loss, dist_entropy, critic_frac, actor_frac, dormant_critic_count, dormant_critic_fraction, dormant_actor_count, dormant_actor_fraction = agent.update(rollouts, freeze_actor=freeze_actor)
+        value_loss, action_loss, dist_entropy, critic_frac, actor_frac, dormant_critic_count, dormant_critic_fraction, dormant_actor_count, dormant_actor_fraction = agent.update(rollouts)
 
         rollouts.after_update()
 
