@@ -135,6 +135,9 @@ def main():
         "plot_writer": writer,
     }
 
+    avg_steps = 0
+    num_episodes = 0
+
     with EpisodeRunner(env, **runner_options) as runner:
 
         max_curriculum = getattr(env.unwrapped, "max_curriculum", 10)
@@ -201,6 +204,7 @@ def main():
 
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
+            # _, action, _ = actor_critic.act(obs)
             action = controller(obs)
 
             if args.heading:
@@ -301,7 +305,9 @@ def main():
                     actual_start_foot = []
                     actual_other_foot = []
                     index_switch = []
-                print(f"--- Episode reward: {ep_reward} and steps {env.next_step_index} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
+                avg_steps += env.next_step_index
+                num_episodes += 1
+                print(f"--- Episode reward: {ep_reward} and steps {env.next_step_index} (avg {avg_steps / num_episodes}) and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
                 obs = env.reset(reset_runner=False)
                 if args.heading:
                     foot_heading_targets = env.terrain_info[:, 6]
