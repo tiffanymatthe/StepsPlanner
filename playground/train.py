@@ -47,7 +47,7 @@ RAD2DEG = 180 / np.pi
 
 import re
 
-def decrement_curr(filename):
+def decrement_curr(filename, behavior_curr):
     # Match the pattern 'curr_' followed by two numbers separated by '_'
     match = re.search(r'(curr(?:_distilled)?_)(\d+)_(\d+)', filename)
     if match:
@@ -60,7 +60,10 @@ def decrement_curr(filename):
         new_filename_2 = re.sub(r'curr(?:_distilled)?_\d+_\d+', f'curr_{new_first_num}_{second_num}', filename)
         return new_filename, new_filename_2
     else:
-        return filename, filename # Return the original if pattern not found
+        new_filename = filename.rsplit('_', 1)[0]
+        new_filename= f"{new_filename}_curr_distilled_{behavior_curr - 1}_9.pt"
+        new_filename_2 = f"{new_filename}_curr_{behavior_curr - 1}_9.pt"
+        return new_filename, new_filename_2
 
 @ex.config
 def configs():
