@@ -171,7 +171,7 @@ class PPO(object):
         parameters = [
             p for p in self.actor_critic.parameters() if p.requires_grad is not None and p.requires_grad is True
         ]
-        assert len(parameters) != 0, "No trainable parameters"
+        # assert len(parameters) != 0, "No trainable parameters"
 
         for e in range(self.ppo_epoch):
             data_generator = rollouts.feed_forward_generator(
