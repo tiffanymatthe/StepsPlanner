@@ -165,9 +165,6 @@ class PPO(object):
         for param in self.actor_critic.actor.parameters():
             param.requires_grad = not freeze_actor
 
-        for param in self.actor_critic.parameters():
-            param.requires_grad = not freeze_actor
-
         parameters = [
             p for p in self.actor_critic.parameters() if p.requires_grad is not None and p.requires_grad is True
         ]
@@ -237,20 +234,18 @@ class PPO(object):
                 # continual backprop (wipe dormant neurons)
                 self.optimizer.zero_grad()
                 if self.normal_gnt:
+                    critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
                     if not freeze_actor:
-                        critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
                         actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
                     else:
-                        critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = 0,0,0
                         actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = 0, 0, 0
                 else:
+                    critic_history = torch.stack(self.actor_critic.get_activations()).permute(1, 0, 2)
+                    critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=critic_history, only_test=self.only_test)
                     if not freeze_actor:
-                        critic_history = torch.stack(self.actor_critic.get_activations()).permute(1, 0, 2)
-                        critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = self.critic_gnt.gen_and_test(features=critic_history, only_test=self.only_test)
                         actor_history = torch.stack(self.actor_critic.actor.get_activations()).permute(1, 0, 2)
                         actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = self.actor_gnt.gen_and_test(features=actor_history, only_test=self.only_test)
                     else:
-                        critic_fraction_to_replace, dormant_critic_count, dormant_critic_fraction = 0, 0, 0
                         actor_fraction_to_replace, dormant_actor_count, dormant_actor_fraction = 0, 0, 0
 
                 value_loss_epoch.add_(value_loss.detach())
