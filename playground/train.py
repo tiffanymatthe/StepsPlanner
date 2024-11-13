@@ -247,7 +247,7 @@ def main(_seed, _config, _run):
 
     prev_behavior_actor_critic = None
     if args.net is not None:
-        prev_net_path, prev_net_path_backup = decrement_curr(args.net)
+        prev_net_path, prev_net_path_backup = decrement_curr(args.net, args.start_behavior_curriculum)
         if os.path.exists(prev_net_path):
             prev_behavior_actor_critic = load_net(prev_net_path, args.device, globals().get(args.actor_class), dummy_env)
             prev_behavior_actor_critic.to(args.device)
