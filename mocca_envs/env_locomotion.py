@@ -1788,7 +1788,6 @@ class Walker3DStepperEnv(EnvBase):
             "timing": self.timing_bonus * self.timing_bonus_weight if not self.mask_info["timing"][2] else 0,
             "other leg": 2 * self.step_bonus_other_leg if self.selected_behavior in {"one_step_plant", "hopping"} else 0,
             "termination": -self.termination_penalty,
-            "speed": self.speed_penalty if self.mask_info["timing"][2] else 0,
         }
 
         reward = sum(all_rewards.values())
