@@ -20,7 +20,7 @@ class CSVLogger(object):
                 data["median_" + key] = np.median(values)
                 data["min_" + key] = np.min(values)
                 data["max_" + key] = np.max(values)
-        del data["stats"]
+            del data["stats"]
 
         if wandb_module is not None:
             wandb_module.log(data)
