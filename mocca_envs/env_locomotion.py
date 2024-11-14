@@ -1581,14 +1581,16 @@ class Walker3DStepperEnv(EnvBase):
             self.selected_curriculum = self.curriculum
             self.selected_behavior = self.behaviors[self.behavior_curriculum]
         else:
-            if train_on_past:
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
-            else:
-                weights = np.linspace(1,10,self.curriculum+1)
-                weights /= sum(weights)
-                self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
-                self.selected_behavior = self.behaviors[self.behavior_curriculum]
+            self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+            self.selected_behavior = self.behaviors[self.behavior_curriculum]
+            # if train_on_past:
+            #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+            #     self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+            # else:
+            #     weights = np.linspace(1,10,self.curriculum+1)
+            #     weights /= sum(weights)
+            #     self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)), p=weights)
+            #     self.selected_behavior = self.behaviors[self.behavior_curriculum]
 
         if self.selected_behavior in self.generated_paths_cache and self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]

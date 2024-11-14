@@ -23,11 +23,22 @@ if __name__ == "__main__":
     timing_bonus_weight = 1.5
     gauss_width = 12
     foot_angle_weight = 0.1
-    determine = 3
+    determine = False
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    prev_net_path = "runs/dream/nov_8/plaid_plasticity_elaho_new_5/models/Walker3DStepperEnv-v0_curr_distilled_4_9.pt"
-    curr_net_path = "runs/dream/nov_8/plaid_plasticity_elaho_new_5/models/Walker3DStepperEnv-v0_curr_5_9.pt"
+    experts = {
+        "runs/dream/oct_14/plasticity_elaho/models/Walker3DStepperEnv-v0_curr_0_9.pt": 0,
+        "runs/dream/oct_14/plasticity_elaho/models/Walker3DStepperEnv-v0_curr_1_9.pt": 1,
+        "runs/dream/oct_15/plasticity_elaho_cont_lowered_threshold_fixed/models/Walker3DStepperEnv-v0_curr_2_9.pt": 2,
+        "runs/dream/oct_15/plasticity_elaho_cont_lowered_threshold_fixed/models/Walker3DStepperEnv-v0_curr_3_9.pt": 3,
+        "runs/dream/oct_15/plasticity_elaho_cont_lowered_threshold_fixed/models/Walker3DStepperEnv-v0_curr_4_9.pt": 4,
+        "runs/dream/oct_18/plasticity_elaho_cont_lowered_threshold_fixed_cont/models/Walker3DStepperEnv-v0_curr_5_9.pt": 5,
+        "runs/dream/oct_18/plasticity_elaho_cont_lowered_threshold_fixed_cont/models/Walker3DStepperEnv-v0_curr_6_9.pt": 6,
+        "runs/dream/oct_18/plasticity_elaho_cont_lowered_threshold_fixed_cont/models/Walker3DStepperEnv-v0_curr_7_9.pt": 7,
+        "runs/dream/oct_18/plasticity_elaho_cont_lowered_threshold_fixed_cont/models/Walker3DStepperEnv-v0_curr_8_9.pt": 8,
+        "runs/dream/oct_18/plasticity_elaho_cont_lowered_threshold_fixed_cont/models/Walker3DStepperEnv-v0_curr_9_8.pt": 9,
+        "runs/dream/oct_19/plasticity_elaho_cont_one_step_plant/models/Walker3DStepperEnv-v0_curr_10_8.pt": 10,
+    }
 
     env_kwargs = {
         "plank_class": plank_class,
@@ -49,18 +60,18 @@ if __name__ == "__main__":
         seed=seed,
         device=device,
         num_processes=10,
-        num_epochs=300,
-        envs=None,
+        num_experts=len(experts),
+        num_epochs=250,
         dummy_env=dummy_env,
         log_dir=""
     )
 
-    prev_behavior_actor_critic = load_net(prev_net_path, device, SoftsignActor, dummy_env)
-    prev_behavior_actor_critic.to(device)
+    actor_critics = []
+    for policy_path in experts.keys():
+        actor_critic = load_net(policy_path, device, SoftsignActor, dummy_env)
+        actor_critic.to(device)
+        actor_critics.append(actor_critic)
 
-    actor_critic = load_net(curr_net_path, device, SoftsignActor, dummy_env)
-    actor_critic.to(device)
+    distilled_policy = distiller.distill_policies(actor_critics, list(experts.values()))
 
-    distiller.distill_policies(prev_behavior_actor_critic, actor_critic, 9, 4, 9, 5, False)
-
-    torch.save(actor_critic.state_dict(), "plaid_distilled_5_9.pt")
+    torch.save(distilled_policy.state_dict(), "plaid_distilled_all.pt")
