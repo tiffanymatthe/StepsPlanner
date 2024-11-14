@@ -59,7 +59,7 @@ class Distiller:
 
         env_kwargs_per_task = [
             {
-                "start_curriculum": 0,
+                "start_curriculum": 9,
                 "start_behavior_curriculum": behavior_curriculums[i],
                 "curriculum": 9,
                 "behavior_curriculum": behavior_curriculums[i],
