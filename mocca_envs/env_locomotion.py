@@ -1728,7 +1728,7 @@ class Walker3DStepperEnv(EnvBase):
             self.mask_info["timing"][2] = False
             self.mask_info["heading"][2] = False
 
-        if self.selected_behavior  == "to_standstill" and self.selected_curriculum == self.max_curriculum:
+        if self.selected_behavior  == "to_standstill" and self.selected_curriculum >= self.max_curriculum - 2:
             self.mask_info["timing"][2] = False
     
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
