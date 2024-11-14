@@ -70,7 +70,7 @@ class Distiller:
         for i, env in enumerate(self.envs_per_task):
             env.set_env_params(env_kwargs_per_task[i])
 
-        self.train(
+        return self.train(
             policies,
             self.envs_per_task,
             env_kwargs_per_task,
@@ -228,6 +228,9 @@ class Distiller:
             ep_value_loss.div_(L)
 
             elapsed_time = time.time() - start
+
+            if epoch % 50 == 0:
+                torch.save(student_policy.state_dict(), f"plaid_distilled_epoch_{epoch}.pt")
 
             self.csv_logger.log_epoch({
                 "prev_expert_task": f"{env_per_task_kwargs[1]['behavior_curriculum']}",
