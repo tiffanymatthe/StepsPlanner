@@ -309,7 +309,7 @@ class Walker3DStepperEnv(EnvBase):
     control_step = 1 / 60
     llc_frame_skip = 1
     sim_frame_skip = 4
-    max_timestep = 1000
+    max_timestep = 3000
 
     robot_class = Walker3D
     robot_random_start = True
@@ -317,7 +317,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 20
+    num_steps = 60
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 4
@@ -329,7 +329,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [18, 19] # list(range(4,20))
+    stop_steps = [num_steps - 2, num_steps - 1] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -427,8 +427,8 @@ class Walker3DStepperEnv(EnvBase):
 
         self.foot_sep_range = {
             "to_standstill": np.array([-0.04,0.16]),
-            "random_walks": np.array([-0.04,0.10]),
-            "random_walks_backward": np.array([-0.04,0.10]),
+            "random_walks": np.array([-0.04,0.06]),
+            "random_walks_backward": np.array([-0.04,0.06]),
             "turn_in_place": np.array([-0.04,0.04]),
             "side_step": np.array([-0.04,0.04]),
             "backward": np.array([-0.04,0.12]),
@@ -1535,13 +1535,26 @@ class Walker3DStepperEnv(EnvBase):
         # randomly pick 3, rotate steps to match last heading of previous and shift
         selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 5)
 
+        selected_step_placement_fcns = [
+            (self.generate_heading_var_step_placements, "heading_var",2),
+            (self.generate_random_walks_step_placements, "random_walks",5),
+            (self.generate_to_standstill_step_placements, "to_standstill",8),
+            (self.generate_backward_step_placements, "backward",5),
+            # (self.generate_random_walks_step_placements, "random_walks",8),
+            (self.generate_random_walks_backward_step_placements, "random_walks_backward",5),
+            (self.generate_turn_in_place_step_placements, "turn_in_place", 9),
+            (self.generate_side_step_step_placements, "side_step", 4),
+            # (self.generate_one_step_plant_step_placements, "one_step_plant", 4),
+            # (self.generate_to_standstill_step_placements, "to_standstill",8),
+        ]
+
         step_placements = None
 
-        transition_indices = [4,8,12,16,self.num_steps]
+        transition_indices = [8,16,24,32,40,48,56,self.num_steps]
 
         for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
-            selected_step_placement_fcn, behavior_str = selected_step_placement_fcn_tuple
-            selected_step_curriculum = self.np_random.choice(list(range(0,curriculum+1)))
+            selected_step_placement_fcn, behavior_str, selected_step_curriculum = selected_step_placement_fcn_tuple
+            # selected_step_curriculum = self.np_random.choice(list(range(0,curriculum+1)))
             if behavior_str in self.generated_paths_cache and self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] is not None:
                 step_placements_part = np.copy(self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)])
             else:
@@ -1553,7 +1566,10 @@ class Walker3DStepperEnv(EnvBase):
                 step_placements = step_placements_part
             a = transition_indices[i-1]
             b = transition_indices[i]
-            heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
+            if i == 0:
+                heading_shift = 0
+            else:
+                heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
             dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
             dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
             step_placements_part[a:b,0] = step_placements_part[a-1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
@@ -1729,7 +1745,7 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.mask_info["timing"][0]:
             threshold = self.mask_info["timing"][1] # if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
-            self.mask_info["timing"][2] = self.np_random.rand() < threshold
+            self.mask_info["timing"][2] = False # self.np_random.rand() < threshold
         if self.mask_info["heading"][0]:
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
 
@@ -1971,7 +1987,9 @@ class Walker3DStepperEnv(EnvBase):
             dist = dist_to_prev_target[1-self.swing_leg]
             self.step_bonus_other_leg = self.step_radius - dist
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
+        # self.swing_leg_has_fallen or self.other_leg_has_fallen
+
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.finished_all or (self.body_stationary_count > count)
 
     def calc_timing_reward(self):
         self.left_actual_contact = self._foot_target_contacts[1,0]
