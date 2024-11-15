@@ -164,7 +164,7 @@ def main():
 
         done = False
 
-        max_resets = 40
+        max_resets = 15
 
         timing_mets = []
         heading_errs = []
