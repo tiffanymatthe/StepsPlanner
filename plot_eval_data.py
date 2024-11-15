@@ -28,7 +28,7 @@ for behavior_curriculum in range(num_behavior_curricula):
     curricula = list(range(num_curricula))
 
     for curriculum in curricula:
-        file = f"non_heading_data/data_{behavior_curriculum}_{curriculum}.csv"
+        file = f"distilled_data/data_{behavior_curriculum}_{curriculum}.csv"
         
         try:
             data = pd.read_csv(file)

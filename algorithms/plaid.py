@@ -92,7 +92,7 @@ class Distiller:
         with torch.no_grad():
             controller = SoftsignActor(self.dummy_env)
             student_policy = Policy(controller)
-            student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
+            # student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
             student_policy.to(device)
                
         optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
@@ -115,7 +115,7 @@ class Distiller:
             timing_met_per_task = [None for _ in range(self.num_experts)]
             dist_err_per_task = [None for _ in range(self.num_experts)]
             heading_err_per_task = [None for _ in range(self.num_experts)]
-            use_expert_min_threshold = 0 if epoch < 15 else min((epoch-15) / 50, 1)
+            use_expert_min_threshold = 0 if epoch < 50 else min((epoch-50) / 100, 1)
             deterministic_max_threshold = epoch / num_epochs
             for task_i in range(self.num_experts):
                 max_episodes = int(self.num_processes * self.num_steps_per_task[task_i])

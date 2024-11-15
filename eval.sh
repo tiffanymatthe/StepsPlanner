@@ -7,7 +7,7 @@ for behavior_curriculum in {0..10}; do
         # Run the Python command with the current values of behavior_curriculum and curriculum
         python3 -m playground.enjoy \
             --env Walker3DStepperEnv-v0 \
-            --net runs/dream/oct_19/plasticity_elaho_cont_one_step_plant/models/Walker3DStepperEnv-v0_curr_10_8.pt \
+            --net runs/dream/plaid_distilled_epoch_50.pt \
             --plank_class VeryLargePlank \
             --curriculum "$curriculum" \
             --behavior_curriculum "$behavior_curriculum" \
