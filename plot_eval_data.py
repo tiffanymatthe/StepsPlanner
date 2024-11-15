@@ -3,14 +3,32 @@ import pandas as pd
 import numpy as np
 
 # Specify the column to plot
-column_to_plot = 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
+# column_to_plot = 'curriculum_metric'
+# label = "Number of Steps (/20)"
+# ymin = 0
+# ymax = 20
+
+# column_to_plot = 'timing_met'
+# label = "Timing Reward"
+# ymin = 0
+# ymax = 2
+
+# column_to_plot = 'heading_err'
+# label = "Foot Heading Error (rad)"
+# ymin = 0
+# ymax = None
+
+column_to_plot = 'dist_err'
+label = "Distance to Target Error (m)"
+ymin = 0
+ymax = None
 
 # Number of behavior curricula and curricula per behavior curriculum
 num_behavior_curricula = 10
 num_curricula = 10
 
 # Prepare subplots
-fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 10))
+fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20,10))
 
 # Initialize lists to store the calculated mean and std values for global y-axis scaling
 all_means = []
@@ -74,18 +92,25 @@ for behavior_curriculum in range(num_behavior_curricula):
 
     # Plot each subset on the same subplot for the current behavior curriculum
     ax = axes.flatten()[behavior_curriculum]
-    ax.errorbar(curricula, means_none_nan, yerr=stds_none_nan, fmt='-o', label='None NaN')
-    ax.errorbar(curricula, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label='Timing NaN')
-    ax.errorbar(curricula, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading NaN')
-    ax.errorbar(curricula, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both NaN')
+    ax.errorbar(curricula, means_none_nan, yerr=stds_none_nan, fmt='-o', label='All')
+    ax.errorbar(curricula, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label='No Timing')
+    # ax.errorbar(curricula, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading NaN')
+    # ax.errorbar(curricula, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both NaN')
 
-    ax.set_title(f"Behavior Curriculum {behavior_curriculum}")
+    ax.set_title(f"Task {behavior_curriculum}")
     ax.set_xlabel("Curriculum")
-    ax.set_ylabel(column_to_plot)
+    ax.set_ylabel(label)
+    ax.set_xticks(curricula)
+
 
 # Calculate global y-axis limits based on mean ± std ranges
 global_min = min(np.array(all_means) - np.array(all_stds))
 global_max = max(np.array(all_means) + np.array(all_stds))
+
+if ymin is not None:
+    global_min = ymin
+if ymax is not None:
+    global_max = ymax
 
 # Set the same y-axis limits for all subplots
 for ax in axes.flat:
@@ -96,5 +121,6 @@ axes[0, 0].legend(loc='upper right')
 
 # Adjust layout and show plot
 plt.tight_layout()
-plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
-plt.show()
+plt.suptitle(f"{label} across Curricula for Each Task", y=1.02)
+# plt.show()
+plt.savefig(f"{column_to_plot}_plot.png")

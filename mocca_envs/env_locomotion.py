@@ -317,7 +317,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 60
+    num_steps = 70
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -1536,21 +1536,24 @@ class Walker3DStepperEnv(EnvBase):
         selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 5)
 
         selected_step_placement_fcns = [
-            (self.generate_heading_var_step_placements, "heading_var",2),
-            (self.generate_random_walks_step_placements, "random_walks",5),
+            (self.generate_heading_var_step_placements, "heading_var",9),
+            (self.generate_heading_var_step_placements, "heading_var",0),
             (self.generate_to_standstill_step_placements, "to_standstill",8),
-            (self.generate_backward_step_placements, "backward",5),
-            # (self.generate_random_walks_step_placements, "random_walks",8),
-            (self.generate_random_walks_backward_step_placements, "random_walks_backward",5),
+            (self.generate_backward_step_placements, "backward",6),
+            (self.generate_heading_var_step_placements, "heading_var",0),
+            (self.generate_random_walks_step_placements, "random_walks",5),
+            (self.generate_heading_var_step_placements, "heading_var",0),
+            # (self.generate_random_walks_backward_step_placements, "random_walks_backward",5),
             (self.generate_turn_in_place_step_placements, "turn_in_place", 9),
             (self.generate_side_step_step_placements, "side_step", 4),
+            (self.generate_heading_var_step_placements, "heading_var",5),
             # (self.generate_one_step_plant_step_placements, "one_step_plant", 4),
             # (self.generate_to_standstill_step_placements, "to_standstill",8),
         ]
 
         step_placements = None
 
-        transition_indices = [8,16,24,32,40,48,56,self.num_steps]
+        transition_indices = [6,9,16,24,27,36,40,48,56,64,self.num_steps]
 
         for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
             selected_step_placement_fcn, behavior_str, selected_step_curriculum = selected_step_placement_fcn_tuple
@@ -1826,11 +1829,11 @@ class Walker3DStepperEnv(EnvBase):
             self._handle_keyboard(callback=self.handle_keyboard)
             self.camera.track(pos=self.robot.body_xyz)
             # self.target.set_position(pos=self.walk_target)
-            self.target.set_color(
-                Colors["dodgerblue"]
-                if self.distance_to_target < 0.15
-                else Colors["lightgrey"]
-            )
+            # self.target.set_color(
+            #     Colors["dodgerblue"]
+            #     if self.distance_to_target < 0.15
+            #     else Colors["lightgrey"]
+            # )
             self.rendered_steps[(self.next_step_index-1) % self.rendered_step_count].set_color(full=False)
             self.rendered_steps[self.next_step_index % self.rendered_step_count].set_color(full=True)
 
@@ -1871,7 +1874,8 @@ class Walker3DStepperEnv(EnvBase):
     def create_target(self):
         # Need this to create target in render mode, called by EnvBase
         # Sphere is a visual shape, does not interact physically
-        self.target = VSphere(self._p, radius=0.15, pos=None)
+        # self.target = VSphere(self._p, radius=0.15, pos=None)
+        pass
 
     def calc_potential(self):
         walk_target_delta = self.walk_target - self.robot.body_xyz
