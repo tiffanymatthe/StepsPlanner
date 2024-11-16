@@ -388,7 +388,7 @@ class Walker3DStepperEnv(EnvBase):
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.65, 0.45, N)
-        self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
+        self.applied_gain_curriculum = np.linspace(1, 1, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
@@ -1968,6 +1968,9 @@ class Walker3DStepperEnv(EnvBase):
             )
             dist = dist_to_prev_target[1-self.swing_leg]
             self.step_bonus_other_leg = self.step_radius - dist
+
+        if self.swing_leg_has_fallen or self.other_leg_has_fallen or self.body_stationary_count > count:
+            self.legs_bonus -= 1
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
 
