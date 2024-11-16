@@ -25,6 +25,7 @@ if __name__ == "__main__":
     foot_angle_weight = 0.1
     determine = False
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    save_dir = "plaid_results"
 
     experts = {
         "runs/dream/oct_14/plasticity_elaho/models/Walker3DStepperEnv-v0_curr_0_9.pt": 0, # heading var
@@ -64,7 +65,7 @@ if __name__ == "__main__":
         num_experts=len(experts),
         num_epochs=300,
         dummy_env=dummy_env,
-        log_dir=""
+        log_dir=save_dir,
     )
 
     actor_critics = []
@@ -75,4 +76,4 @@ if __name__ == "__main__":
 
     distilled_policy = distiller.distill_policies(actor_critics, list(experts.values()))
 
-    torch.save(distilled_policy.state_dict(), "plaid_distilled_all.pt")
+    torch.save(distilled_policy.state_dict(), f"{save_dir}/plaid_distilled_all.pt")

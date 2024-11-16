@@ -21,6 +21,7 @@ class Distiller:
         }
 
         self.csv_logger = CSVLogger(log_dir=log_dir, filename="plaid.csv")
+        self.log_dir = log_dir
 
         num_processes = 10 # overwrite
         
@@ -230,7 +231,7 @@ class Distiller:
             elapsed_time = time.time() - start
 
             if epoch % 50 == 0:
-                torch.save(student_policy.state_dict(), f"plaid_distilled_epoch_{epoch}.pt")
+                torch.save(student_policy.state_dict(), f"{self.log_dir}/plaid_distilled_epoch_{epoch}.pt")
 
             self.csv_logger.log_epoch({
                 "prev_expert_task": f"{env_per_task_kwargs[1]['behavior_curriculum']}",
