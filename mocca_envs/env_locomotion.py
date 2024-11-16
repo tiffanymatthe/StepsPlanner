@@ -313,7 +313,7 @@ class Walker3DStepperEnv(EnvBase):
 
     robot_class = Mike
     robot_random_start = True
-    robot_init_position = [0, 0.3, 1.32]
+    robot_init_position = [0, 0.3, 1.]
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
