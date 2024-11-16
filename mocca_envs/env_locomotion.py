@@ -427,7 +427,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.foot_sep_range = {
             "to_standstill": np.array([-0.04,0.16]),
-            "random_walks": np.array([-0.04,0.06]),
+            "random_walks": np.array([-0.02,0.08]),
             "random_walks_backward": np.array([-0.04,0.06]),
             "turn_in_place": np.array([-0.04,0.04]),
             "side_step": np.array([-0.04,0.04]),
@@ -1541,7 +1541,7 @@ class Walker3DStepperEnv(EnvBase):
             (self.generate_to_standstill_step_placements, "to_standstill",8),
             (self.generate_backward_step_placements, "backward",6),
             (self.generate_heading_var_step_placements, "heading_var",0),
-            (self.generate_random_walks_step_placements, "random_walks",5),
+            (self.generate_random_walks_step_placements, "random_walks",7),
             (self.generate_heading_var_step_placements, "heading_var",0),
             # (self.generate_random_walks_backward_step_placements, "random_walks_backward",5),
             (self.generate_turn_in_place_step_placements, "turn_in_place", 9),
