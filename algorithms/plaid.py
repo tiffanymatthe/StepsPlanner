@@ -106,7 +106,7 @@ class Distiller:
         prev_ep_action_loss = 0
         same_action_loss_count = 0
 
-        BC_epochs = 100 # behavior cloning only epochs
+        BC_epochs = 50 # behavior cloning only epochs
 
         start = time.time()
         for epoch in range(num_epochs):
