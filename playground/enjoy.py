@@ -31,11 +31,6 @@ import numpy as np
 DEG2RAD = np.pi / 180
 RAD2DEG = 180 / np.pi
 
-LEFTCOLOR = (0.97,0.596,0.38,1.0)
-RIGHTCOLOR = (0.38,0.74,0.86,1.0)
-
-LEFTCOLOR_LIGHTER = (0.97,0.596,0.38,0.5)
-RIGHTCOLOR_LIGHTER = (0.38,0.74,0.86,0.5)
 
 def main():
     import numpy as np
@@ -106,8 +101,8 @@ def main():
         plt.show(block=False)
         plt.draw()
         background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
-        actual_points_left = ax1.plot([0,1], [0,1], '-', color=LEFTCOLOR, linewidth=4, animated=True)[0]
-        actual_points_right = ax1.plot([0,1], [0,1], '-', color=RIGHTCOLOR, linewidth=4, animated=True)[0]
+        actual_points_left = ax1.plot([0,1], [0,1], '-', color="slateblue", linewidth=4, animated=True)[0]
+        actual_points_right = ax1.plot([0,1], [0,1], '-', color="turquoise", linewidth=4, animated=True)[0]
         actual_x_left = []
         actual_y_left = []
         actual_x_right = []
@@ -182,8 +177,8 @@ def main():
                 ax1.set_xlim(0, 800)
                 ax1.set_ylim(0,2.2)
                 # MUST DO AFTER CLEARING!!!
-                actual_points_left = ax1.plot([0,1], [0,1], '-', color=LEFTCOLOR, linewidth=4, animated=True)[0]
-                actual_points_right = ax1.plot([0,1], [0,1], '-', color=RIGHTCOLOR, linewidth=4, animated=True)[0]
+                actual_points_left = ax1.plot([0,1], [0,1], '-', color="slateblue", linewidth=4, animated=True)[0]
+                actual_points_right = ax1.plot([0,1], [0,1], '-', color="turquoise", linewidth=4, animated=True)[0]
             else:
                 time_offsets = [0]
                 times_left = []
@@ -202,8 +197,8 @@ def main():
                     times_right += time_right
                     all_sets_right += sets_right
                     time_offsets.append(time_left[-1])
-                ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color=LEFTCOLOR_LIGHTER, step='post')
-                ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color=RIGHTCOLOR_LIGHTER, step='post')
+                ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color='steelblue', step='post')
+                ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color='paleturquoise', step='post')
             fig1.canvas.draw()
             background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
 
@@ -347,11 +342,11 @@ def main():
                             all_sets_right += sets_right
                             time_offsets.append(time_left[-1])
                         ax1.clear()
-                        ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color=LEFTCOLOR_LIGHTER, step='post')
-                        ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color=RIGHTCOLOR_LIGHTER, step='post')
+                        ax1.fill_between(times_left, y1=1, y2=0, where=all_sets_left, color='steelblue', step='post')
+                        ax1.fill_between(times_right, y1=2.2, y2=1.2, where=all_sets_right, color='paleturquoise', step='post')
                     # REQUIRED AFTER CLEARING
-                    actual_points_left = ax1.plot([0,1], [0,1], '-', color=LEFTCOLOR, linewidth=4, animated=True)[0]
-                    actual_points_right = ax1.plot([0,1], [0,1], '-', color=RIGHTCOLOR, linewidth=4, animated=True)[0]
+                    actual_points_left = ax1.plot([0,1], [0,1], '-', color="slateblue", linewidth=4, animated=True)[0]
+                    actual_points_right = ax1.plot([0,1], [0,1], '-', color="turquoise", linewidth=4, animated=True)[0]
                     actual_x_left, actual_y_left, actual_x_right, actual_y_right = [], [], [], []
                     fig1.canvas.draw()
                     background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
