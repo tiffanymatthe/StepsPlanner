@@ -106,6 +106,8 @@ class Distiller:
         prev_ep_action_loss = 0
         same_action_loss_count = 0
 
+        BC_epochs = 50 # behavior cloning only epochs
+
         start = time.time()
         for epoch in range(num_epochs):
             observations_shaped_per_task = [None for _ in range(self.num_experts)]
@@ -116,8 +118,8 @@ class Distiller:
             timing_met_per_task = [None for _ in range(self.num_experts)]
             dist_err_per_task = [None for _ in range(self.num_experts)]
             heading_err_per_task = [None for _ in range(self.num_experts)]
-            use_expert_min_threshold = 0 if epoch < 50 else min((epoch-50) / 100, 1)
-            deterministic_max_threshold = epoch / num_epochs
+            use_expert_min_threshold = 0 if epoch < BC_epochs else min((epoch-BC_epochs) / 100, 1)
+            deterministic_max_threshold = max(0, (epoch - BC_epochs) / (num_epochs - BC_epochs))
             for task_i in range(self.num_experts):
                 max_episodes = int(self.num_processes * self.num_steps_per_task[task_i])
                 episode_rewards = deque(maxlen=max_episodes)
