@@ -1827,7 +1827,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.is_rendered or self.use_egl:
             self._handle_keyboard(callback=self.handle_keyboard)
             self.camera.track(pos=self.robot.body_xyz)
-            # self.target.set_position(pos=self.walk_target)
+            self.target.set_position(pos=self.walk_target)
             self.target.set_color(
                 Colors["dodgerblue"]
                 if self.distance_to_target < 0.15
@@ -2883,7 +2883,7 @@ class Walker3DPlannerEnv(EnvBase):
         # Reset camera
         if self.is_rendered or self.use_egl:
             self.camera.lookat(self.robot.body_xyz)
-            # self.target.set_position(self.walk_target)
+            self.target.set_position(self.walk_target)
 
         self.calc_potential()  # walk_target must be set first
         # must be called before get observation

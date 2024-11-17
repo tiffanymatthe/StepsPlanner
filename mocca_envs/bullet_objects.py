@@ -252,11 +252,11 @@ class VCylinder:
 
         self._p.resetBasePositionAndOrientation(self.id, posObj=pos, ornObj=self._quat)
 
-        self.set_color(self._rgbas_full[left])
+        self.set_color(self._rgbas[left])
 
     def set_color(self, rgba=None, full=False):
         if rgba is None:
-            rgba = self._rgbas_full[self._left] # if full else self._rgbas[self._left]
+            rgba = self._rgbas_full[self._left] if full else self._rgbas[self._left]
         t_rgba = tuple(rgba)
         # if t_rgba != self._rgba:
         self._p.changeVisualShape(self.id, -1, rgbaColor=rgba)
