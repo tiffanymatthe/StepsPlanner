@@ -93,7 +93,7 @@ class Distiller:
         with torch.no_grad():
             controller = SoftsignActor(self.dummy_env)
             student_policy = Policy(controller)
-            # student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
+            student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
             student_policy.to(device)
                
         optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
@@ -106,7 +106,7 @@ class Distiller:
         prev_ep_action_loss = 0
         same_action_loss_count = 0
 
-        BC_epochs = 50 # behavior cloning only epochs
+        BC_epochs = 100 # behavior cloning only epochs
 
         start = time.time()
         for epoch in range(num_epochs):
