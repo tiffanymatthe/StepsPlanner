@@ -184,10 +184,10 @@ class Distiller:
                 expert_actions_shaped_per_task[task_i] = self.buffer_expert_actions_per_task[task_i].view(-1, act_dim)
                 expert_values_shaped_per_task[task_i] = self.buffer_expert_values_per_task[task_i].view(-1, 1)
 
-                curriculum_metric_per_task[task_i] = [nanmean(x) for x in curriculum_metrics[0:2]]
-                timing_met_per_task[task_i] = [nanmean(x) for x in avg_timing_mets[0:2]]
-                dist_err_per_task[task_i] = [nanmean(x) for x in avg_dist_errs[0:2]]
-                heading_err_per_task[task_i] = [nanmean(x) for x in avg_heading_errs[0:2]]
+                curriculum_metric_per_task[task_i] = [nanmean(x) for x in curriculum_metrics[0:4]]
+                timing_met_per_task[task_i] = [nanmean(x) for x in avg_timing_mets[0:4]]
+                dist_err_per_task[task_i] = [nanmean(x) for x in avg_dist_errs[0:4]]
+                heading_err_per_task[task_i] = [nanmean(x) for x in avg_heading_errs[0:4]]
 
                 print(
                     (
