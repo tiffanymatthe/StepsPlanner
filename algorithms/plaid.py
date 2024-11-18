@@ -137,7 +137,7 @@ class Distiller:
                             self.buffer_observations_per_task[task_i][buffer_index].to(device), deterministic=True
                         )
 
-                        use_expert = np.random.rand() > use_expert_min_threshold
+                        use_expert = True # np.random.rand() > use_expert_min_threshold
 
                         if not use_expert:
                             # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
