@@ -498,7 +498,7 @@ class Walker3DStepperEnv(EnvBase):
             timing_1 = half_cycle_times * 0.7
         else:
             half_cycle_times = self.np_random.choice([10,20,30,40,50], size=N)
-            ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7], size=N)
+            ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5], size=N)
             half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
             ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
             timing_0 = half_cycle_times * ground_ratio
@@ -745,9 +745,9 @@ class Walker3DStepperEnv(EnvBase):
                 elif curriculum == 3:
                     ratios = [0.1,0.2,0.3,0.4,0.5]
                 elif curriculum == 4:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6]
+                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5]
                 else:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
+                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5]
                 ground_ratio = self.np_random.choice(ratios, size=N)
                 half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
                 ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
@@ -1968,6 +1968,9 @@ class Walker3DStepperEnv(EnvBase):
             )
             dist = dist_to_prev_target[1-self.swing_leg]
             self.step_bonus_other_leg = self.step_radius - dist
+
+        if self.body_stationary_count > count or self.swing_leg_has_fallen or self.other_leg_has_fallen:
+            self.legs_bonus -= 2
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
 
