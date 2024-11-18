@@ -28,7 +28,7 @@ for behavior_curriculum in range(num_behavior_curricula):
     curricula = list(range(num_curricula))
 
     for curriculum in curricula:
-        file = f"distilled_data/data_{behavior_curriculum}_{curriculum}.csv"
+        file = f"distilled_data_all/data_{behavior_curriculum}_{curriculum}.csv"
         
         try:
             data = pd.read_csv(file)
@@ -89,6 +89,8 @@ global_max = max(np.array(all_means) + np.array(all_stds))
 
 # Set the same y-axis limits for all subplots
 for ax in axes.flat:
+    global_min = 0
+    global_max = 20
     ax.set_ylim(global_min, global_max)
 
 # Add a legend to the first subplot
