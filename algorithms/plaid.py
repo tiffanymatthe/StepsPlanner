@@ -176,7 +176,7 @@ class Distiller:
                 batch_size = self.num_steps_per_task[task_i] * (epoch + 1) * num_processes
                 num_mini_batch = batch_size // mini_batch_size
                 shuffled_indices = torch.randperm(
-                    num_mini_batch * mini_batch_size, generator=None, device=device
+                    num_mini_batch * mini_batch_size, generator=None, device="cpu"
                 )
                 shuffled_indices_batch_per_task[task_i] = shuffled_indices.view(num_mini_batch, -1)
 
