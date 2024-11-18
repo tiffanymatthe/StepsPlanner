@@ -45,9 +45,9 @@ class Distiller:
         self.num_steps_per_task = [400 for _ in range(self.num_experts)]
         self.num_epochs = num_epochs
     
-        self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device=device) for i in range(self.num_experts)]
-        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device=device) for i in range(self.num_experts)]
-        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device=device) for i in range(self.num_experts)]
+        self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device="cpu") for i in range(self.num_experts)]
+        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu") for i in range(self.num_experts)]
+        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu") for i in range(self.num_experts)]
 
         self.dummy_env = dummy_env
 
@@ -134,14 +134,14 @@ class Distiller:
                     for step in range(self.num_steps_per_task[task_i]):
                         buffer_index = step + epoch * self.num_steps_per_task[task_i]
                         expert_value, expert_action, _ = expert_policies[task_i].act(
-                            self.buffer_observations_per_task[task_i][buffer_index], deterministic=True
+                            self.buffer_observations_per_task[task_i][buffer_index].to(device), deterministic=True
                         )
 
                         use_expert = np.random.rand() > use_expert_min_threshold
 
                         if not use_expert:
                             # determines if we get observations from the student or teacher, but reference data is from teacher for MSE loss calc
-                            _, student_action, _ = student_policy.act(self.buffer_observations_per_task[task_i][buffer_index], deterministic=(np.random.rand() < deterministic_max_threshold))
+                            _, student_action, _ = student_policy.act(self.buffer_observations_per_task[task_i][buffer_index].to(device), deterministic=(np.random.rand() < deterministic_max_threshold))
 
                         if use_expert:
                             cpu_actions = expert_action.cpu().numpy()
@@ -170,8 +170,8 @@ class Distiller:
 
 
                         self.buffer_observations_per_task[task_i][buffer_index + 1].copy_(torch.from_numpy(obs))
-                        self.buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action)
-                        self.buffer_expert_values_per_task[task_i][buffer_index].copy_(expert_value)
+                        self.buffer_expert_actions_per_task[task_i][buffer_index].copy_(expert_action.to(device))
+                        self.buffer_expert_values_per_task[task_i][buffer_index].copy_(expert_value.to(device))
 
                 batch_size = self.num_steps_per_task[task_i] * (epoch + 1) * num_processes
                 num_mini_batch = batch_size // mini_batch_size
@@ -209,9 +209,9 @@ class Distiller:
                     if indices is None:  # This task has no more batches
                         continue
 
-                    observations_batch = observations_shaped_per_task[task_i][indices]
-                    actions_batch = expert_actions_shaped_per_task[task_i][indices]
-                    values_batch = expert_values_shaped_per_task[task_i][indices]
+                    observations_batch = observations_shaped_per_task[task_i][indices].to(device)
+                    actions_batch = expert_actions_shaped_per_task[task_i][indices].to(device)
+                    values_batch = expert_values_shaped_per_task[task_i][indices].to(device)
 
                     pred_actions = student_policy.actor(observations_batch)
                     pred_values = student_policy.get_value(observations_batch)
