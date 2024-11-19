@@ -45,9 +45,9 @@ class Distiller:
         self.num_steps_per_task = [1000 for _ in range(self.num_experts)]
         self.num_epochs = num_epochs
     
-        self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device="cpu") for i in range(self.num_experts)]
-        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu") for i in range(self.num_experts)]
-        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu") for i in range(self.num_experts)]
+        self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device="cpu").pin_memory() for i in range(self.num_experts)]
+        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu").pin_memory() for i in range(self.num_experts)]
+        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu").pin_memory() for i in range(self.num_experts)]
 
         self.dummy_env = dummy_env
 
@@ -118,7 +118,7 @@ class Distiller:
             timing_met_per_task = [None for _ in range(self.num_experts)]
             dist_err_per_task = [None for _ in range(self.num_experts)]
             heading_err_per_task = [None for _ in range(self.num_experts)]
-            use_expert_min_threshold = 0 if epoch < BC_epochs else min((epoch-BC_epochs) / 100, 1)
+            use_expert_min_threshold = 0 # 0 if epoch < BC_epochs else min((epoch-BC_epochs) / 100, 1)
             deterministic_max_threshold = max(0, (epoch - BC_epochs) / (num_epochs - BC_epochs))
             for task_i in range(self.num_experts):
                 max_episodes = int(self.num_processes * self.num_steps_per_task[task_i])
@@ -209,9 +209,9 @@ class Distiller:
                     if indices is None:  # This task has no more batches
                         continue
 
-                    observations_batch = observations_shaped_per_task[task_i][indices].to(device)
-                    actions_batch = expert_actions_shaped_per_task[task_i][indices].to(device)
-                    values_batch = expert_values_shaped_per_task[task_i][indices].to(device)
+                    observations_batch = observations_shaped_per_task[task_i][indices].to(device, non_blocking=True)
+                    actions_batch = expert_actions_shaped_per_task[task_i][indices].to(device, non_blocking=True)
+                    values_batch = expert_values_shaped_per_task[task_i][indices].to(device, non_blocking=True)
 
                     pred_actions = student_policy.actor(observations_batch)
                     pred_values = student_policy.get_value(observations_batch)
