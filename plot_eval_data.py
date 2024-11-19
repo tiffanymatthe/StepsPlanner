@@ -16,6 +16,8 @@ fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
+folder = "plaid_results_2"
+
 for behavior_curriculum in range(num_behavior_curricula):
     means_none_nan = []
     stds_none_nan = []
@@ -28,7 +30,7 @@ for behavior_curriculum in range(num_behavior_curricula):
     curricula = list(range(num_curricula))
 
     for curriculum in curricula:
-        file = f"distilled_data_all/data_{behavior_curriculum}_{curriculum}.csv"
+        file = f"{folder}/data_{behavior_curriculum}_{curriculum}.csv"
         
         try:
             data = pd.read_csv(file)
@@ -99,4 +101,7 @@ axes[0, 0].legend(loc='upper right')
 # Adjust layout and show plot
 plt.tight_layout()
 plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
+import os
+img_path = f"{folder}/results.png"
+plt.savefig(img_path)
 plt.show()
