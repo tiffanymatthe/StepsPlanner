@@ -63,7 +63,7 @@ if __name__ == "__main__":
         device=device,
         num_processes=10,
         num_experts=len(experts),
-        num_epochs=1000,
+        num_epochs=500,
         dummy_env=dummy_env,
         log_dir=save_dir,
     )
