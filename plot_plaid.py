@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 csvfiles = [
     "runs/dream/plaid_results_1/plaid.csv",
     "runs/dream/plaid_results_2/plaid.csv",
-    "runs/dream/plaid_results_3/plaid.csv"
+    "runs/dream/plaid_results_3/plaid.csv",
+    "runs/dream/plaid_results_4/plaid.csv"
 ]
 
 fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
@@ -13,7 +14,7 @@ for csvfile in csvfiles:
     df = pd.read_csv(csvfile)
     print(df.columns)
     axes[0].plot(df["elapsed_time"], df["value_loss"], label=f"{csvfile} - Value Loss")
-    axes[1].plot(df["action_loss"], label=f"{csvfile} - Action Loss")
+    axes[1].plot(df["elapsed_time"], df["action_loss"], label=f"{csvfile} - Action Loss")
     axes[2].plot(df["elapsed_time"], label=f"{csvfile} - Time Elapsed")
 
 axes[0].set_title("Value Loss")
