@@ -16,7 +16,7 @@ fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folder = "plaid_results_2"
+folder = "plaid_results_3"
 
 for behavior_curriculum in range(num_behavior_curricula):
     means_none_nan = []

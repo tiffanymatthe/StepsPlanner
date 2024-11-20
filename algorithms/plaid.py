@@ -42,7 +42,7 @@ class Distiller:
 
         # order: current, previous
 
-        self.num_steps_per_task = [200 for _ in range(self.num_experts)]
+        self.num_steps_per_task = [400 for _ in range(self.num_experts)]
         self.num_epochs = num_epochs
     
         self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device="cpu") for i in range(self.num_experts)]
@@ -93,7 +93,7 @@ class Distiller:
         with torch.no_grad():
             controller = SoftsignActor(self.dummy_env)
             student_policy = Policy(controller)
-            student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
+            # student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
             student_policy.to(device)
                
         optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)

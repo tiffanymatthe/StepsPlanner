@@ -25,7 +25,7 @@ if __name__ == "__main__":
     foot_angle_weight = 0.1
     determine = False
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    save_dir = "plaid_results_3"
+    save_dir = "plaid_results_4"
 
     experts = {
         "runs/dream/oct_14/plasticity_elaho/models/Walker3DStepperEnv-v0_curr_0_9.pt": 0, # heading var
