@@ -1732,7 +1732,7 @@ class Walker3DStepperEnv(EnvBase):
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
         if self.behaviors[self.behavior_curriculum] == "combine_all":
             threshold = self.curriculum / self.max_curriculum * 0.5
-            self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
+            self.mask_info["heading"][2] = self.np_random.rand() < threshold
 
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or force
