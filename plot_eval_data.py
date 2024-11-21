@@ -6,7 +6,7 @@ import numpy as np
 column_to_plot = 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
 
 # Number of behavior curricula and curricula per behavior curriculum
-num_behavior_curricula = 10
+num_behavior_curricula = 12
 num_curricula = 10
 
 # Prepare subplots
@@ -28,6 +28,8 @@ for behavior_curriculum in range(num_behavior_curricula):
     means_both_nan = []
     stds_both_nan = []
     curricula = list(range(num_curricula))
+
+    curriculum_to_plot = []
 
     for curriculum in curricula:
         file = f"{folder}/data_{behavior_curriculum}_{curriculum}.csv"
@@ -70,16 +72,17 @@ for behavior_curriculum in range(num_behavior_curricula):
             all_means.append(mean_both_nan)
             all_stds.append(std_both_nan)
 
+            curriculum_to_plot.append(curriculum)
         except FileNotFoundError:
             print(f"File {file} not found. Skipping.")
             continue
 
     # Plot each subset on the same subplot for the current behavior curriculum
     ax = axes.flatten()[behavior_curriculum]
-    ax.errorbar(curricula, means_none_nan, yerr=stds_none_nan, fmt='-o', label='None NaN')
-    ax.errorbar(curricula, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label='Timing NaN')
-    ax.errorbar(curricula, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading NaN')
-    ax.errorbar(curricula, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both NaN')
+    ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label='None NaN')
+    ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label='Timing NaN')
+    ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading NaN')
+    ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both NaN')
 
     ax.set_title(f"Behavior Curriculum {behavior_curriculum}")
     ax.set_xlabel("Curriculum")

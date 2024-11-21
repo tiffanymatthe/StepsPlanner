@@ -101,15 +101,33 @@
 #     --render 0 \
 #     --plot 0
 
-for behavior_curriculum in {10..10}; do
+# for behavior_curriculum in {10..10}; do
+#     # Loop through curriculum from 0 to 9
+#     for curriculum in {0..8}; do
+#         # Run the Python command with the current values of behavior_curriculum and curriculum
+#         # Skip specific combinations
+#         echo "Running $behavior_curriculum - $curriculum"
+#         python3 -m playground.enjoy \
+#             --env Walker3DStepperEnv-v0 \
+#             --net "runs/dream/oct_19/plasticity_elaho_cont_one_step_plant/models/Walker3DStepperEnv-v0_curr_${behavior_curriculum}_${curriculum}.pt" \
+#             --plank_class VeryLargePlank \
+#             --curriculum "$curriculum" \
+#             --behavior_curriculum "$behavior_curriculum" \
+#             --determine \
+#             --render 0 \
+#             --plot 0
+#     done
+# done
+
+
+for behavior_curriculum in {11..11}; do
     # Loop through curriculum from 0 to 9
     for curriculum in {0..8}; do
         # Run the Python command with the current values of behavior_curriculum and curriculum
-        # Skip specific combinations
         echo "Running $behavior_curriculum - $curriculum"
         python3 -m playground.enjoy \
             --env Walker3DStepperEnv-v0 \
-            --net "runs/dream/oct_19/plasticity_elaho_cont_one_step_plant/models/Walker3DStepperEnv-v0_curr_${behavior_curriculum}_${curriculum}.pt" \
+            --net "runs/dream/oct_20/plasticity_elaho_cont_heading/models/Walker3DStepperEnv-v0_curr_10_${curriculum}.pt" \
             --plank_class VeryLargePlank \
             --curriculum "$curriculum" \
             --behavior_curriculum "$behavior_curriculum" \
@@ -118,3 +136,14 @@ for behavior_curriculum in {10..10}; do
             --plot 0
     done
 done
+
+echo "Running 11 - 9"
+python3 -m playground.enjoy \
+    --env Walker3DStepperEnv-v0 \
+    --net "runs/dream/oct_20/plasticity_elaho_cont_heading/models/Walker3DStepperEnv-v0_400000000.pt" \
+    --plank_class VeryLargePlank \
+    --curriculum 9 \
+    --behavior_curriculum 11 \
+    --determine \
+    --render 0 \
+    --plot 0
