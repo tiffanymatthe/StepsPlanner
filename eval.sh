@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # for behavior_curriculum in {0..1}; do
 #     # Loop through curriculum from 0 to 9
 #     for curriculum in {0..9}; do
@@ -120,14 +122,14 @@
 # done
 
 
-for behavior_curriculum in {11..11}; do
+for behavior_curriculum in {0..11}; do
     # Loop through curriculum from 0 to 9
-    for curriculum in {0..8}; do
+    for curriculum in {0..9}; do
         # Run the Python command with the current values of behavior_curriculum and curriculum
         echo "Running $behavior_curriculum - $curriculum"
         python3 -m playground.enjoy \
             --env Walker3DStepperEnv-v0 \
-            --net "runs/dream/oct_20/plasticity_elaho_cont_heading/models/Walker3DStepperEnv-v0_curr_10_${curriculum}.pt" \
+            --net "runs/dream/distill_hopping/all_with_hopping.pt" \
             --plank_class VeryLargePlank \
             --curriculum "$curriculum" \
             --behavior_curriculum "$behavior_curriculum" \
@@ -137,13 +139,13 @@ for behavior_curriculum in {11..11}; do
     done
 done
 
-echo "Running 11 - 9"
-python3 -m playground.enjoy \
-    --env Walker3DStepperEnv-v0 \
-    --net "runs/dream/oct_20/plasticity_elaho_cont_heading/models/Walker3DStepperEnv-v0_400000000.pt" \
-    --plank_class VeryLargePlank \
-    --curriculum 9 \
-    --behavior_curriculum 11 \
-    --determine \
-    --render 0 \
-    --plot 0
+# echo "Running 11 - 9"
+# python3 -m playground.enjoy \
+#     --env Walker3DStepperEnv-v0 \
+#     --net "runs/dream/oct_20/plasticity_elaho_cont_heading/models/Walker3DStepperEnv-v0_400000000.pt" \
+#     --plank_class VeryLargePlank \
+#     --curriculum 9 \
+#     --behavior_curriculum 11 \
+#     --determine \
+#     --render 0 \
+#     --plot 0
