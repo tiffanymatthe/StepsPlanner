@@ -12,6 +12,7 @@ import os
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+import csv
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -22,7 +23,7 @@ import torch
 from bottleneck import nanmean
 
 import mocca_envs
-from common.controller import MixedActor, SoftsignActor, Policy
+from common.controller import SoftsignActor, Policy
 from common.envs_utils import make_env
 from common.misc_utils import EpisodeRunner
 
@@ -139,7 +140,8 @@ def main():
         env.set_env_params({"curriculum": int(curriculum), "behavior_curriculum": int(behavior_curriculum)})
 
         obs = env.reset(force=True)
-        env.camera._cam_yaw = 90
+        if args.render:
+            env.camera._cam_yaw = 90
         ep_reward = 0
 
         left_foot_headings = []
@@ -161,6 +163,13 @@ def main():
         controller = actor_critic.actor
 
         done = False
+
+        max_resets = 20
+
+        timing_mets = []
+        heading_errs = []
+        dist_errs = []
+        curriculum_metrics = []
 
         if args.plot:
             if env.mask_info["timing"][2]:
@@ -207,7 +216,8 @@ def main():
             cpu_actions = action.squeeze().cpu().numpy()
 
             obs, reward, done, _ = env.step(cpu_actions)
-            env.camera.lookat(env.robot.body_xyz)
+            if args.render:
+                env.camera.lookat(env.robot.body_xyz)
 
             ep_reward += reward
 
@@ -242,6 +252,9 @@ def main():
                 fig1.canvas.blit(ax1.bbox)
 
             if done:
+                max_resets -= 1
+                if max_resets <= 0:
+                    runner.done = True
                 if args.heading:
                     target_change_mask = np.roll(target_indices, 1)
                     target_change_mask[0] = target_indices[0]
@@ -294,7 +307,12 @@ def main():
                     actual_start_foot = []
                     actual_other_foot = []
                     index_switch = []
-                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
+                print(f"--- Episode reward: {ep_reward} and next step {env.next_step_index} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
+                timing_mets.append(nanmean(env.met_times))
+                heading_errs.append(nanmean(env.heading_errors))
+                dist_errs.append(nanmean(env.dist_errors))
+                curriculum_metrics.append(env.next_step_index)
+
                 obs = env.reset(reset_runner=False)
                 if args.heading:
                     foot_heading_targets = env.terrain_info[:, 6]
@@ -336,6 +354,16 @@ def main():
 
         if args.save and args.plot:
             writer.finish()
+
+        rows = zip(timing_mets, heading_errs, dist_errs, curriculum_metrics)
+
+        with open(f"mike_expert_policies/data_{behavior_curriculum}_{curriculum}.csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timing_met", "heading_err", "dist_err", "curriculum_metric"])
+            for row in rows:
+                writer.writerow(row)
+
+    env.close()
 
 if __name__ == "__main__":
     main()
