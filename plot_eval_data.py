@@ -16,73 +16,82 @@ fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folder = "experts"
+folders = ["experts", "plaid_results_5", "no_distill_data_all"]
+folder_labels=["experts", "distilled", "final sequential_policy"]
 
 for behavior_curriculum in range(num_behavior_curricula):
-    means_none_nan = []
-    stds_none_nan = []
-    means_timing_nan = []
-    stds_timing_nan = []
-    means_heading_nan = []
-    stds_heading_nan = []
-    means_both_nan = []
-    stds_both_nan = []
-    curricula = list(range(num_curricula))
+    for i, folder in enumerate(folders):
 
-    curriculum_to_plot = []
+        means_none_nan = []
+        stds_none_nan = []
+        means_timing_nan = []
+        stds_timing_nan = []
+        means_heading_nan = []
+        stds_heading_nan = []
+        means_both_nan = []
+        stds_both_nan = []
+        curricula = list(range(num_curricula))
 
-    for curriculum in curricula:
-        file = f"{folder}/data_{behavior_curriculum}_{curriculum}.csv"
-        
-        try:
-            data = pd.read_csv(file)
+        curriculum_to_plot = []
+
+        for curriculum in curricula:
+            file = f"{folder}/data_{behavior_curriculum}_{curriculum}.csv"
             
-            # Separate the data into the four cases
-            data_none_nan = data[data['timing_met'].notna() & data['heading_err'].notna()]
-            data_timing_nan = data[data['timing_met'].isna() & data['heading_err'].notna()]
-            data_heading_nan = data[data['timing_met'].notna() & data['heading_err'].isna()]
-            data_both_nan = data[data['timing_met'].isna() & data['heading_err'].isna()]
+            try:
+                data = pd.read_csv(file)
+                
+                # Separate the data into the four cases
+                data_none_nan = data[data['timing_met'].notna() & data['heading_err'].notna()]
+                data_timing_nan = data[data['timing_met'].isna() & data['heading_err'].notna()]
+                data_heading_nan = data[data['timing_met'].notna() & data['heading_err'].isna()]
+                data_both_nan = data[data['timing_met'].isna() & data['heading_err'].isna()]
 
-            # Calculate mean and std for each subset
-            mean_none_nan = data_none_nan[column_to_plot].mean()
-            std_none_nan = data_none_nan[column_to_plot].std()
-            means_none_nan.append(mean_none_nan)
-            stds_none_nan.append(std_none_nan)
-            all_means.append(mean_none_nan)
-            all_stds.append(std_none_nan)
+                # Calculate mean and std for each subset
+                mean_none_nan = data_none_nan[column_to_plot].mean()
+                std_none_nan = data_none_nan[column_to_plot].std()
+                means_none_nan.append(mean_none_nan)
+                stds_none_nan.append(std_none_nan)
+                all_means.append(mean_none_nan)
+                all_stds.append(std_none_nan)
 
-            mean_timing_nan = data_timing_nan[column_to_plot].mean()
-            std_timing_nan = data_timing_nan[column_to_plot].std()
-            means_timing_nan.append(mean_timing_nan)
-            stds_timing_nan.append(std_timing_nan)
-            all_means.append(mean_timing_nan)
-            all_stds.append(std_timing_nan)
+                mean_timing_nan = data_timing_nan[column_to_plot].mean()
+                std_timing_nan = data_timing_nan[column_to_plot].std()
+                means_timing_nan.append(mean_timing_nan)
+                stds_timing_nan.append(std_timing_nan)
+                all_means.append(mean_timing_nan)
+                all_stds.append(std_timing_nan)
 
-            mean_heading_nan = data_heading_nan[column_to_plot].mean()
-            std_heading_nan = data_heading_nan[column_to_plot].std()
-            means_heading_nan.append(mean_heading_nan)
-            stds_heading_nan.append(std_heading_nan)
-            all_means.append(mean_heading_nan)
-            all_stds.append(std_heading_nan)
+                mean_heading_nan = data_heading_nan[column_to_plot].mean()
+                std_heading_nan = data_heading_nan[column_to_plot].std()
+                means_heading_nan.append(mean_heading_nan)
+                stds_heading_nan.append(std_heading_nan)
+                all_means.append(mean_heading_nan)
+                all_stds.append(std_heading_nan)
 
-            mean_both_nan = data_both_nan[column_to_plot].mean()
-            std_both_nan = data_both_nan[column_to_plot].std()
-            means_both_nan.append(mean_both_nan)
-            stds_both_nan.append(std_both_nan)
-            all_means.append(mean_both_nan)
-            all_stds.append(std_both_nan)
+                mean_both_nan = data_both_nan[column_to_plot].mean()
+                std_both_nan = data_both_nan[column_to_plot].std()
+                means_both_nan.append(mean_both_nan)
+                stds_both_nan.append(std_both_nan)
+                all_means.append(mean_both_nan)
+                all_stds.append(std_both_nan)
 
-            curriculum_to_plot.append(curriculum)
-        except FileNotFoundError:
-            print(f"File {file} not found. Skipping.")
-            continue
+                curriculum_to_plot.append(curriculum)
+            except FileNotFoundError:
+                print(f"File {file} not found. Skipping.")
+                continue
 
-    # Plot each subset on the same subplot for the current behavior curriculum
-    ax = axes.flatten()[behavior_curriculum]
-    ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label='None NaN')
-    ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label='Timing NaN')
-    ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading NaN')
-    ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both NaN')
+        # Plot each subset on the same subplot for the current behavior curriculum
+        if folder != "experts" and behavior_curriculum in {9, 10}:
+            if behavior_curriculum == 9:
+                ax = axes.flatten()[10]
+            else:
+                ax = axes.flatten()[9]
+        else:
+            ax = axes.flatten()[behavior_curriculum]
+        # ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'None {folder_labels[i]}')
+        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'Timing Masked {folder_labels[i]}')
+        # ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading Masked')
+        # ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both Masked')
 
     ax.set_title(f"Behavior Curriculum {behavior_curriculum}")
     ax.set_xlabel("Curriculum")
@@ -105,6 +114,6 @@ axes[0, 0].legend(loc='upper right')
 plt.tight_layout()
 plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
 import os
-img_path = f"{folder}/results.png"
+img_path = f"expert_vs_student_random/results_timing.png"
 plt.savefig(img_path)
 plt.show()
