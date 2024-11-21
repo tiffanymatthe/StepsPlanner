@@ -10,13 +10,13 @@ num_behavior_curricula = 10
 num_curricula = 10
 
 # Prepare subplots
-fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 10))
+fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 
 # Initialize lists to store the calculated mean and std values for global y-axis scaling
 all_means = []
 all_stds = []
 
-folder = "plaid_results_5"
+folder = "experts"
 
 for behavior_curriculum in range(num_behavior_curricula):
     means_none_nan = []
