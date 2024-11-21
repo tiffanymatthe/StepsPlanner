@@ -16,8 +16,8 @@ fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folders = ["mike_expert_policies", "mike_final_policy_with_heading"]
-folder_labels=["expert", "final"]
+folders = ["mike_heading_45"]
+folder_labels=["heading 45"]
 
 for behavior_curriculum in range(num_behavior_curricula):
     for i, folder in enumerate(folders):
@@ -82,10 +82,10 @@ for behavior_curriculum in range(num_behavior_curricula):
 
         # Plot each subset on the same subplot for the current behavior curriculum
         ax = axes.flatten()[behavior_curriculum]
-        # ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'None {folder_labels[i]}')
-        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'Timing Masked {folder_labels[i]}')
-        # ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading Masked')
-        # ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both Masked')
+        ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'None')
+        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'Timing Masked')
+        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading Masked')
+        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both Masked')
 
     ax.set_title(f"Behavior Curriculum {behavior_curriculum}")
     ax.set_xlabel("Curriculum")
@@ -108,6 +108,6 @@ axes[0, 0].legend(loc='upper right')
 plt.tight_layout()
 plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
 import os
-img_path = f"{folders[0]}/results_timing.png"
+img_path = f"{folders[0]}/results_all.png"
 plt.savefig(img_path)
 plt.show()

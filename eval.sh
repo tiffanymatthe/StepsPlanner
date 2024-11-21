@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 for behavior_curriculum in {0..9}; do
     # Loop through curriculum from 0 to 9
     for curriculum in {0..9}; do
@@ -7,7 +9,7 @@ for behavior_curriculum in {0..9}; do
         echo "Running $behavior_curriculum - $curriculum"
         python3 -m playground.enjoy \
             --env Walker3DStepperEnv-v0 \
-            --net "runs/dream/nov_20/base_mike_cont_heading_mask/models/Walker3DStepperEnv-v0_curr_10_8.pt" \
+            --net "runs/dream/nov_20/base_mike_cont_heading_mask/models/Walker3DStepperEnv-v0_450000000.pt" \
             --plank_class VeryLargePlank \
             --curriculum "$curriculum" \
             --behavior_curriculum "$behavior_curriculum" \
