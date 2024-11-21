@@ -23,7 +23,7 @@ class Distiller:
         self.csv_logger = CSVLogger(log_dir=log_dir, filename="plaid.csv")
         self.log_dir = log_dir
 
-        num_processes = 10 # overwrite
+        num_processes = 30 # overwrite
         
         self.num_experts = num_experts
 
@@ -44,10 +44,12 @@ class Distiller:
 
         self.num_steps_per_task = [400 for _ in range(self.num_experts)]
         self.num_epochs = num_epochs
+
+        self.buffer_device = device
     
-        self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device="cpu") for i in range(self.num_experts)]
-        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu") for i in range(self.num_experts)]
-        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device="cpu") for i in range(self.num_experts)]
+        self.buffer_observations_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs + 1, num_processes, *obs_shape, device=self.buffer_device) for i in range(self.num_experts)]
+        self.buffer_expert_actions_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device=self.buffer_device) for i in range(self.num_experts)]
+        self.buffer_expert_values_per_task = [torch.zeros(self.num_steps_per_task[i] * num_epochs, num_processes, act_dim, device=self.buffer_device) for i in range(self.num_experts)]
 
         self.dummy_env = dummy_env
 
@@ -60,12 +62,19 @@ class Distiller:
 
         env_kwargs_per_task = [
             {
-                "start_curriculum": 9,
-                "start_behavior_curriculum": behavior_curriculums[i],
-                "curriculum": 9,
-                "behavior_curriculum": behavior_curriculums[i],
+                "start_curriculum": 0,
+                "start_behavior_curriculum": behavior_curriculums[0],
+                "curriculum": 0,
+                "behavior_curriculum": behavior_curriculums[0],
                 "determine": False,
-            } for i in range(self.num_experts)
+            },
+            {
+                "start_curriculum": 9,
+                "start_behavior_curriculum": behavior_curriculums[1],
+                "curriculum": 9,
+                "behavior_curriculum": behavior_curriculums[1],
+                "determine": False,
+            }
         ]
 
         for i, env in enumerate(self.envs_per_task):
@@ -93,7 +102,7 @@ class Distiller:
         with torch.no_grad():
             controller = SoftsignActor(self.dummy_env)
             student_policy = Policy(controller)
-            # student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
+            student_policy.load_state_dict(copy.deepcopy(expert_policies[-1].state_dict()))
             student_policy.to(device)
                
         optimizer = torch.optim.Adam(student_policy.parameters(), lr=3e-4)
@@ -176,7 +185,7 @@ class Distiller:
                 batch_size = self.num_steps_per_task[task_i] * (epoch + 1) * num_processes
                 num_mini_batch = batch_size // mini_batch_size
                 shuffled_indices = torch.randperm(
-                    num_mini_batch * mini_batch_size, generator=None, device="cpu"
+                    num_mini_batch * mini_batch_size, generator=None, device=self.buffer_device
                 )
                 shuffled_indices_batch_per_task[task_i] = shuffled_indices.view(num_mini_batch, -1)
 

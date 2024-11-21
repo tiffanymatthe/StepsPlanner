@@ -87,7 +87,10 @@ def main():
 
     controller = SoftsignActor(env)
     actor_critic = Policy(controller)
-    actor_critic.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    try:
+        actor_critic.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    except:
+        actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
 
     if args.plot:
         fig1, ax1 = plt.subplots(figsize=(12,4))
