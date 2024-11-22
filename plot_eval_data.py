@@ -6,11 +6,19 @@ from bottleneck import nanmean
 import warnings
 warnings.filterwarnings("ignore")
 
+from matplotlib import rc
+
+# Use Computer Modern Roman as the default font
+rc('font', **{'family': 'serif', 'serif': ['Computer Modern Roman']})
+rc('text', usetex=True)
+
+plt.rcParams.update({'font.size': 16})
+
 # Specify the column to plot
-column_to_plot = 'dist_err' # 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
+column_to_plot = 'curriculum_metric' # 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
 
 # Number of behavior curricula and curricula per behavior curriculum
-num_behavior_curricula = 12
+num_behavior_curricula = 10
 num_curricula = 10
 
 # Prepare subplots
@@ -20,8 +28,8 @@ fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folders = ["all_with_hopping"]
-folder_labels=["plaid_distilled_epoch_50"]
+folders = ["all_expert_baseline"] #, "no_distill_data_all"]
+folder_labels=["plaid_distilled_epoch_50"] #, "..."]
 
 for behavior_curriculum in range(num_behavior_curricula):
     for i, folder in enumerate(folders):
@@ -85,52 +93,62 @@ for behavior_curriculum in range(num_behavior_curricula):
                 continue
 
         # Plot each subset on the same subplot for the current behavior curriculum
-        if folder != "experts" and behavior_curriculum in {9, 10}:
-            if behavior_curriculum == 9:
-                ax = axes.flatten()[10]
-            else:
+        if folder != "experts" and behavior_curriculum in {8,9}:
+            if behavior_curriculum == 8:
                 ax = axes.flatten()[9]
+            else:
+                ax = axes.flatten()[8]
         else:
             ax = axes.flatten()[behavior_curriculum]
         
         weights = np.linspace(1,10,len(curriculum_to_plot))
         weights /= sum(weights)
 
-        steps_avg = nanmean([
-            np.average(np.ma.masked_array(means_none_nan, np.isnan(means_none_nan)), weights=weights),
-            np.average(np.ma.masked_array(means_timing_nan, np.isnan(means_timing_nan)), weights=weights),
-            np.average(np.ma.masked_array(means_heading_nan, np.isnan(means_heading_nan)), weights=weights),
-            np.average(np.ma.masked_array(means_both_nan, np.isnan(means_both_nan)), weights=weights),
-        ])
+        # avg_all = [
+        #     np.average(np.ma.masked_array(means_none_nan, np.isnan(means_none_nan)), weights=weights),
+        #     np.average(np.ma.masked_array(means_timing_nan, np.isnan(means_timing_nan)), weights=weights),
+        #     np.average(np.ma.masked_array(means_heading_nan, np.isnan(means_heading_nan)), weights=weights),
+        #     np.average(np.ma.masked_array(means_both_nan, np.isnan(means_both_nan)), weights=weights),
+        # ]
 
-        print(f"{behavior_curriculum}: {steps_avg}")
+        # steps_avg = nanmean(avg_all)
 
-        ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'None {folder_labels[i]}')
-        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'Timing Masked {folder_labels[i]}')
-        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading Masked')
-        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both Masked')
+        # print(f"{behavior_curriculum}: {avg_all[0]:.2f} & {avg_all[1]:.2f}")
 
-    ax.set_title(f"Behavior Curriculum {behavior_curriculum}")
-    ax.set_xlabel("Curriculum")
-    ax.set_ylabel(column_to_plot)
+        ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'(0,0)')
+        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'(1,0)')
+        # ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='(0,1)')
+        # ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='(1,1)')
+
+    if behavior_curriculum == 8:
+        ax.set_title(f"Task 9")
+    elif behavior_curriculum == 9:
+        ax.set_title(f"Task 8")
+    else:
+        ax.set_title(f"Task {behavior_curriculum}")
+    ax.set_xlabel("Curriculum", fontsize=14)
+    ax.set_xticks(range(10))
+    if behavior_curriculum == 0 or behavior_curriculum == 5:
+        ax.set_ylabel("Successful Steps", fontsize=14)
 
 # Calculate global y-axis limits based on mean ± std ranges
 global_min = min(np.array(all_means) - np.array(all_stds))
 global_max = max(np.array(all_means) + np.array(all_stds))
 
 # Set the same y-axis limits for all subplots
-for ax in axes.flat:
-    global_min = 0
-    global_max = 20
-    ax.set_ylim(global_min, global_max)
+if column_to_plot == "curriculum_metric":
+    for ax in axes.flat:
+        global_min = 0
+        global_max = 20
+        ax.set_ylim(global_min, global_max)
 
 # Add a legend to the first subplot
-axes[0, 0].legend(loc='upper right')
+axes[0, 0].legend(loc='lower right')
 
 # Adjust layout and show plot
 plt.tight_layout()
-plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
+# plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
 import os
-img_path = f"{folders[0]}/results_timing.png"
+img_path = f"{folders[0]}/results_{column_to_plot}.png"
 plt.savefig(img_path)
 plt.show()
