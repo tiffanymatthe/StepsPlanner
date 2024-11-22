@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from bottleneck import nanmean
+
+import warnings
+warnings.filterwarnings("ignore")
 
 # Specify the column to plot
-column_to_plot = 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
+column_to_plot = 'curriculum_metric' # 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
 
 # Number of behavior curricula and curricula per behavior curriculum
 num_behavior_curricula = 10
@@ -16,8 +20,8 @@ fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folders = ["mike_heading_45"]
-folder_labels=["heading 45"]
+folders = ["non_heading_data"]
+folder_labels=["mike"]
 
 for behavior_curriculum in range(num_behavior_curricula):
     for i, folder in enumerate(folders):
@@ -81,9 +85,28 @@ for behavior_curriculum in range(num_behavior_curricula):
                 continue
 
         # Plot each subset on the same subplot for the current behavior curriculum
-        ax = axes.flatten()[behavior_curriculum]
-        ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'None')
-        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'Timing Masked')
+        if folder != "experts" and behavior_curriculum in {9, 10}:
+            if behavior_curriculum == 9:
+                ax = axes.flatten()[10]
+            else:
+                ax = axes.flatten()[9]
+        else:
+            ax = axes.flatten()[behavior_curriculum]
+        
+        weights = np.linspace(1,10,len(curriculum_to_plot))
+        weights /= sum(weights)
+
+        steps_avg = nanmean([
+            np.average(np.ma.masked_array(means_none_nan, np.isnan(means_none_nan)), weights=weights),
+            np.average(np.ma.masked_array(means_timing_nan, np.isnan(means_timing_nan)), weights=weights),
+            np.average(np.ma.masked_array(means_heading_nan, np.isnan(means_heading_nan)), weights=weights),
+            np.average(np.ma.masked_array(means_both_nan, np.isnan(means_both_nan)), weights=weights),
+        ])
+
+        print(f"{behavior_curriculum}: {steps_avg}")
+
+        ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'None {folder_labels[i]}')
+        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'Timing Masked {folder_labels[i]}')
         ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='Heading Masked')
         ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='Both Masked')
 
@@ -108,6 +131,6 @@ axes[0, 0].legend(loc='upper right')
 plt.tight_layout()
 plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
 import os
-img_path = f"{folders[0]}/results_all.png"
+img_path = f"{folders[0]}/results_timing.png"
 plt.savefig(img_path)
 plt.show()
