@@ -28,7 +28,7 @@ fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folders = ["all_expert_baseline"] #, "no_distill_data_all"]
+folders = ["no_distill_data_all"]
 folder_labels=["plaid_distilled_epoch_50"] #, "..."]
 
 for behavior_curriculum in range(num_behavior_curricula):
@@ -117,8 +117,8 @@ for behavior_curriculum in range(num_behavior_curricula):
 
         ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'(0,0)')
         ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'(1,0)')
-        # ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='(0,1)')
-        # ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='(1,1)')
+        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='(0,1)')
+        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='(1,1)')
 
     if behavior_curriculum == 8:
         ax.set_title(f"Task 9")
