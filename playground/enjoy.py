@@ -360,7 +360,7 @@ def main():
 
         rows = zip(timing_mets, heading_errs, dist_errs, curriculum_metrics)
 
-        with open(f"all_with_hopping/data_{behavior_curriculum}_{curriculum}.csv", "w") as f:
+        with open(f"all_expert_baseline/data_{behavior_curriculum}_{curriculum}.csv", "w") as f:
             writer = csv.writer(f)
             writer.writerow(["timing_met", "heading_err", "dist_err", "curriculum_metric"])
             for row in rows:
