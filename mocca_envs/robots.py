@@ -362,7 +362,7 @@ class Walker3D(WalkerBase):
             )
 
         if model_path is None:
-            model_path = os.path.join(current_dir, "data", "robots", "walker3d.xml")
+            model_path = os.path.join(current_dir, "data", "robots", "walker3d_modified_1.8_1.4.xml")
 
         # Need to call this first to parse body
         super(Walker3D, self).load_robot_model(model_path, flags, root_link_name)

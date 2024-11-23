@@ -90,9 +90,9 @@ def main():
     print("Env: {}".format(args.env))
     print("Model: {}".format(os.path.basename(model_path)))
 
-    controller = SoftsignActor(env)
-    actor_critic = Policy(controller)
     try:
+        controller = SoftsignActor(env)
+        actor_critic = Policy(controller)
         actor_critic.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     except:
         actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
