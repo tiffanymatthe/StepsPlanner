@@ -22,7 +22,7 @@ import torch
 from bottleneck import nanmean
 
 import mocca_envs
-from common.controller import MixedActor
+from common.controller import SoftsignActor, Policy
 from common.envs_utils import make_env
 from common.misc_utils import EpisodeRunner
 
@@ -84,7 +84,12 @@ def main():
     print("Env: {}".format(args.env))
     print("Model: {}".format(os.path.basename(model_path)))
 
-    actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
+    try:
+        controller = SoftsignActor(env)
+        actor_critic = Policy(controller)
+        actor_critic.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    except:
+        actor_critic = torch.load(model_path, map_location=torch.device('cpu'))
 
     if args.plot:
         fig1, ax1 = plt.subplots(figsize=(12,4))
