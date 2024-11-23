@@ -28,7 +28,7 @@ fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folders = ["no_distill_data_all"]
+folders = ["all_expert_baseline_30cm"]
 folder_labels=["plaid_distilled_epoch_50"] #, "..."]
 
 for behavior_curriculum in range(num_behavior_curricula):
