@@ -475,6 +475,8 @@ class Camera:
         else:
             # is_rendered
             width, height, view, proj = self._p.getDebugVisualizerCamera()[0:4]
+            width *= 2
+            height *= 2
 
         (_, _, rgb_array, _, _) = self._p.getCameraImage(
             width=width,
