@@ -149,7 +149,7 @@ def main():
 
         obs = env.reset(force=True)
         if args.render:
-            env.camera._cam_yaw = 90
+            env.camera._cam_yaw = 180
         ep_reward = 0
 
         left_foot_headings = []
@@ -210,6 +210,7 @@ def main():
             fig1.canvas.draw()
             background_1 = fig1.canvas.copy_from_bbox(ax1.bbox)
 
+        hh = 0
         while not runner.done:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
             action = controller(obs)
@@ -224,8 +225,11 @@ def main():
             cpu_actions = action.squeeze().cpu().numpy()
 
             obs, reward, done, _ = env.step(cpu_actions)
-            if args.render:
-                env.camera.lookat(env.robot.body_xyz)
+            if args.render and hh == 0:
+                env.camera.lookat([1, 0, 1.3175908])
+                # env.camera.lookat(env.robot.body_xyz)
+                # env.camera.lookat([0, 2, 1.3181088])
+            hh += 1
 
             ep_reward += reward
 

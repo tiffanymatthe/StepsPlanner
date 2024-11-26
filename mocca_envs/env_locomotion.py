@@ -318,7 +318,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.35
+    step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
     init_step_separation = 0.70
@@ -1747,8 +1747,8 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_feet_state()
 
         # Reset camera
-        if self.is_rendered or self.use_egl:
-            self.camera.lookat(self.robot.body_xyz)
+        # if self.is_rendered or self.use_egl:
+        #     self.camera.lookat(self.robot.body_xyz)
 
             # for step in self.rendered_steps:
             #     step.set_color(Colors["lightgrey"])
@@ -1811,7 +1811,7 @@ class Walker3DStepperEnv(EnvBase):
         if self.is_rendered or self.use_egl:
             self._handle_keyboard(callback=self.handle_keyboard)
             self.camera.track(pos=self.robot.body_xyz)
-            # self.target.set_position(pos=self.walk_target)
+            self.target.set_position(pos=[100,0,100]) #self.walk_target)
             self.target.set_color(
                 Colors["dodgerblue"]
                 if self.distance_to_target < 0.15
