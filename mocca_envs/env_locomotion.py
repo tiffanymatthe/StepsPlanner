@@ -318,9 +318,9 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.25
+    step_radius = 0.2
     foot_sep = 0.16
-    rendered_step_count = 20
+    rendered_step_count = num_steps
     init_step_separation = 0.70
 
     step_delay = 4
@@ -329,7 +329,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [18, 19] # list(range(4,20))
+    stop_steps = [num_steps - 2, num_steps - 1] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
