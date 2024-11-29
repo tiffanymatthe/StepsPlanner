@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from bottleneck import nanmean
+from bottleneck import nanmean, nansum
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -40,22 +40,26 @@ for bi, behavior_curriculum in enumerate(behavior_curriculum_all):
                     data = pd.read_csv(file)
 
                     # Separate the data into the four cases
-                    data_none_nan = data[data['timing_met'].notna() & data['heading_err'].notna()]
-                    data_timing_nan = data[data['timing_met'].isna() & data['heading_err'].notna()]
-                    data_heading_nan = data[data['timing_met'].notna() & data['heading_err'].isna()]
-                    data_both_nan = data[data['timing_met'].isna() & data['heading_err'].isna()]
+                    data_none_nan = data[data['timing_met'].notna() & data['heading_err'].notna()][column_to_plot]
+                    data_timing_nan = data[data['timing_met'].isna() & data['heading_err'].notna()][column_to_plot]
+                    data_heading_nan = data[data['timing_met'].notna() & data['heading_err'].isna()][column_to_plot]
+                    data_both_nan = data[data['timing_met'].isna() & data['heading_err'].isna()][column_to_plot]
 
                     if column_to_plot == "curriculum_metric":
-                        data_none_nan = np.exp(np.log(data_none_nan / 20) / 20)
-                        data_timing_nan = np.exp(np.log(data_timing_nan / 20) / 20)
-                        data_heading_nan = np.exp(np.log(data_heading_nan / 20) / 20)
-                        data_both_nan = np.exp(np.log(data_both_nan / 20) / 20)
+                        data_none_nan = 1 - nansum(data_none_nan < 19) / nansum(data_none_nan)
+                        data_timing_nan = 1 - nansum(data_timing_nan < 19) / nansum(data_timing_nan)
+                        data_heading_nan = 1 - nansum(data_heading_nan < 19) / nansum(data_heading_nan)
+                        data_both_nan = 1 - nansum(data_both_nan < 19) / nansum(data_both_nan)
+                        # data_none_nan = np.exp(np.log(data_none_nan / 20) / 20)
+                        # data_timing_nan = np.exp(np.log(data_timing_nan / 20) / 20)
+                        # data_heading_nan = np.exp(np.log(data_heading_nan / 20) / 20)
+                        # data_both_nan = np.exp(np.log(data_both_nan / 20) / 20)
 
                     # Calculate mean for each subset
-                    means_none_nan[folder].append(data_none_nan[column_to_plot].mean())
-                    means_timing_nan[folder].append(data_timing_nan[column_to_plot].mean())
-                    means_heading_nan[folder].append(data_heading_nan[column_to_plot].mean())
-                    means_both_nan[folder].append(data_both_nan[column_to_plot].mean())
+                    means_none_nan[folder].append(data_none_nan.mean())
+                    means_timing_nan[folder].append(data_timing_nan.mean())
+                    means_heading_nan[folder].append(data_heading_nan.mean())
+                    means_both_nan[folder].append(data_both_nan.mean())
 
                 except FileNotFoundError:
                     print(f"File {file} not found. Skipping.")

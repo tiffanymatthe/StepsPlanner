@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from bottleneck import nanmean
+from bottleneck import nanmean, nansum
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -28,7 +28,7 @@ fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 all_means = []
 all_stds = []
 
-folders = ["all_expert_baseline_30cm"]
+folders = ["all_expert_baseline_30cm"] # ["all_with_hopping"]
 folder_labels=["plaid_distilled_epoch_50"] #, "..."]
 
 for behavior_curriculum in range(num_behavior_curricula):
@@ -53,35 +53,45 @@ for behavior_curriculum in range(num_behavior_curricula):
                 data = pd.read_csv(file)
                 
                 # Separate the data into the four cases
-                data_none_nan = data[data['timing_met'].notna() & data['heading_err'].notna()]
-                data_timing_nan = data[data['timing_met'].isna() & data['heading_err'].notna()]
-                data_heading_nan = data[data['timing_met'].notna() & data['heading_err'].isna()]
-                data_both_nan = data[data['timing_met'].isna() & data['heading_err'].isna()]
+                data_none_nan = data[data['timing_met'].notna() & data['heading_err'].notna()][column_to_plot]
+                data_timing_nan = data[data['timing_met'].isna() & data['heading_err'].notna()][column_to_plot]
+                data_heading_nan = data[data['timing_met'].notna() & data['heading_err'].isna()][column_to_plot]
+                data_both_nan = data[data['timing_met'].isna() & data['heading_err'].isna()][column_to_plot]
+
+                if column_to_plot == "curriculum_metric":
+                    data_none_nan = 1 - nansum(data_none_nan < 19) / nansum(data_none_nan)
+                    data_timing_nan = 1 - nansum(data_timing_nan < 19) / nansum(data_timing_nan)
+                    data_heading_nan = 1 - nansum(data_heading_nan < 19) / nansum(data_heading_nan)
+                    data_both_nan = 1 - nansum(data_both_nan < 19) / nansum(data_both_nan)
+                    # data_none_nan = np.exp(np.log(np.array(data_none_nan) / 20) / 20)
+                    # data_timing_nan = np.exp(np.log(np.array(data_timing_nan) / 20) / 20)
+                    # data_heading_nan = np.exp(np.log(np.array(data_heading_nan) / 20) / 20)
+                    # data_both_nan = np.exp(np.log(np.array(data_both_nan) / 20) / 20)
 
                 # Calculate mean and std for each subset
-                mean_none_nan = data_none_nan[column_to_plot].mean()
-                std_none_nan = data_none_nan[column_to_plot].std()
+                mean_none_nan = data_none_nan.mean()
+                std_none_nan = data_none_nan.std()
                 means_none_nan.append(mean_none_nan)
                 stds_none_nan.append(std_none_nan)
                 all_means.append(mean_none_nan)
                 all_stds.append(std_none_nan)
 
-                mean_timing_nan = data_timing_nan[column_to_plot].mean()
-                std_timing_nan = data_timing_nan[column_to_plot].std()
+                mean_timing_nan = data_timing_nan.mean()
+                std_timing_nan = data_timing_nan.std()
                 means_timing_nan.append(mean_timing_nan)
                 stds_timing_nan.append(std_timing_nan)
                 all_means.append(mean_timing_nan)
                 all_stds.append(std_timing_nan)
 
-                mean_heading_nan = data_heading_nan[column_to_plot].mean()
-                std_heading_nan = data_heading_nan[column_to_plot].std()
+                mean_heading_nan = data_heading_nan.mean()
+                std_heading_nan = data_heading_nan.std()
                 means_heading_nan.append(mean_heading_nan)
                 stds_heading_nan.append(std_heading_nan)
                 all_means.append(mean_heading_nan)
                 all_stds.append(std_heading_nan)
 
-                mean_both_nan = data_both_nan[column_to_plot].mean()
-                std_both_nan = data_both_nan[column_to_plot].std()
+                mean_both_nan = data_both_nan.mean()
+                std_both_nan = data_both_nan.std()
                 means_both_nan.append(mean_both_nan)
                 stds_both_nan.append(std_both_nan)
                 all_means.append(mean_both_nan)
@@ -117,8 +127,8 @@ for behavior_curriculum in range(num_behavior_curricula):
 
         ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'(0,0)')
         ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'(1,0)')
-        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='(0,1)')
-        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='(1,1)')
+        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s') #  label='(0,1)')
+        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d') #, label='(1,1)')
 
     if behavior_curriculum == 8:
         ax.set_title(f"Task 9")
@@ -129,18 +139,20 @@ for behavior_curriculum in range(num_behavior_curricula):
     ax.set_xlabel("Curriculum", fontsize=14)
     ax.set_xticks(range(10))
     if behavior_curriculum == 0 or behavior_curriculum == 5:
-        ax.set_ylabel("Successful Steps", fontsize=14)
+        ax.set_ylabel("Step Success Rate", fontsize=14)
 
 # Calculate global y-axis limits based on mean ± std ranges
 global_min = min(np.array(all_means) - np.array(all_stds))
 global_max = max(np.array(all_means) + np.array(all_stds))
 
-# Set the same y-axis limits for all subplots
-if column_to_plot == "curriculum_metric":
-    for ax in axes.flat:
-        global_min = 0
-        global_max = 20
-        ax.set_ylim(global_min, global_max)
+# # Set the same y-axis limits for all subplots
+# if column_to_plot == "curriculum_metric":
+#     for ax in axes.flat:
+#         global_min = 0
+#         global_max = 20
+
+for ax in axes.flat:
+    ax.set_ylim(global_min, global_max)
 
 # Add a legend to the first subplot
 axes[0, 0].legend(loc='lower right')
@@ -148,7 +160,7 @@ axes[0, 0].legend(loc='lower right')
 # Adjust layout and show plot
 plt.tight_layout()
 # plt.suptitle(f"{column_to_plot} across Curricula for Each Behavior Curriculum", y=1.02)
-import os
+
 img_path = f"{folders[0]}/results_{column_to_plot}.png"
 plt.savefig(img_path)
 plt.show()
