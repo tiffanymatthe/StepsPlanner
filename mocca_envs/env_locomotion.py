@@ -346,7 +346,7 @@ class Walker3DStepperEnv(EnvBase):
 
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
-        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "transition_all", "combine_all", "one_step_plant"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
+        self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "transition_all", "combine_all", "one_step_plant", "combine_all"] # "transition_all"] # "turn_in_place", "side_step", "random_walks", "combine_all", "transition_all"]
         self.behavior_timing_thresholds = [1.85, 1.8, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
@@ -1575,7 +1575,7 @@ class Walker3DStepperEnv(EnvBase):
         train_on_past = self.np_random.rand() < factor and self.behavior_curriculum != 0
 
         if self.behaviors[self.behavior_curriculum] == "combine_all":
-            self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
+            self.selected_curriculum = self.np_random.choice(list(range(0,self.max_curriculum + 1)))
             self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
         elif self.determine:
             self.selected_curriculum = self.curriculum
@@ -1583,7 +1583,13 @@ class Walker3DStepperEnv(EnvBase):
         else:
             if train_on_past:
                 self.selected_curriculum = self.np_random.choice(list(range(0,self.curriculum+1)))
-                self.selected_behavior = self.np_random.choice(self.behaviors[0:self.behavior_curriculum])
+                behaviors = self.behaviors[0:self.behavior_curriculum]
+                try:
+                    behaviors.remove("combine_all")
+                except ValueError:
+                    pass
+                self.selected_behavior = self.np_random.choice(behaviors)
+
             else:
                 weights = np.linspace(1,10,self.curriculum+1)
                 weights /= sum(weights)
@@ -1669,9 +1675,6 @@ class Walker3DStepperEnv(EnvBase):
     def randomize_terrain(self, replace=True):
         if replace:
             self.terrain_info = self.generate_step_placements()
-        if self.selected_behavior in {"one_step_plant", "hopping"}:
-            self.mask_info["timing"][2] = False
-            self.mask_info["heading"][2] = False
         if self.is_rendered or self.use_egl:
             for index in range(self.rendered_step_count):
                 self.set_step_state(index, index)
@@ -1725,17 +1728,25 @@ class Walker3DStepperEnv(EnvBase):
         )
         self.prev_leg = self.swing_leg
 
-        if self.mask_info["timing"][0]:
-            threshold = self.mask_info["timing"][1] # if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
-            self.mask_info["timing"][2] = self.np_random.rand() < threshold
-        if self.mask_info["heading"][0]:
-            self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
-
         # Randomize platforms
         replace = self.next_step_index >= self.num_steps / 2 or prev_robot_mirrored != self.robot.mirrored or force
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
+
+        if self.mask_info["timing"][0]:
+            threshold = self.mask_info["timing"][1] # if (self.curriculum < 2 and self.behavior_curriculum == 0) else 0.4
+            self.mask_info["timing"][2] = self.np_random.rand() < threshold
+        if self.mask_info["heading"][0]:
+            self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
+        if self.behaviors[self.behavior_curriculum] == "combine_all":
+            threshold = self.curriculum / self.max_curriculum * 0.5
+            self.mask_info["heading"][2] = self.np_random.rand() < threshold
+
+        if self.selected_behavior in {"one_step_plant", "hopping"}:
+            self.mask_info["timing"][2] = False
+            self.mask_info["heading"][2] = False
+
         self.swing_leg = int(self.terrain_info[self.next_step_index, 7])
         self.starting_leg = self.swing_leg
         self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
