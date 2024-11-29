@@ -172,7 +172,7 @@ def main():
 
         done = False
 
-        max_resets = 100
+        max_resets = 40
 
         timing_mets = []
         heading_errs = []
@@ -225,9 +225,9 @@ def main():
             cpu_actions = action.squeeze().cpu().numpy()
 
             obs, reward, done, _ = env.step(cpu_actions)
-            if args.render and hh == 0:
-                env.camera.lookat([0, 2, 1])
-                # env.camera.lookat(env.robot.body_xyz)
+            if args.render: # and hh == 0:
+                # env.camera.lookat([2, 3, 1])
+                env.camera.lookat(env.robot.body_xyz)
                 # env.camera.lookat([0, 2, 1.3181088])
             hh += 1
 
@@ -369,11 +369,11 @@ def main():
 
         rows = zip(timing_mets, heading_errs, dist_errs, curriculum_metrics)
 
-        # with open(f"all_expert_baseline_30cm/data_{behavior_curriculum}_{curriculum}.csv", "w") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerow(["timing_met", "heading_err", "dist_err", "curriculum_metric"])
-        #     for row in rows:
-        #         writer.writerow(row)
+        with open(f"fatter_0_to_8_9/data_{behavior_curriculum}_{curriculum}.csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timing_met", "heading_err", "dist_err", "curriculum_metric"])
+            for row in rows:
+                writer.writerow(row)
 
     env.close()
 

@@ -318,7 +318,7 @@ class Walker3DStepperEnv(EnvBase):
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
-    step_radius = 0.2
+    step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = num_steps
     init_step_separation = 0.70
@@ -388,8 +388,8 @@ class Walker3DStepperEnv(EnvBase):
         # Robot settings
         N = self.max_curriculum + 1
         self.terminal_height_curriculum = np.linspace(0.75, 0.45, N)
-        self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
-        # self.applied_gain_curriculum = np.linspace(3.6, 3.6, N)
+        # self.applied_gain_curriculum = np.linspace(1.2, 1.2, N)
+        self.applied_gain_curriculum = np.linspace(3.6, 3.6, N)
         self.electricity_cost = 4.5 / self.robot.action_space.shape[0]
         self.stall_torque_cost = 0.225 / self.robot.action_space.shape[0]
         self.joints_at_limit_cost = 0.1
@@ -1748,8 +1748,8 @@ class Walker3DStepperEnv(EnvBase):
         self.calc_feet_state()
 
         # Reset camera
-        # if self.is_rendered or self.use_egl:
-        #     self.camera.lookat(self.robot.body_xyz)
+        if self.is_rendered or self.use_egl:
+            self.camera.lookat(self.robot.body_xyz)
 
             # for step in self.rendered_steps:
             #     step.set_color(Colors["lightgrey"])
