@@ -241,10 +241,10 @@ def main(_seed, _config, _run):
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
-    curriculum_metrics = [deque(maxlen=args.num_processes) for _ in range(4)]
-    avg_heading_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-    avg_dist_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-    avg_timing_mets = [deque(maxlen=args.num_processes) for _ in range(4)]
+    curriculum_metrics = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+    avg_heading_errs = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+    avg_dist_errs = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+    avg_timing_mets = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -347,11 +347,19 @@ def main(_seed, _config, _run):
                     save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
+                    curriculum_metrics = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+                    avg_heading_errs = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+                    avg_dist_errs = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+                    avg_timing_mets = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
                 elif current_behavior_curriculum < max_behavior_curriculum:
                     save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
                     current_curriculum = 0
                     current_behavior_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
+                    curriculum_metrics = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+                    avg_heading_errs = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+                    avg_dist_errs = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
+                    avg_timing_mets = [deque(maxlen=args.num_processes * 10) for _ in range(4)]
                 else:
                     pass
 
