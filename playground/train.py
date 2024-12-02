@@ -358,7 +358,7 @@ def main(_seed, _config, _run):
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
-        value_loss, action_loss, dist_entropy, critic_frac, actor_frac = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy, critic_frac, actor_frac, critic_bias, actor_bias = agent.update(rollouts)
 
         rollouts.after_update()
 
@@ -406,6 +406,8 @@ def main(_seed, _config, _run):
                     "action_loss": action_loss,
                     "critic_frac_to_replace": critic_frac,
                     "actor_frac_to_replace": actor_frac,
+                    "max_critic_bias_replaced": critic_bias,
+                    "max_actor_bias_replaced": actor_bias,
                     "stats": {"rew": episode_rewards},
                     "lr": scheduled_lr,
                 },

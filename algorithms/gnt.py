@@ -117,7 +117,12 @@ class GnT(object):
         num_features_to_replace = [0 for _ in range(len(self.hidden_layers) - 1)]
         num_eligible_features = [0 for _ in range(len(self.hidden_layers) - 1)]
         if self.replacement_rate == 0:
-            return features_to_replace, num_features_to_replace
+            return features_to_replace, num_features_to_replace, num_eligible_features, 0, 0
+
+        dormant_count = 0
+        threshold = 1e-5
+        max_bias = 0
+
         for i in range(len(self.hidden_layers)-1):
             self.ages[i] += 1
             """
@@ -152,9 +157,13 @@ class GnT(object):
             """
             Find features to replace in the current layer
             """
-            new_features_to_replace = torch.topk(-self.bias_corrected_util[i][eligible_feature_indices],
-                                                 num_new_features_to_replace)[1]
+            neg_bias, new_features_to_replace = torch.topk(-self.bias_corrected_util[i][eligible_feature_indices],
+                                                 num_new_features_to_replace)
             new_features_to_replace = eligible_feature_indices[new_features_to_replace]
+
+            max_bias = max(-neg_bias[-1], max_bias)
+
+            dormant_count += (self.bias_corrected_util[i][eligible_feature_indices] < threshold).sum().item()
 
             """
             Initialize utility for new features
@@ -165,12 +174,12 @@ class GnT(object):
             features_to_replace[i] = new_features_to_replace
             num_features_to_replace[i] = num_new_features_to_replace
         
-        threshold = 0.001
-        all_elements = torch.cat(self.bias_corrected_util)
-        dormant_count = (all_elements < threshold).sum().item()
-        dormant_fraction = dormant_count / all_elements.numel()
+        if sum(num_eligible_features) != 0:
+            dormant_fraction = dormant_count / sum(num_eligible_features)
+        else:
+            dormant_fraction = 0
 
-        return features_to_replace, num_features_to_replace, num_eligible_features
+        return features_to_replace, num_features_to_replace, num_eligible_features, dormant_fraction, max_bias
 
     def gen_new_features(self, features_to_replace, num_features_to_replace):
         """
@@ -232,7 +241,7 @@ class GnT(object):
         if not isinstance(features, list):
             print('features passed to generate-and-test should be a list')
             sys.exit()
-        features_to_replace, num_features_to_replace, num_eligible_features = self.test_features(features=features)
+        features_to_replace, num_features_to_replace, num_eligible_features, dormant_fraction, max_bias = self.test_features(features=features)
         if not only_test:
             self.gen_new_features(features_to_replace, num_features_to_replace)
             self.update_optim_params(features_to_replace, num_features_to_replace)
@@ -240,7 +249,4 @@ class GnT(object):
         num_features_to_replace = np.sum(np.array(num_features_to_replace))
         num_eligible_features = np.sum(np.array(num_eligible_features))
 
-        if num_eligible_features == 0:
-            return 0, dormant_unit_count, dormant_unit_fraction
-        else:
-            return num_features_to_replace / num_eligible_features
+        return dormant_fraction, max_bias
