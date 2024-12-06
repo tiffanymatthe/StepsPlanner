@@ -728,7 +728,7 @@ class Walker3DStepperEnv(EnvBase):
             if curriculum <= 2:
                 cycle_choices = [20,30,40,50]
             else:
-                cycle_choices = [10,20,30,40,50,60]
+                cycle_choices = [20,30,40,50,60,70]
             if self.np_random.rand() < 0.5:
                 half_cycle_times = np.ones(N) * self.np_random.choice(cycle_choices)
             else:
@@ -747,14 +747,16 @@ class Walker3DStepperEnv(EnvBase):
                 elif curriculum == 3:
                     ratios = [0.1,0.2,0.3,0.4,0.5]
                 elif curriculum == 4:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5]
+                    ratios = [0.1,0.2,0.3,0.4,0.5,0.6]
                 else:
-                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5]
+                    ratios = [0.1,0.2,0.3,0.4,0.5,0.6]
                 ground_ratio = self.np_random.choice(ratios, size=N)
                 half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
-                ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
+                # ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
                 timing_0 = half_cycle_times * ground_ratio
                 timing_1 = half_cycle_times * (1-ground_ratio)
+                # require at least 1/3 second to reach the next step
+                timing_1[timing_1 < 20] = 20
                 half_cycle_times[0:3] = 30
                 timing_0[0:3] = half_cycle_times[0:3] * 0.3
                 timing_1[0:3] = half_cycle_times[0:3] * 0.7
@@ -1791,7 +1793,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
 
-        rewards -= self.termination_penalty
+        reward -= self.termination_penalty
 
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             reward += 2 * self.step_bonus_other_leg
