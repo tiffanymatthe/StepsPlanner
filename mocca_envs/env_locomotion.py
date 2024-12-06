@@ -356,12 +356,12 @@ class Walker3DStepperEnv(EnvBase):
         self.met_times = []
         self.dist_errors = []
         self.heading_bonus_weight = kwargs.pop("heading_bonus_weight", 8)
-        self.gauss_width = kwargs.pop("gauss_width", 10)
+        self.gauss_width = kwargs.pop("gauss_width", 12)
         self.legs_bonus = 0
         self.heading_bonus = 0
         self.tilt_bonus_weight = 1
         self.timing_bonus = 0
-        self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
+        self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 1.5)
 
         self.termination_penalty = 0
 
