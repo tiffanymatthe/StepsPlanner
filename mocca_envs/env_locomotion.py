@@ -363,6 +363,8 @@ class Walker3DStepperEnv(EnvBase):
         self.timing_bonus = 0
         self.timing_bonus_weight = kwargs.pop("timing_bonus_weight", 2)
 
+        self.termination_penalty = 0
+
         self.current_step_time = 0
         self.current_time_index = 1
 
@@ -1789,6 +1791,8 @@ class Walker3DStepperEnv(EnvBase):
         if not self.mask_info["timing"][2]:
             reward += self.timing_bonus * self.timing_bonus_weight
 
+        rewards -= self.termination_penalty
+
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             reward += 2 * self.step_bonus_other_leg
         # else:
@@ -1904,6 +1908,7 @@ class Walker3DStepperEnv(EnvBase):
         self.joints_penalty = self.joints_at_limit_cost * self.robot.joints_at_limit
 
         self.elbow_penalty = 0
+        self.termination_penalty = 0
 
         elbow_angles = self.robot.joint_angles[[16, 20]]
         elbow_good_mask = elbow_angles > 65 * DEG2RAD
@@ -1928,13 +1933,11 @@ class Walker3DStepperEnv(EnvBase):
         if self.target_reached and swing_foot_tilt < 5 * DEG2RAD and not "backward" in self.selected_behavior:
             self.legs_bonus += self.tilt_bonus_weight
 
-        if abs(self.progress) < 0.02 and (not self.stop_on_next_step or not self.target_reached):
+        if abs(self.progress) < 0.1 and (not self.stop_on_next_step or not self.target_reached):
             self.body_stationary_count += 1
         else:
             self.body_stationary_count = 0
-        count = 200
-        # if self.body_stationary_count > count:
-        #     self.legs_bonus -= 100
+        count = 60
 
         if self.mask_info["timing"][2]:
             self.timing_bonus = 0
@@ -1970,7 +1973,7 @@ class Walker3DStepperEnv(EnvBase):
             self.step_bonus_other_leg = self.step_radius - dist
 
         if self.body_stationary_count > count or self.swing_leg_has_fallen or self.other_leg_has_fallen:
-            self.legs_bonus -= 2
+            self.termination_penalty += 2
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
 
@@ -2207,6 +2210,7 @@ class Walker3DStepperEnv(EnvBase):
         # use next step to calculate next k steps
         self.targets, self.extra_param = self.delta_to_k_targets()
 
+        # we updated the next step, so we want to recalculate the potential for the next loop
         if cur_step_index != self.next_step_index:
             self.calc_potential()
 
