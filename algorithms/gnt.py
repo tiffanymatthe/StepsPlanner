@@ -120,7 +120,7 @@ class GnT(object):
             return features_to_replace, num_features_to_replace, num_eligible_features, 0, 0
 
         dormant_count = 0
-        threshold = 1e-5
+        threshold = 1e-1
         max_bias = 0
 
         for i in range(len(self.hidden_layers)-1):
@@ -163,7 +163,11 @@ class GnT(object):
 
             max_bias = max(-neg_bias[-1], max_bias)
 
-            dormant_count += (self.bias_corrected_util[i][eligible_feature_indices] < threshold).sum().item()
+            # use redo: https://github.com/timoklein/redo/blob/main/src/redo.py#L68
+            score = features[i][eligible_feature_indices].abs().mean(dim=0)
+            normalized_score = score / (score.mean() + 1e-9)
+            dormant_count += (normalized_score < threshold).sum().item()
+            # dormant_count += (self.bias_corrected_util[i][eligible_feature_indices] < threshold).sum().item()
 
             """
             Initialize utility for new features
@@ -174,6 +178,7 @@ class GnT(object):
             features_to_replace[i] = new_features_to_replace
             num_features_to_replace[i] = num_new_features_to_replace
         
+        # print(f"{num_eligible_features}: {dormant_count} / {sum(num_eligible_features)}")
         if sum(num_eligible_features) != 0:
             dormant_fraction = dormant_count / sum(num_eligible_features)
         else:
