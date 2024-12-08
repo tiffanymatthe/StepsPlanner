@@ -491,9 +491,10 @@ class Walker3DStepperEnv(EnvBase):
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
         elif self.selected_curriculum == 0 and self.behaviors.index(self.selected_behavior) == 0:
-            half_cycle_times = np.ones(N) * 30
-            timing_0 = half_cycle_times * 0.3
-            timing_1 = half_cycle_times * 0.7
+            half_cycle_times = self.np_random.choice([30,40], size=N)
+            ground_ratio = self.np_random.choice([0.2,0.3,0.4], size=N)
+            timing_0 = half_cycle_times * ground_ratio
+            timing_1 = half_cycle_times * (1-ground_ratio)
         elif self.behaviors.index(self.selected_behavior) == 0:
             half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
             timing_0 = half_cycle_times * 0.3
