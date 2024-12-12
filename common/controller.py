@@ -175,7 +175,6 @@ class SoftsignActor(nn.Module):
         super(SoftsignActor, self).__init__()
         self.state_dim = env.observation_space.shape[0]
         self.action_dim = env.action_space.shape[0]
-
         h_size = 256
         self.net = nn.Sequential(
             init_s_(nn.Linear(self.state_dim, h_size)),

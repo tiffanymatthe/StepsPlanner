@@ -192,17 +192,24 @@ class GnT(object):
                 current_layer = self.hidden_layers[i]
                 next_layer = self.hidden_layers[i + 1]
 
+                # print(f"Before replacement for layer {i}")
+                # print(current_layer.weight.data[features_to_replace[i], :])
+                # print(current_layer.bias.data[features_to_replace[i]])
+                # print(next_layer.weight.data[:, features_to_replace[i]])
+                # print(next_layer.bias.data)
+
                 current_layer.weight.data[features_to_replace[i], :] *= 0.0
                 current_layer.weight.data[features_to_replace[i], :] += \
                     torch.empty(num_features_to_replace[i], current_layer.in_features).uniform_(
                         -self.bounds[i], self.bounds[i]).to(self.device)
-                nn.init.orthogonal_(
+                
+                # print(current_layer.weight.data[features_to_replace[i], :])
+                current_layer.weight.data[features_to_replace[i], :] = nn.init.orthogonal_(
                     current_layer.weight.data[features_to_replace[i], :],
                     gain=nn.init.calculate_gain(self.hidden_activations[i])
                 )
-                nn.init.constant_(
-                    current_layer.bias.data[features_to_replace[i]], 0
-                )
+                current_layer.bias.data[features_to_replace[i]] = 0
+
                 """
                 # Update bias to correct for the removed features and set the outgoing weights and ages to zero
                 """
@@ -211,6 +218,13 @@ class GnT(object):
                                                 (1 - self.decay_rate ** self.ages[i][features_to_replace[i]])).sum(dim=1)
                 next_layer.weight.data[:, features_to_replace[i]] = 0
                 self.ages[i][features_to_replace[i]] = 0
+
+                # print("After replacement")
+                # print(current_layer.weight.data[features_to_replace[i], :])
+                # print(current_layer.bias.data[features_to_replace[i]])
+                # print(f"next layer {i + 1} replaced")
+                # print(next_layer.weight.data[:, features_to_replace[i]])
+                # print(next_layer.bias.data)
 
 
     def update_optim_params(self, features_to_replace, num_features_to_replace):
