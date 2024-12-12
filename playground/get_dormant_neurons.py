@@ -186,7 +186,7 @@ def compute_dormant_units_proportion(net: Policy, critic_ages, actor_ages, devic
             # not sure why they don't have abs() in Dohare code, probably because ReLU anyways?
             # != 0 to ignore just reinitialized neurons??? doesn't matter here
             # https://github.com/shibhansh/loss-of-plasticity/blob/63c35f3c758bbb713dd42c72d43dc192fde0d109/lop/incremental_cifar/post_run_analysis.py#L106
-            eligible_feature_indices = torch.where(ages[layer_idx] > 10000)[0]
+            eligible_feature_indices = torch.where(ages[layer_idx] >= 0)[0] # 10000)[0]
             total_number += eligible_feature_indices.shape[0]
             actual_features = features_per_layer[layer_idx][:,eligible_feature_indices]
             score = (actual_features).abs().mean(dim=0)
@@ -194,7 +194,7 @@ def compute_dormant_units_proportion(net: Policy, critic_ages, actor_ages, devic
 
             dead_neurons[layer_idx] = (normalized_score < dormant_unit_threshold).sum()
         number_of_features = total_number
-        print(f"{number_of_features} for {len(features_per_layer)} layers")
+        # print(f"{number_of_features} for {len(features_per_layer)} layers")
         return dead_neurons.sum().item() / number_of_features
     
     return get_dead_neurons(net.get_activations(), critic_ages), get_dead_neurons(net.actor.get_activations(), actor_ages)
@@ -277,42 +277,42 @@ def iterate(net, writer, start_b, end_b, start_c=0, end_c=9):
             })
 
 if __name__ == "__main__":
-    csv_file = "dormant_no_reset_0_01_masking.csv"
+    csv_file = "dormant_reset_0_01.csv"
 
     with open(csv_file, mode="w", newline="", buffering=1) as file:
         writer = csv.DictWriter(file, fieldnames=["behavior_curriculum", "curriculum", "dead_actor", "dead_critic", "net"])
         if file.tell() == 0:
                 writer.writeheader()
 
-        # net="runs/dream/dec_2/from_scratch_plasticity_avg_10/models"
-        # iterate(net,writer,0,4,1,5)
+        net="runs/dream/dec_2/from_scratch_plasticity_avg_10/models"
+        iterate(net,writer,0,4,1,5)
 
-        # net="runs/dream/dec_5/from_scratch_plasticity_avg_10_cont/models"
-        # iterate(net,writer,4,5,6,8)
+        net="runs/dream/dec_5/from_scratch_plasticity_avg_10_cont/models"
+        iterate(net,writer,4,5,6,8)
 
-        # net="runs/dream/dec_8/from_scratch_plasticity_avg_10_cont/models"
-        # iterate(net,writer,6,10,0,8)
+        net="runs/dream/dec_8/from_scratch_plasticity_avg_10_cont/models"
+        iterate(net,writer,6,10,0,8)
 
-        net = "runs/dream/dec_1/from_scratch/models"
-        iterate(net,writer,0,0,0,0)
+        # net = "runs/dream/dec_1/from_scratch/models"
+        # iterate(net,writer,0,0,0,0)
 
-        net = "runs/dream/dec_4/plasticity_baseline/2024_12_04__18_12_16__plasticity_baseline/1/models"
-        iterate(net,writer,0,1,1,2)
+        # net = "runs/dream/dec_4/plasticity_baseline/2024_12_04__18_12_16__plasticity_baseline/1/models"
+        # iterate(net,writer,0,1,1,2)
 
-        net = "runs/dream/dec_5/plasticity_baseline_cont/1/models"
-        iterate(net,writer,1,1,3,4)
+        # net = "runs/dream/dec_5/plasticity_baseline_cont/1/models"
+        # iterate(net,writer,1,1,3,4)
 
-        net = "runs/dream/dec_6/plasticity_baseline_cont/models"
-        iterate(net,writer,1,1,5,6)
+        # net = "runs/dream/dec_6/plasticity_baseline_cont/models"
+        # iterate(net,writer,1,1,5,6)
 
-        net = "runs/dream/dec_7/plasticity_baseline_cont/models"
-        iterate(net,writer,1,1,7,8)
+        # net = "runs/dream/dec_7/plasticity_baseline_cont/models"
+        # iterate(net,writer,1,1,7,8)
 
-        net = "runs/dream/dec_8/plasticity_baseline_cont/models"
-        iterate(net,writer,1,2,9,3)
+        # net = "runs/dream/dec_8/plasticity_baseline_cont/models"
+        # iterate(net,writer,1,2,9,3)
 
-        net = "runs/dream/dec_9/plasticity_baseline_cont/models"
-        iterate(net,writer,2,2,4,8)
+        # net = "runs/dream/dec_9/plasticity_baseline_cont/models"
+        # iterate(net,writer,2,2,4,8)
 
-        net = "runs/dream/dec_10/plasticity_baseline_cont/models"
-        iterate(net,writer,2,4,9,5)
+        # net = "runs/dream/dec_10/plasticity_baseline_cont/models"
+        # iterate(net,writer,2,4,9,5)

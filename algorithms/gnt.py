@@ -119,8 +119,9 @@ class GnT(object):
         if self.replacement_rate == 0:
             return features_to_replace, num_features_to_replace, num_eligible_features, 0, 0
 
-        dormant_count = 0
-        threshold = 1e-5
+        dead_neurons = torch.zeros(len(features), dtype=torch.float32)
+        total_number = 0
+        threshold = 1e-2
         max_bias = 0
 
         for i in range(len(self.hidden_layers)-1):
@@ -132,8 +133,15 @@ class GnT(object):
             """
             Find the no. of features to replace
             """
+
             eligible_feature_indices = torch.where(self.ages[i] > self.maturity_threshold)[0]
             num_eligible_features[i] = eligible_feature_indices.shape[0]
+
+            score = features[i].abs().mean(dim=0)
+            normalized_score = score / (score.mean() + 1e-9)
+            dead_neurons[i] = (normalized_score < threshold).sum()
+            total_number += features[i].shape[1]
+
             if eligible_feature_indices.shape[0] == 0:
                 continue
             num_new_features_to_replace = self.replacement_rate*eligible_feature_indices.shape[0]
@@ -163,8 +171,6 @@ class GnT(object):
 
             max_bias = max(-neg_bias[-1], max_bias)
 
-            dormant_count += (self.bias_corrected_util[i][eligible_feature_indices] < threshold).sum().item()
-
             """
             Initialize utility for new features
             """
@@ -174,10 +180,7 @@ class GnT(object):
             features_to_replace[i] = new_features_to_replace
             num_features_to_replace[i] = num_new_features_to_replace
         
-        if sum(num_eligible_features) != 0:
-            dormant_fraction = dormant_count / sum(num_eligible_features)
-        else:
-            dormant_fraction = 0
+        dormant_fraction = dead_neurons.sum().item() / total_number
 
         return features_to_replace, num_features_to_replace, num_eligible_features, dormant_fraction, max_bias
 

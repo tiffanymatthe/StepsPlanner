@@ -63,7 +63,7 @@ def plot_csv_data(data1, data2):
 # Main execution
 if __name__ == "__main__":
     csv_file1 = "dormant_no_reset_0_01_masking.csv"  # Specify the path to your first CSV file
-    csv_file2 = "dormant_reset_0_01_masking.csv"  # Specify the path to your second CSV file
+    csv_file2 = "dormant_reset_0_01.csv"  # Specify the path to your second CSV file
 
     data1 = read_csv_data(csv_file1)
     data2 = read_csv_data(csv_file2)
