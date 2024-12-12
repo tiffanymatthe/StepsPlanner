@@ -250,6 +250,20 @@ class GnT(object):
                 self.opt.state[self.hidden_layers[i+1].weight]['exp_avg_sq'][:, features_to_replace[i]] = 0.0
                 self.opt.state[self.hidden_layers[i+1].weight]['step'].zero_()
 
+    def compute_average_weight_magnitude(self):
+        total_magnitude = 0
+        total_weights = 0
+        
+        for layer in self.hidden_layers:
+            # Check if the layer has parameters
+            if isinstance(layer, torch.nn.Module):
+                for param in layer.parameters():
+                    if param.requires_grad:  # Only consider trainable parameters
+                        total_magnitude += param.abs().sum().item()
+                        total_weights += param.numel()
+        
+        return total_magnitude / total_weights if total_weights > 0 else 0
+
     def gen_and_test(self, features, only_test = False):
         """
         Perform generate-and-test
@@ -266,4 +280,4 @@ class GnT(object):
         num_features_to_replace = np.sum(np.array(num_features_to_replace))
         num_eligible_features = np.sum(np.array(num_eligible_features))
 
-        return dormant_fraction, max_bias
+        return dormant_fraction, self.compute_average_weight_magnitude()

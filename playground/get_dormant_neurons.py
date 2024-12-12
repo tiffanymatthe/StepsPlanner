@@ -197,7 +197,21 @@ def compute_dormant_units_proportion(net: Policy, critic_ages, actor_ages, devic
         # print(f"{number_of_features} for {len(features_per_layer)} layers")
         return dead_neurons.sum().item() / number_of_features
     
-    return get_dead_neurons(net.get_activations(), critic_ages), get_dead_neurons(net.actor.get_activations(), actor_ages)
+    def compute_average_weight_magnitude(layers):
+        total_magnitude = 0
+        total_weights = 0
+        
+        for layer in layers:
+            # Check if the layer has parameters
+            if isinstance(layer, torch.nn.Module):
+                for param in layer.parameters():
+                    if param.requires_grad:  # Only consider trainable parameters
+                        total_magnitude += param.abs().sum().item()
+                        total_weights += param.numel()
+        
+        return total_magnitude / total_weights if total_weights > 0 else 0
+    
+    return get_dead_neurons(net.get_activations(), critic_ages), get_dead_neurons(net.actor.get_activations(), actor_ages), compute_average_weight_magnitude(net.layers_to_check), compute_average_weight_magnitude(net.actor.layers_to_check)
 
 def main(net, curriculum, behavior_curriculum):
 
@@ -244,12 +258,12 @@ def main(net, curriculum, behavior_curriculum):
     rollouts = RolloutStorage(num_steps, num_processes, obs_shape, action_dim)
     rollouts.to(device)
 
-    dead_critic, dead_actor = compute_dormant_units_proportion(policy, critic_ages, actor_ages, device, envs, rollouts,num_steps, num_processes, mirror_function, dormant_unit_threshold=0.01)
+    dead_critic, dead_actor, avg_w_critic, avg_w_actor = compute_dormant_units_proportion(policy, critic_ages, actor_ages, device, envs, rollouts,num_steps, num_processes, mirror_function, dormant_unit_threshold=0.01)
 
-    print(f"{behavior_curriculum}:{curriculum} for critic={dead_critic:.3f} and actor={dead_actor:.3f}")
+    print(f"{behavior_curriculum}:{curriculum} for critic={dead_critic:.3f} and actor={dead_actor:.3f}. Avg weights: {avg_w_critic:.3f}, {avg_w_actor:.3f}")
     envs.close()
 
-    return (dead_critic, dead_actor)
+    return (dead_critic, dead_actor, avg_w_critic, avg_w_actor)
 
 def iterate(net, writer, start_b, end_b, start_c=0, end_c=9):
     for b in range(start_b,end_b+1):
@@ -267,52 +281,57 @@ def iterate(net, writer, start_b, end_b, start_c=0, end_c=9):
             c_end = 9
         for c in range(c_start,c_end+1):
             actual_net = f"{net}/Walker3DStepperEnv-v0_curr_{b}_{c}.pt" if net is not None else None
-            dead_critic, dead_actor = main(actual_net, c, b)
+            dead_critic, dead_actor, avg_w_critic, avg_w_actor = main(actual_net, c, b)
             writer.writerow({
                 "behavior_curriculum": b,
                 "curriculum": c,
                 "dead_actor": dead_actor,
                 "dead_critic": dead_critic,
+                "avg_w_critic": avg_w_critic,
+                "avg_w_actor": avg_w_actor,
                 "net": actual_net
             })
 
 if __name__ == "__main__":
-    csv_file = "dormant_reset_0_01.csv"
+    csv_file = "baseline_w_weights.csv" # "dormant_proper_reset_0_01.csv"
 
     with open(csv_file, mode="w", newline="", buffering=1) as file:
-        writer = csv.DictWriter(file, fieldnames=["behavior_curriculum", "curriculum", "dead_actor", "dead_critic", "net"])
+        writer = csv.DictWriter(file, fieldnames=["behavior_curriculum", "curriculum", "dead_actor", "dead_critic", "avg_w_critic", "avg_w_actor", "net"])
         if file.tell() == 0:
                 writer.writeheader()
 
-        net="runs/dream/dec_2/from_scratch_plasticity_avg_10/models"
-        iterate(net,writer,0,4,1,5)
+        # net="runs/dream/dec_11/plasticity_reset_properly_cont/models"
+        # iterate(net,writer,0,1,1,3)
 
-        net="runs/dream/dec_5/from_scratch_plasticity_avg_10_cont/models"
-        iterate(net,writer,4,5,6,8)
+        # net="runs/dream/dec_2/from_scratch_plasticity_avg_10/models"
+        # iterate(net,writer,0,4,1,5)
 
-        net="runs/dream/dec_8/from_scratch_plasticity_avg_10_cont/models"
-        iterate(net,writer,6,10,0,8)
+        # net="runs/dream/dec_5/from_scratch_plasticity_avg_10_cont/models"
+        # iterate(net,writer,4,5,6,8)
 
-        # net = "runs/dream/dec_1/from_scratch/models"
-        # iterate(net,writer,0,0,0,0)
+        # net="runs/dream/dec_8/from_scratch_plasticity_avg_10_cont/models"
+        # iterate(net,writer,6,10,0,8)
 
-        # net = "runs/dream/dec_4/plasticity_baseline/2024_12_04__18_12_16__plasticity_baseline/1/models"
-        # iterate(net,writer,0,1,1,2)
+        net = "runs/dream/dec_1/from_scratch/models"
+        iterate(net,writer,0,0,0,0)
 
-        # net = "runs/dream/dec_5/plasticity_baseline_cont/1/models"
-        # iterate(net,writer,1,1,3,4)
+        net = "runs/dream/dec_4/plasticity_baseline/2024_12_04__18_12_16__plasticity_baseline/1/models"
+        iterate(net,writer,0,1,1,2)
 
-        # net = "runs/dream/dec_6/plasticity_baseline_cont/models"
-        # iterate(net,writer,1,1,5,6)
+        net = "runs/dream/dec_5/plasticity_baseline_cont/1/models"
+        iterate(net,writer,1,1,3,4)
 
-        # net = "runs/dream/dec_7/plasticity_baseline_cont/models"
-        # iterate(net,writer,1,1,7,8)
+        net = "runs/dream/dec_6/plasticity_baseline_cont/models"
+        iterate(net,writer,1,1,5,6)
 
-        # net = "runs/dream/dec_8/plasticity_baseline_cont/models"
-        # iterate(net,writer,1,2,9,3)
+        net = "runs/dream/dec_7/plasticity_baseline_cont/models"
+        iterate(net,writer,1,1,7,8)
 
-        # net = "runs/dream/dec_9/plasticity_baseline_cont/models"
-        # iterate(net,writer,2,2,4,8)
+        net = "runs/dream/dec_8/plasticity_baseline_cont/models"
+        iterate(net,writer,1,2,9,3)
 
-        # net = "runs/dream/dec_10/plasticity_baseline_cont/models"
-        # iterate(net,writer,2,4,9,5)
+        net = "runs/dream/dec_9/plasticity_baseline_cont/models"
+        iterate(net,writer,2,2,4,8)
+
+        net = "runs/dream/dec_10/plasticity_baseline_cont/models"
+        iterate(net,writer,2,4,9,5)
