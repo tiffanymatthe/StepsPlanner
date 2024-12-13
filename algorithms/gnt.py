@@ -137,10 +137,11 @@ class GnT(object):
             eligible_feature_indices = torch.where(self.ages[i] > self.maturity_threshold)[0]
             num_eligible_features[i] = eligible_feature_indices.shape[0]
 
-            score = features[i].abs().mean(dim=0)
-            normalized_score = score / (score.mean() + 1e-9)
-            dead_neurons[i] = (normalized_score < threshold).sum()
-            total_number += features[i].shape[1]
+            with torch.no_grad():
+                score = features[i].abs().mean(dim=0)
+                normalized_score = score / (score.mean() + 1e-9)
+                dead_neurons[i] = (normalized_score < threshold).sum()
+                total_number += features[i].shape[1]
 
             if eligible_feature_indices.shape[0] == 0:
                 continue
@@ -254,13 +255,14 @@ class GnT(object):
         total_magnitude = 0
         total_weights = 0
         
-        for layer in self.hidden_layers:
-            # Check if the layer has parameters
-            if isinstance(layer, torch.nn.Module):
-                for param in layer.parameters():
-                    if param.requires_grad:  # Only consider trainable parameters
-                        total_magnitude += param.abs().sum().item()
-                        total_weights += param.numel()
+        with torch.no_grad():
+            for layer in self.hidden_layers:
+                # Check if the layer has parameters
+                if isinstance(layer, torch.nn.Module):
+                    for param in layer.parameters():
+                        if param.requires_grad:  # Only consider trainable parameters
+                            total_magnitude += param.abs().sum().item()
+                            total_weights += param.numel()
         
         return total_magnitude / total_weights if total_weights > 0 else 0
 

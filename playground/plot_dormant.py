@@ -36,7 +36,7 @@ def read_csv_data(csv_file):
 
 # Function to plot the data
 def plot_csv_data(data1, data2, labels=["1", "2"], limit=None):
-    if data1 is None or data2 is None:
+    if data1 is None and data2 is None:
         print("No data to plot.")
         return
 
@@ -44,12 +44,14 @@ def plot_csv_data(data1, data2, labels=["1", "2"], limit=None):
     x_labels1 = [f"({b},{c})" for b, c in zip(data1["behavior_curriculum"], data1["curriculum"])]
     x_indices1 = range(len(x_labels1))
 
-    x_labels2 = [f"({b},{c})" for b, c in zip(data2["behavior_curriculum"], data2["curriculum"])]
-    x_indices2 = range(len(x_labels2))
+    if data2 is not None:
+        x_labels2 = [f"({b},{c})" for b, c in zip(data2["behavior_curriculum"], data2["curriculum"])]
+        x_indices2 = range(len(x_labels2))
     
     if limit:
         x_labels_1_end = x_labels1.index(f"({limit[0]},{limit[1]})") + 1
-        x_labels_2_end = x_labels2.index(f"({limit[0]},{limit[1]})") + 1
+        if data2 is not None:
+            x_labels_2_end = x_labels2.index(f"({limit[0]},{limit[1]})") + 1
     else:
         x_labels_1_end = None
         x_labels_2_end = None
@@ -62,18 +64,19 @@ def plot_csv_data(data1, data2, labels=["1", "2"], limit=None):
     ax[1].plot(x_indices1[0:x_labels_1_end], data1["dead_critic"][0:x_labels_1_end], label=labels[0], marker="s", color="red")
 
     # Plot data2
-    ax[0].plot(x_indices2[0:x_labels_2_end], data2["dead_actor"][0:x_labels_2_end], label=labels[1], marker="o", linestyle="--", color="cyan")
-    ax[1].plot(x_indices2[0:x_labels_2_end], data2["dead_critic"][0:x_labels_2_end], label=labels[1], marker="s", linestyle="--", color="orange")
+    if data2 is not None:
+        ax[0].plot(x_indices2[0:x_labels_2_end], data2["dead_actor"][0:x_labels_2_end], label=labels[1], marker="o", linestyle="--", color="cyan")
+        ax[1].plot(x_indices2[0:x_labels_2_end], data2["dead_critic"][0:x_labels_2_end], label=labels[1], marker="s", linestyle="--", color="orange")
 
     # Customize the plot
     ax[0].set_title("Dormant Units in Actor (\%)")
-    ax[0].set_xlabel("(Behavior Curriculum, Curriculum)")
+    ax[0].set_xlabel("(Task, Curriculum)")
     ax[0].set_ylabel("Dormant Units in Actor (\%)")
     ax[0].set_xticks(x_indices1[0:x_labels_1_end], x_labels1[0:x_labels_1_end], rotation=45, ha="right")
     ax[0].legend()
 
     ax[1].set_title("Dormant Units in Critic (\%)")
-    ax[1].set_xlabel("(Behavior Curriculum, Curriculum)")
+    ax[1].set_xlabel("(Task, Curriculum)")
     ax[1].set_ylabel("Dormant Units in Critic (\%)")
     ax[1].set_xticks(x_indices1[0:x_labels_1_end], x_labels1[0:x_labels_1_end], rotation=45, ha="right")
     ax[1].legend()
@@ -90,4 +93,5 @@ if __name__ == "__main__":
     data1 = read_csv_data(csv_file1)
     data2 = read_csv_data(csv_file2)
 
-    plot_csv_data(data1, data2, labels=["Baseline", "Cont. Backprop."], limit=(1,3))
+    # plot_csv_data(data1, data2, labels=["Baseline", "Cont. Backprop."], limit=(1,3))
+    plot_csv_data(data1, None, labels=["Baseline", None], limit=None)
