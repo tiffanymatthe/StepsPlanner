@@ -219,7 +219,7 @@ class PPO(object):
                 critic_fraction_to_replace_epoch.add_(critic_fraction_to_replace)
                 actor_fraction_to_replace_epoch.add_(actor_fraction_to_replace)
                 max_actor_bias_replaced_epoch.add_(max_actor_bias_replaced)
-                max_actor_bias_replaced_epoch.add_(max_actor_bias_replaced)
+                max_critic_bias_replaced_epoch.add_(max_critic_bias_replaced)
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
