@@ -497,12 +497,13 @@ class Walker3DStepperEnv(EnvBase):
             timing_0 = half_cycle_times * 0.3
             timing_1 = half_cycle_times * 0.7
         else:
-            half_cycle_times = self.np_random.choice([10,20,30,40,50], size=N)
+            half_cycle_times = self.np_random.choice([20,30,40,50], size=N)
             ground_ratio = self.np_random.choice([0.0,0.1,0.2,0.3,0.4,0.5], size=N)
             half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
             ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
             timing_0 = half_cycle_times * ground_ratio
             timing_1 = half_cycle_times * (1-ground_ratio)
+            timing_1[timing_1 < 15] = 15
             half_cycle_times[0:3] = 30
             timing_0[0:3] = half_cycle_times[0:3] * 0.3
             timing_1[0:3] = half_cycle_times[0:3] * 0.7
@@ -726,7 +727,7 @@ class Walker3DStepperEnv(EnvBase):
             if curriculum <= 2:
                 cycle_choices = [20,30,40,50]
             else:
-                cycle_choices = [10,20,30,40,50,60]
+                cycle_choices = [20,30,40,50]
             if self.np_random.rand() < 0.5:
                 half_cycle_times = np.ones(N) * self.np_random.choice(cycle_choices)
             else:
@@ -756,6 +757,7 @@ class Walker3DStepperEnv(EnvBase):
                 half_cycle_times[0:3] = 30
                 timing_0[0:3] = half_cycle_times[0:3] * 0.3
                 timing_1[0:3] = half_cycle_times[0:3] * 0.7
+                timing_1[timing_1 < 15] = 15
                 # ratio = self.np_random.choice([0.3, 0.4, 0.5])
                 # timing_0 = half_cycle_times * ratio
                 # timing_1 = half_cycle_times * (1-ratio)
@@ -1791,6 +1793,8 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             reward += 2 * self.step_bonus_other_leg
+
+        # print(f"Timing reward: {self.timing_bonus * 1.5} and progress {self.progress}")
         # else:
         #     reward += - self.speed_penalty # need to regulate speed if timing is not in the picture
 
@@ -1974,6 +1978,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
 
+        # if self.done:
+        #     print(f"Terminated because of {self.tall_bonus < 0 or abs_height < -3}, {self.swing_leg_has_fallen}, {self.other_leg_has_fallen}, {(self.body_stationary_count > count)}")
+
     def calc_timing_reward(self):
         self.left_actual_contact = self._foot_target_contacts[1,0]
         self.right_actual_contact = self._foot_target_contacts[0,0]
@@ -1986,6 +1993,8 @@ class Walker3DStepperEnv(EnvBase):
             self.terrain_info[self.current_time_index, 10],
             self.terrain_info[self.current_time_index, 11]
         ]
+
+        # print(f"{next_step_time} and {self.terrain_info[self.current_time_index, 8] / self.terrain_info[self.current_time_index, 10]}")
 
         if not self.past_last_step:
             # assumes swing leg == 1 (will swap later)
