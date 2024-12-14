@@ -241,10 +241,11 @@ def main(_seed, _config, _run):
     rollouts.observations[0].copy_(torch.from_numpy(obs))
 
     episode_rewards = deque(maxlen=args.num_processes)
-    curriculum_metrics = [deque(maxlen=args.num_processes) for _ in range(4)]
-    avg_heading_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-    avg_dist_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-    avg_timing_mets = [deque(maxlen=args.num_processes) for _ in range(4)]
+    BUFFER_LENGTH = 5
+    curriculum_metrics = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+    avg_heading_errs = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+    avg_dist_errs = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+    avg_timing_mets = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
     num_updates = int(args.num_frames) // args.num_steps // args.num_processes
 
     start = time.time()
@@ -314,6 +315,9 @@ def main(_seed, _config, _run):
                 if not args.use_curriculum:
                     update_curriculum = False
                     break
+                if i == 0 and len(curriculum_metrics[i]) < BUFFER_LENGTH:
+                    update_curriculum = False
+                    break
                 avg_heading_err_nanmean = nanmean(avg_heading_errs[i])
                 avg_timing_met_nanmean = nanmean(avg_timing_mets[i])
                 avg_curriculum_nanmean = nanmean(curriculum_metrics[i])
@@ -347,10 +351,10 @@ def main(_seed, _config, _run):
                     save_all(agent, actor_critic, args.save_dir, f"{save_name}_curr_{current_behavior_curriculum}_{current_curriculum}")
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
-                    curriculum_metrics = [deque(maxlen=args.num_processes) for _ in range(4)]
-                    avg_heading_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-                    avg_dist_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-                    avg_timing_mets = [deque(maxlen=args.num_processes) for _ in range(4)]
+                    curriculum_metrics = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+                    avg_heading_errs = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+                    avg_dist_errs = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+                    avg_timing_mets = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
                     obs = envs.reset()
                     rollouts.observations[0].copy_(torch.from_numpy(obs))
                 elif current_behavior_curriculum < max_behavior_curriculum:
@@ -358,10 +362,10 @@ def main(_seed, _config, _run):
                     current_curriculum = 0
                     current_behavior_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum, "behavior_curriculum": current_behavior_curriculum})
-                    curriculum_metrics = [deque(maxlen=args.num_processes) for _ in range(4)]
-                    avg_heading_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-                    avg_dist_errs = [deque(maxlen=args.num_processes) for _ in range(4)]
-                    avg_timing_mets = [deque(maxlen=args.num_processes) for _ in range(4)]
+                    curriculum_metrics = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+                    avg_heading_errs = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+                    avg_dist_errs = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
+                    avg_timing_mets = [deque(maxlen=args.num_processes * BUFFER_LENGTH) for _ in range(4)]
                     obs = envs.reset()
                     rollouts.observations[0].copy_(torch.from_numpy(obs))
                 else:
