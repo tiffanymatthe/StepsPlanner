@@ -1735,12 +1735,14 @@ class Walker3DStepperEnv(EnvBase):
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
 
+        self.mask_info["heading"][2] = False
+
         if self.mask_info["timing"][0]:
             threshold = self.mask_info["timing"][1]
             self.mask_info["timing"][2] = self.np_random.rand() < threshold
         if self.mask_info["heading"][0]:
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
-        if "combine_all_heading" in self.behaviors[self.behavior_curriculum]:
+        if "combine_all_heading" == self.behaviors[self.behavior_curriculum]:
             # max ratio is 50%, so divide by 2
             self.mask_info["heading"][2] = self.np_random.rand() < self.curriculum / self.max_curriculum / 2
         if self.selected_behavior in {"one_step_plant", "hopping"}:
