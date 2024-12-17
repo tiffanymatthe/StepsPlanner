@@ -315,7 +315,8 @@ def main(_seed, _config, _run):
                 if not args.use_curriculum:
                     update_curriculum = False
                     break
-                if i == 0 and len(curriculum_metrics[i]) < BUFFER_LENGTH:
+                if i == 0 and len(curriculum_metrics[i]) < BUFFER_LENGTH * args.num_processes:
+                    print(f"{iteration}: {len(curriculum_metrics[i])} is not long enough, need {BUFFER_LENGTH * args.num_processes} to proceed")
                     update_curriculum = False
                     break
                 avg_heading_err_nanmean = nanmean(avg_heading_errs[i])
