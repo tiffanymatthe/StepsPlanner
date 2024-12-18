@@ -1800,8 +1800,7 @@ class Walker3DStepperEnv(EnvBase):
         if not self.mask_info["heading"][2]:
             reward += self.heading_bonus * self.heading_bonus_weight
         if not self.mask_info["timing"][2]:
-            timing_bonus_weight = self.timing_bonus_weight if (self.curriculum == 0 and self.behavior_curriculum == 0) else 2
-            reward += self.timing_bonus * timing_bonus_weight
+            reward += self.timing_bonus * self.timing_bonus_weight
 
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             reward += 2 * self.step_bonus_other_leg
