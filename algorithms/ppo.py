@@ -211,7 +211,7 @@ class PPO(object):
                 # continual backprop (wipe dormant neurons)
                 self.optimizer.zero_grad()
                 critic_fraction_to_replace, max_critic_bias_replaced = self.critic_gnt.gen_and_test(features=self.actor_critic.get_activations(), only_test=self.only_test)
-                actor_fraction_to_replace, max_actor_bias_replaced = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=self.only_test)
+                actor_fraction_to_replace, max_actor_bias_replaced = self.actor_gnt.gen_and_test(features=self.actor_critic.actor.get_activations(), only_test=True) # self.only_test)
 
                 value_loss_epoch.add_(value_loss.detach())
                 action_loss_epoch.add_(action_loss.detach())
