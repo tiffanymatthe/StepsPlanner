@@ -7,8 +7,11 @@ python enjoy.py --env <ENV> --dir
 python enjoy.py --env <ENV> --net <PATH/TO/NET> --len <STEPS>
 ```
 """
+# import warnings ; warnings.warn = lambda *args,**kwargs: None
+
 import argparse
 import os
+import csv
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -57,6 +60,8 @@ def main():
     parser.add_argument("--determine", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--timing", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--ffmpeg", type=int, default=0)
+    parser.add_argument("--save_folder", type=str, default="enjoy_data")
+    parser.add_argument("--max_resets", type=int, default=40)
     parser.add_argument("--csv", type=str, default=None)
     args = parser.parse_args()
 
@@ -142,7 +147,8 @@ def main():
         env.set_env_params({"curriculum": int(curriculum), "behavior_curriculum": int(behavior_curriculum)})
 
         obs = env.reset(force=True)
-        env.camera._cam_yaw = 90
+        if args.render:
+            env.camera._cam_yaw = 90
         ep_reward = 0
 
         left_foot_headings = []
@@ -150,6 +156,11 @@ def main():
         left_foot_positions = []
         right_foot_positions = []
         target_indices = []
+
+        timing_mets = []
+        heading_errs = []
+        dist_errs = []
+        curriculum_metrics = []
 
         expected_start_foot = []
         expected_other_foot = []
@@ -210,7 +221,8 @@ def main():
             cpu_actions = action.squeeze().cpu().numpy()
 
             obs, reward, done, _ = env.step(cpu_actions)
-            env.camera.lookat(env.robot.body_xyz)
+            if args.render:
+                env.camera.lookat(env.robot.body_xyz)
 
             ep_reward += reward
 
@@ -245,6 +257,9 @@ def main():
                 fig1.canvas.blit(ax1.bbox)
 
             if done:
+                args.max_resets -= 1
+                if args.max_resets <= 0:
+                    runner.done = True
                 if args.heading:
                     target_change_mask = np.roll(target_indices, 1)
                     target_change_mask[0] = target_indices[0]
@@ -298,6 +313,11 @@ def main():
                     actual_other_foot = []
                     index_switch = []
                 print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
+                timing_mets.append(nanmean(env.met_times))
+                heading_errs.append(nanmean(env.heading_errors))
+                dist_errs.append(nanmean(env.dist_errors))
+                curriculum_metrics.append(env.next_step_index)
+
                 obs = env.reset(reset_runner=False)
                 if args.heading:
                     foot_heading_targets = env.terrain_info[:, 6]
@@ -339,6 +359,20 @@ def main():
 
         if args.save and args.plot:
             writer.finish()
+
+        rows = zip(timing_mets, heading_errs, dist_errs, curriculum_metrics)
+
+        if not os.path.exists(args.save_folder):
+            os.makedirs(args.save_folder)
+
+        with open(f"{args.save_folder}/data_{behavior_curriculum}_{curriculum}.csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timing_met", "heading_err", "dist_err", "curriculum_metric"])
+            for row in rows:
+                writer.writerow(row)
+
+        env.close()
+        
 
 if __name__ == "__main__":
     main()
