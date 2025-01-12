@@ -18,11 +18,11 @@ plt.rcParams.update({'font.size': 16})
 column_to_plot = 'curriculum_metric' # 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
 
 # Number of behavior curricula and curricula per behavior curriculum
-num_behavior_curricula = 10
+num_behavior_curricula = 11
 num_curricula = 10
 
 # Prepare subplots
-fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 7))
+fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
 
 # Initialize lists to store the calculated mean and std values for global y-axis scaling
 all_means = []
@@ -107,10 +107,10 @@ for behavior_curriculum in range(num_behavior_curricula):
 
         all_means_for_task[i] = means_none_nan
 
-        ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'(0,0) - {folder_labels[i]}')
-        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'(1,0) - {folder_labels[i]}')
-        # ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s') #,  label='(0,1)')
-        # ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d') #, label='(1,1)')
+        # ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'(0,0) - {folder_labels[i]}')
+        # ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'(1,0) - {folder_labels[i]}')
+        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s') #,  label='(0,1)')
+        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d') #, label='(1,1)')
 
     # 0 = no_plasticity
     differences = [a - b for a, b in zip(all_means_for_task[1], all_means_for_task[0])]
