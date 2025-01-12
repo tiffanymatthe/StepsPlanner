@@ -5,20 +5,18 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # List of columns to compute metrics for
-columns_to_plot = ['curriculum_metric'] #, 'timing_met', 'heading_err', 'dist_err']
+columns_to_plot = ['curriculum_metric', 'timing_met', 'heading_err', 'dist_err']
 
 # Number of behavior curricula and curricula per behavior curriculum
-num_behavior_curricula = 11
+num_behavior_curricula = 10
 num_curricula = 10
 
-folders = ["no_plasticity", "reset_all"]
+folders = ["reset_all", "reset_all_with_heading"]
 
 output_string = ""
 output_string_second_table = ""
 
 behavior_curriculum_all = list(range(num_behavior_curricula))
-# swap for one step plant and transition/combine all
-# behavior_curriculum_all[9], behavior_curriculum_all[8] = behavior_curriculum_all[8], behavior_curriculum_all[9]
 
 for bi, behavior_curriculum in enumerate(behavior_curriculum_all):
     output_string += f"\n{bi}"
@@ -62,10 +60,6 @@ for bi, behavior_curriculum in enumerate(behavior_curriculum_all):
                     means_both_nan[folder].append(data_both_nan.mean())
 
                 except FileNotFoundError:
-                    means_none_nan[folder].append(np.nan)
-                    means_timing_nan[folder].append(np.nan)
-                    means_heading_nan[folder].append(np.nan)
-                    means_both_nan[folder].append(np.nan)
                     print(f"File {file} not found. Skipping.")
                     continue
 
@@ -73,35 +67,28 @@ for bi, behavior_curriculum in enumerate(behavior_curriculum_all):
         weights = np.linspace(1, 10, num_curricula)
         weights /= sum(weights)
 
-        if column_to_plot == "curriculum_metric":
-            for key in means_timing_nan.keys():
-                print(f"{bi}: {[np.round(x, 4) for x in means_timing_nan[key]]} with {key}")
-            print(np.sum(np.array(means_timing_nan["reset_all"]) >= np.array(means_timing_nan["no_plasticity"])) / 10)
-
-        avg_none_nan = np.array([
+        avg_none_nan = [
             np.average(np.ma.masked_array(means_none_nan[folder], np.isnan(means_none_nan[folder])), weights=weights)
             for folder in folders
-        ])
-        avg_timing_nan = np.array([
+        ]
+        avg_timing_nan = [
             np.average(np.ma.masked_array(means_timing_nan[folder], np.isnan(means_timing_nan[folder])), weights=weights)
             for folder in folders
-        ])
-        avg_all = np.array([nanmean([avg_none_nan[i],avg_timing_nan[i]]) for i in range(len(folders))])
-        # avg_heading_nan = np.average(
-        #     np.ma.masked_array(means_heading_nan[folder], np.isnan(means_heading_nan[folder])),
-        #     weights=weights
-        # )
-        # avg_both_nan = np.average(
-        #     np.ma.masked_array(means_both_nan[folder], np.isnan(means_both_nan[folder])),
-        #     weights=weights
-        # )
+        ]
+        avg_heading_nan = np.average(
+            np.ma.masked_array(means_heading_nan["reset_all_with_heading"], np.isnan(means_heading_nan["reset_all_with_heading"])),
+            weights=weights
+        )
+        avg_both_nan = np.average(
+            np.ma.masked_array(means_both_nan["reset_all_with_heading"], np.isnan(means_both_nan["reset_all_with_heading"])),
+            weights=weights
+        )
 
         # Append metrics for the current column to the output string
-        output_string += f" & {avg_all[0]:.2f} & {avg_all[1]:.2f}"
-        # if column_idx < 2:
-        #     output_string += f" & {avg_none_nan[1]:.2f} & {avg_none_nan[0]:.2f} & {avg_timing_nan[1]:.2f} & {avg_timing_nan[0]:.2f}" # & {avg_heading_nan:.2f} & {avg_both_nan:.2f}"
-        # else:
-        #     output_string_second_table += f" & {avg_none_nan[1]:.2f} & {avg_none_nan[0]:.2f} & {avg_timing_nan[1]:.2f} & {avg_timing_nan[0]:.2f}" # & {avg_heading_nan:.2f} & {avg_both_nan:.2f}"
+        if column_idx < 2:
+            output_string += f" & {avg_none_nan[1]:.2f} & {avg_none_nan[0]:.2f} & {avg_timing_nan[1]:.2f} & {avg_timing_nan[0]:.2f} & {avg_heading_nan:.2f} & {avg_both_nan:.2f}"
+        else:
+            output_string_second_table += f" & {avg_none_nan[1]:.2f} & {avg_none_nan[0]:.2f} & {avg_timing_nan[1]:.2f} & {avg_timing_nan[0]:.2f} & {avg_heading_nan:.2f} & {avg_both_nan:.2f}"
 
     # Add LaTeX line break
     output_string += " \\\\"

@@ -160,6 +160,8 @@ set -e
 #     done
 # done
 
+# MANUALLY TURN ON HEADING IN CODE
+
 # Define the ranges and special conditions
 behavior_start=0   # Starting value for behavior_curriculum
 behavior_end=10     # Ending value for behavior_curriculum
