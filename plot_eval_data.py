@@ -18,19 +18,19 @@ plt.rcParams.update({'font.size': 16})
 column_to_plot = 'curriculum_metric' # 'curriculum_metric'  # Change to 'timing_met', 'heading_err', 'dist_err', or 'curriculum_metric' as needed
 
 # Number of behavior curricula and curricula per behavior curriculum
-num_behavior_curricula = 11
+num_behavior_curricula = 10
 num_curricula = 10
 
 # Prepare subplots
-fig, axes = plt.subplots(nrows=3, ncols=5, figsize=(20, 10))
+fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 7))
 
 # Initialize lists to store the calculated mean and std values for global y-axis scaling
 all_means = []
 all_stds = []
 
-folders = ["no_plasticity", "reset_all"]
+folders = ["reset_all_with_heading"]
 # folders = ["all_with_hopping"]
-folder_labels=["no_plasticity", "reset_all"] #, "..."]
+folder_labels=["reset_all"] #, "..."]
 
 for behavior_curriculum in range(num_behavior_curricula):
     all_means_for_task = {}
@@ -61,10 +61,14 @@ for behavior_curriculum in range(num_behavior_curricula):
                 data_both_nan = data[data['timing_met'].isna() & data['heading_err'].isna()][column_to_plot]
 
                 if column_to_plot == "curriculum_metric":
-                    data_none_nan = np.exp(np.log(np.array(data_none_nan) / 20) / 20)
-                    data_timing_nan = np.exp(np.log(np.array(data_timing_nan) / 20) / 20)
-                    data_heading_nan = np.exp(np.log(np.array(data_heading_nan) / 20) / 20)
-                    data_both_nan = np.exp(np.log(np.array(data_both_nan) / 20) / 20)
+                    # data_none_nan = np.exp(np.log(np.array(data_none_nan) / 20) / 20)
+                    # data_timing_nan = np.exp(np.log(np.array(data_timing_nan) / 20) / 20)
+                    # data_heading_nan = np.exp(np.log(np.array(data_heading_nan) / 20) / 20)
+                    # data_both_nan = np.exp(np.log(np.array(data_both_nan) / 20) / 20)
+                    data_none_nan = 1/(data_none_nan + 1)
+                    data_timing_nan = 1/(data_timing_nan + 1)
+                    data_heading_nan = 1/(data_heading_nan + 1)
+                    data_both_nan = 1/(data_both_nan + 1)
 
                 # Calculate mean and std for each subset
                 mean_none_nan = data_none_nan.mean()
@@ -107,23 +111,23 @@ for behavior_curriculum in range(num_behavior_curricula):
 
         all_means_for_task[i] = means_none_nan
 
-        # ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'(0,0) - {folder_labels[i]}')
-        # ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'(1,0) - {folder_labels[i]}')
-        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s') #,  label='(0,1)')
-        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d') #, label='(1,1)')
+        ax.errorbar(curriculum_to_plot, means_none_nan, yerr=stds_none_nan, fmt='-o', label=f'(1,1)') # - {folder_labels[i]}')
+        ax.errorbar(curriculum_to_plot, means_timing_nan, yerr=stds_timing_nan, fmt='-x', label=f'(0,1)') # - {folder_labels[i]}')
+        ax.errorbar(curriculum_to_plot, means_heading_nan, yerr=stds_heading_nan, fmt='-s', label='(1,0)')
+        ax.errorbar(curriculum_to_plot, means_both_nan, yerr=stds_both_nan, fmt='-d', label='(0,0)')
 
-    # 0 = no_plasticity
-    differences = [a - b for a, b in zip(all_means_for_task[1], all_means_for_task[0])]
-    # Compute the average difference
-    average_difference = sum(differences) / len(differences)
-    print(f"{behavior_curriculum}: {average_difference} and {sum([1 for x in differences if x > 0]) / len(differences)}")
+    # # 0 = no_plasticity
+    # differences = [a - b for a, b in zip(all_means_for_task[1], all_means_for_task[0])]
+    # # Compute the average difference
+    # average_difference = sum(differences) / len(differences)
+    # print(f"{behavior_curriculum}: {average_difference} and {sum([1 for x in differences if x > 0]) / len(differences)}")
 
 
     ax.set_title(f"Task {behavior_curriculum}")
     ax.set_xlabel("Curriculum", fontsize=14)
     ax.set_xticks(range(10))
     if behavior_curriculum == 0 or behavior_curriculum == 5:
-        ax.set_ylabel("Step Success Rate", fontsize=14)
+        ax.set_ylabel("Step Failure Probability", fontsize=14)
 
 # Calculate global y-axis limits based on mean ± std ranges
 global_min = min(np.array(all_means) - np.array(all_stds))
