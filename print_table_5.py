@@ -48,10 +48,14 @@ for bi, behavior_curriculum in enumerate(behavior_curriculum_all):
                         # data_timing_nan = 1 - nansum(data_timing_nan < 19) / nansum(data_timing_nan)
                         # data_heading_nan = 1 - nansum(data_heading_nan < 19) / nansum(data_heading_nan)
                         # data_both_nan = 1 - nansum(data_both_nan < 19) / nansum(data_both_nan)
-                        data_none_nan = np.exp(np.log(data_none_nan / 20) / 20)
-                        data_timing_nan = np.exp(np.log(data_timing_nan / 20) / 20)
-                        data_heading_nan = np.exp(np.log(data_heading_nan / 20) / 20)
-                        data_both_nan = np.exp(np.log(data_both_nan / 20) / 20)
+                        # data_none_nan = np.exp(np.log(data_none_nan / 20) / 20)
+                        # data_timing_nan = np.exp(np.log(data_timing_nan / 20) / 20)
+                        # data_heading_nan = np.exp(np.log(data_heading_nan / 20) / 20)
+                        # data_both_nan = np.exp(np.log(data_both_nan / 20) / 20)
+                        data_none_nan = 1/(data_none_nan + 1)
+                        data_timing_nan = 1/(data_timing_nan + 1)
+                        data_heading_nan = 1/(data_heading_nan + 1)
+                        data_both_nan = 1/(data_both_nan + 1)
 
                     # Calculate mean for each subset
                     means_none_nan[folder].append(data_none_nan.mean())
