@@ -39,6 +39,7 @@ RIGHTCOLOR = (0.38,0.74,0.86,1.0)
 LEFTCOLOR_LIGHTER = (0.97,0.596,0.38,0.5)
 RIGHTCOLOR_LIGHTER = (0.38,0.74,0.86,0.5)
 
+WINDOW_SIZE = 150
 
 def main():
     import numpy as np
@@ -181,6 +182,10 @@ def main():
         controller = actor_critic.actor
 
         done = False
+        current_step_index = -1
+
+        previous_fill_left = None
+        previous_fill_right = None
 
         if args.plot:
             if env.mask_info["timing"][2]:
@@ -250,9 +255,30 @@ def main():
                 actual_x_left.append(time)
                 actual_x_right.append(time)
 
-                if time > ax1.get_xlim()[1]:
-                    ax1.set_xlim(0, time + 50)
-                    fig1.canvas.draw()
+                window_start = max(0, time - WINDOW_SIZE // 2)
+                window_end = window_start + WINDOW_SIZE
+                ax1.set_xlim(window_start, window_end)
+                fig1.canvas.draw()
+
+                if env.next_step_index != current_step_index and not env.mask_info["timing"][2]:
+                    current_step_index = env.next_step_index
+                    # remove for previous step
+                    if current_step_index > 1:
+                        previous_fill_left.remove()
+                        previous_fill_right.remove()
+                        # ax1.fill_between(times_left[current_index_start:current_index_end], y1=1, y2=0, where=all_sets_left[current_index_start:current_index_end], color=LEFTCOLOR_LIGHTER, step='post')
+                        # ax1.fill_between(times_right[current_index_start:current_index_end], y1=2.2, y2=1.2, where=all_sets_right[current_index_start:current_index_end], color=RIGHTCOLOR_LIGHTER, step='post')
+                    else:
+                        current_index_end = 0
+                    # darken for the current step
+                    current_index_start = current_index_end
+                    current_index_end = current_index_start + int(env.terrain_info[current_step_index, 8] + env.terrain_info[current_step_index, 9]) + env.step_delay
+                    previous_fill_left = ax1.fill_between(times_left[current_index_start:current_index_end], y1=1, y2=0, where=all_sets_left[current_index_start:current_index_end], color=LEFTCOLOR, step='post')
+                    previous_fill_right = ax1.fill_between(times_right[current_index_start:current_index_end], y1=2.2, y2=1.2, where=all_sets_right[current_index_start:current_index_end], color=RIGHTCOLOR, step='post')
+
+                # if time > ax1.get_xlim()[1]:
+                #     ax1.set_xlim(0, time + 50)
+                #     fig1.canvas.draw()
 
                 actual_points_left.set_data(actual_x_left, actual_y_left)
                 actual_points_right.set_data(actual_x_right, actual_y_right)
@@ -263,6 +289,7 @@ def main():
                 fig1.canvas.blit(ax1.bbox)
 
             if done:
+                current_step_index = -1
                 args.max_resets -= 1
                 if args.max_resets <= 0:
                     runner.done = True
