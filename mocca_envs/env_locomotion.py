@@ -370,7 +370,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [True, 0.5, False],
+            "timing": [False, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -622,6 +622,235 @@ class Walker3DStepperEnv(EnvBase):
         dphi *= 0
 
         timing_0, timing_1, timing_2, timing_3 = self.get_timing(N)
+        
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, foot_seps), axis=1)
+    
+    def generate_hopping_step_placements(self, curriculum):
+        # Check just in case
+        curriculum = min(curriculum, self.max_curriculum)
+        ratio = curriculum / self.max_curriculum if self.max_curriculum > 0 else 0
+
+        behavior = "timing_gaits"
+
+        method = "hopping"
+
+        yaw_range = self.yaw_range[behavior] * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD
+
+        self.path_angle = self.angle_curriculum[behavior][curriculum]
+
+        N = self.num_steps
+        
+        self.dr_spacing = self.dr_curriculum[behavior][curriculum]
+        dr = np.zeros(N) + self.dr_spacing
+
+        dphi = self.np_random.uniform(*yaw_range, size=N)
+        dtheta = self.np_random.uniform(*pitch_range, size=N)
+        x_tilt = self.np_random.uniform(*tilt_range, size=N)
+        y_tilt = self.np_random.uniform(*tilt_range, size=N)
+
+        # make first step below feet
+        dr[0] = 0.0
+        dphi[0] = 0.0
+        dtheta[0] = np.pi / 2
+
+        dr[1] = self.init_step_separation
+        dphi[1] = 0.0
+        dtheta[1] = np.pi / 2
+
+        dphi[2] = 0.0
+
+        x_tilt[0:2] = 0
+        y_tilt[0:2] = 0
+
+        # Update x and y arrays
+        if method != "hopping":
+            swing_legs = np.ones(N, dtype=np.int8)
+            swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
+        else:
+            swing_legs = np.ones(N, dtype=np.int8)
+            swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
+            # start hopping at index 4
+            swing_legs[4:6] = swing_legs[3]
+            # walking
+            swing_legs[[6,8]] = 1 - swing_legs[3]
+            swing_legs[7] = swing_legs[3]
+            # hopping
+            swing_legs[9:13] = swing_legs[8]
+            # walking
+            swing_legs[13] = 1 - swing_legs[8]
+            # hopping
+            swing_legs[14:] = swing_legs[13]
+
+        dphi[self.stop_steps[1::2]] = 0
+        dphi = np.cumsum(dphi)
+
+        dy = dr * np.sin(dtheta) * np.cos(dphi)
+        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dz = dr * np.cos(dtheta)
+
+        dy[self.stop_steps[1::2]] = 0
+        dx[self.stop_steps[1::2]] = 0
+
+        heading_targets = np.copy(dphi)
+
+        x = np.cumsum(dx)
+        y = np.cumsum(dy)
+        z = np.cumsum(dz)
+
+        foot_sep_range = self.foot_sep_range[behavior]
+        foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)])
+        right_shifts = np.array([np.cos(heading_targets - np.pi / 2), np.sin(heading_targets - np.pi / 2)])
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * foot_seps
+        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * foot_seps
+
+        if self.robot.mirrored:
+            x *= -1
+        else:
+            swing_legs = 1 - swing_legs
+            heading_targets *= -1
+
+        # switched dy and dx before, so need to rectify
+        heading_targets += 90 * DEG2RAD
+
+        dphi *= 0
+
+        if curriculum == 0:
+            half_cycle_times = np.ones(N) * self.np_random.choice([30,40,50])
+        else:
+            if curriculum <= 2:
+                cycle_choices = [20,30,40,50]
+            else:
+                cycle_choices = [10,20,30,40,50,60]
+            if self.np_random.rand() < 0.5:
+                half_cycle_times = np.ones(N) * self.np_random.choice(cycle_choices)
+            else:
+                half_cycle_times = self.np_random.choice(cycle_choices, size=N)
+        
+        half_cycle_times[0:3] = 30 # to start properly
+
+        if method == "walking":
+            timing_0 = half_cycle_times * 0.3
+            timing_1 = half_cycle_times * 0.7
+            if curriculum > 0:
+                if curriculum == 1:
+                    ratios = [0.2,0.3,0.4]
+                elif curriculum == 2:
+                    ratios = [0.1,0.2,0.3,0.4]
+                elif curriculum == 3:
+                    ratios = [0.1,0.2,0.3,0.4,0.5]
+                elif curriculum == 4:
+                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6]
+                else:
+                    ratios = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
+                ground_ratio = self.np_random.choice(ratios, size=N)
+                half_cycle_times[(ground_ratio >= 0.3) & (half_cycle_times < 30)] = 30
+                ground_ratio[(ground_ratio <= 0.1) & (half_cycle_times >= 50)] = 0.2
+                timing_0 = half_cycle_times * ground_ratio
+                timing_1 = half_cycle_times * (1-ground_ratio)
+                half_cycle_times[0:3] = 30
+                timing_0[0:3] = half_cycle_times[0:3] * 0.3
+                timing_1[0:3] = half_cycle_times[0:3] * 0.7
+                # ratio = self.np_random.choice([0.3, 0.4, 0.5])
+                # timing_0 = half_cycle_times * ratio
+                # timing_1 = half_cycle_times * (1-ratio)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2 = timing_0 + timing_1
+            timing_3 = np.zeros(N)
+
+            # make first step shorter
+            timing_2[0] -= timing_0[0]
+            timing_0[0] = 0
+
+            timing_2[1] -= timing_0[1]
+            timing_0[1] = 0
+
+        elif method == "running":
+            timing_0 = np.zeros(N)
+            timing_1 = half_cycle_times
+            timing_2 = half_cycle_times * 0.8
+            timing_3 = half_cycle_times * 0.2
+            timing_2 = timing_2.astype(int)
+            timing_3 = timing_3.astype(int)
+        elif method == "hopping":
+            walking_cycle = 30
+            hopping_cycle = 40
+
+            timing_0 = np.zeros(N)
+            timing_1 = np.zeros(N)
+            timing_2 = np.zeros(N)
+            timing_3 = np.zeros(N)
+
+            # walking
+            timing_0[0:4] = (walking_cycle * 0.4)
+            timing_1[0:4] = (walking_cycle * 0.6)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[0:4] = timing_0[0:4] + timing_1[0:4]
+
+            # hopping
+            timing_0[4:6] = (hopping_cycle * 0.6)
+            timing_1[4:6] = (hopping_cycle * 0.4)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[4:6] = 0
+            timing_2[4] = 4
+
+            # walking
+            timing_0[6] = 0
+            timing_1[6] = walking_cycle
+            timing_0[7:9] = (walking_cycle * 0.4)
+            timing_1[7:9] = (walking_cycle * 0.6)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[6:9] = timing_0[6:9] + timing_1[6:9]
+
+            # hopping
+            timing_0[9:13] = (hopping_cycle * 0.6)
+            timing_1[9:13] = (hopping_cycle * 0.4)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[9:13] = 0
+            timing_2[9] = 4
+
+            # walking
+            timing_0[13] = 0
+            timing_1[13] = walking_cycle
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[13] = timing_0[13] + timing_1[13]
+
+            # hopping
+            timing_0[14:] = (hopping_cycle * 0.6)
+            timing_1[14:] = (hopping_cycle * 0.4)
+            timing_0 = timing_0.astype(int)
+            timing_1 = timing_1.astype(int)
+            timing_2[14:] = 0
+            timing_2[14] = 4
+
+            # make first step shorter
+            timing_2[0] -= timing_0[0]
+            timing_0[0] = 0
+
+            timing_2[1] -= timing_0[1]
+            timing_0[1] = 0
+
+            timing_3 = timing_0 + timing_1 - timing_2
+
+        assert (timing_0 + timing_1 == timing_2 + timing_3).all(), f"{timing_0 + timing_1} vs {timing_2+ timing_3}"
+
+        path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
         
         return np.stack((x, y, z, dphi, x_tilt, y_tilt, heading_targets, swing_legs, timing_0, timing_1, timing_2, timing_3, foot_seps), axis=1)
 
@@ -1599,6 +1828,8 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.selected_behavior in self.generated_paths_cache and self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
+        
+        self.selected_behavior = "hopping"
 
         if self.selected_behavior == "to_standstill":
             if self.np_random.rand() < 0.8:
@@ -1625,7 +1856,7 @@ class Walker3DStepperEnv(EnvBase):
         elif self.selected_behavior == "one_step_plant":
             path = self.generate_one_step_plant_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "hopping":
-            path = self.generate_timing_gaits_step_placements(self.selected_curriculum, method="hopping")
+            path = self.generate_hopping_step_placements(self.selected_curriculum)
         else:
             raise NotImplementedError(f"Behavior {self.selected_behavior} is not implemented")
         

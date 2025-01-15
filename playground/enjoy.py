@@ -11,7 +11,7 @@ python enjoy.py --env <ENV> --net <PATH/TO/NET> --len <STEPS>
 
 import argparse
 import os
-import csv
+import csv, copy
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
