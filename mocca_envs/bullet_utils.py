@@ -477,8 +477,8 @@ class Camera:
             width, height, view, proj = self._p.getDebugVisualizerCamera()[0:4]
 
         (_, _, rgb_array, _, _) = self._p.getCameraImage(
-            width=width,
-            height=height,
+            width=width * 2,
+            height=height * 2,
             viewMatrix=view,
             projectionMatrix=proj,
             renderer=self._p.ER_BULLET_HARDWARE_OPENGL,

@@ -260,21 +260,21 @@ def main():
                 ax1.set_xlim(window_start, window_end)
                 fig1.canvas.draw()
 
-                if env.next_step_index != current_step_index and not env.mask_info["timing"][2]:
-                    current_step_index = env.next_step_index
-                    # remove for previous step
-                    if current_step_index > 1:
-                        previous_fill_left.remove()
-                        previous_fill_right.remove()
-                        # ax1.fill_between(times_left[current_index_start:current_index_end], y1=1, y2=0, where=all_sets_left[current_index_start:current_index_end], color=LEFTCOLOR_LIGHTER, step='post')
-                        # ax1.fill_between(times_right[current_index_start:current_index_end], y1=2.2, y2=1.2, where=all_sets_right[current_index_start:current_index_end], color=RIGHTCOLOR_LIGHTER, step='post')
-                    else:
-                        current_index_end = 0
-                    # darken for the current step
-                    current_index_start = current_index_end
-                    current_index_end = current_index_start + int(env.terrain_info[current_step_index, 8] + env.terrain_info[current_step_index, 9]) + env.step_delay
-                    previous_fill_left = ax1.fill_between(times_left[current_index_start:current_index_end], y1=1, y2=0, where=all_sets_left[current_index_start:current_index_end], color=LEFTCOLOR, step='post')
-                    previous_fill_right = ax1.fill_between(times_right[current_index_start:current_index_end], y1=2.2, y2=1.2, where=all_sets_right[current_index_start:current_index_end], color=RIGHTCOLOR, step='post')
+                # if env.next_step_index != current_step_index and not env.mask_info["timing"][2]:
+                #     current_step_index = env.next_step_index
+                #     # remove for previous step
+                #     if current_step_index > 1:
+                #         previous_fill_left.remove()
+                #         previous_fill_right.remove()
+                #         # ax1.fill_between(times_left[current_index_start:current_index_end], y1=1, y2=0, where=all_sets_left[current_index_start:current_index_end], color=LEFTCOLOR_LIGHTER, step='post')
+                #         # ax1.fill_between(times_right[current_index_start:current_index_end], y1=2.2, y2=1.2, where=all_sets_right[current_index_start:current_index_end], color=RIGHTCOLOR_LIGHTER, step='post')
+                #     else:
+                #         current_index_end = 0
+                #     # darken for the current step
+                #     current_index_start = current_index_end
+                #     current_index_end = current_index_start + int(env.terrain_info[current_step_index, 8] + env.terrain_info[current_step_index, 9]) + env.step_delay
+                #     previous_fill_left = ax1.fill_between(times_left[current_index_start:current_index_end], y1=1, y2=0, where=all_sets_left[current_index_start:current_index_end], color=LEFTCOLOR, step='post')
+                #     previous_fill_right = ax1.fill_between(times_right[current_index_start:current_index_end], y1=2.2, y2=1.2, where=all_sets_right[current_index_start:current_index_end], color=RIGHTCOLOR, step='post')
 
                 # if time > ax1.get_xlim()[1]:
                 #     ax1.set_xlim(0, time + 50)

@@ -1779,14 +1779,18 @@ class Walker3DStepperEnv(EnvBase):
 
         step_placements = None
 
-        transition_indices = [4,8,12,16,24,self.num_steps]
+        transition_indices = [4,8,12,18,25,self.num_steps]
 
         for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
             selected_step_placement_fcn, behavior_str = selected_step_placement_fcn_tuple
-            if i != 3:
-                selected_step_curriculum = self.np_random.choice(list(range(0,curriculum+1)))
+            if i == 3:
+                selected_step_curriculum = 7
+            elif i == 4:
+                selected_step_curriculum = 0
+            elif i == 5:
+                selected_step_curriculum = 0
             else:
-                selected_step_curriculum = 8
+                selected_step_curriculum = self.np_random.choice(list(range(0,curriculum+1)))
             if behavior_str in self.generated_paths_cache and self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)] is not None:
                 step_placements_part = np.copy(self.generated_paths_cache[behavior_str][selected_step_curriculum][int(self.robot.mirrored)])
             else:
