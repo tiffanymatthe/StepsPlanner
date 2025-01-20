@@ -317,7 +317,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 56
+    num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -1457,9 +1457,9 @@ class Walker3DStepperEnv(EnvBase):
 
         self.dr_spacing = self.dr_curriculum[behavior][curriculum]
 
-        dr = np.zeros(N) + self.dr_spacing
+        dr = np.zeros(N) + self.dr_spacing - 0.1
 
-        dr[3:38] = np.tile([0.4,0.4,0.4,0.4,0.4,0.8,0.8], reps=5)
+        # dr[3:38] = np.tile([0.4,0.4,0.4,0.4,0.4,0.8,0.8], reps=5)
         # dr[3:8] = 0.3
         # dr[8:10] = 0.75
         # dr[10:15] = 0.3
@@ -1534,12 +1534,12 @@ class Walker3DStepperEnv(EnvBase):
 
         path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
 
-        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
+        # heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
         # pigeon-toed
-        # heading_targets[4:8] += np.tile([np.pi/4, -np.pi/4], reps=2)
-        # heading_targets[8:12] += np.tile([-np.pi/4, np.pi/4], reps=2)
-        # heading_targets[12:16] += np.tile([np.pi/4, -np.pi/4], reps=2)
-        # heading_targets[16:20] += np.tile([-np.pi/4, np.pi/4], reps=2)
+        heading_targets[4:8] += np.tile([np.pi/4, -np.pi/4], reps=2)
+        heading_targets[8:12] += np.tile([-np.pi/4, np.pi/4], reps=2)
+        heading_targets[12:16] += np.tile([np.pi/4, -np.pi/4], reps=2)
+        heading_targets[16:20] += np.tile([-np.pi/4, np.pi/4], reps=2)
 
         dphi *= 0
 
