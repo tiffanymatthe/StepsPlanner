@@ -1770,7 +1770,8 @@ class Walker3DStepperEnv(EnvBase):
             (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
             (self.generate_side_step_step_placements, "side_step"),
             (self.generate_turn_in_place_step_placements, "turn_in_place"),
-            (self.generate_hopping_step_placements, "hopping")
+            (self.generate_hopping_step_placements, "hopping"),
+            (self.generate_random_walks_step_placements, "random_walks")
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
@@ -1778,7 +1779,7 @@ class Walker3DStepperEnv(EnvBase):
 
         step_placements = None
 
-        transition_indices = [4,8,12,16,self.num_steps]
+        transition_indices = [4,8,12,16,24,self.num_steps]
 
         for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
             selected_step_placement_fcn, behavior_str = selected_step_placement_fcn_tuple
@@ -1798,7 +1799,6 @@ class Walker3DStepperEnv(EnvBase):
                 heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
                 dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
                 dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
-                print(f"none: {dx}, {dy}")
                 step_placements_part[a:b,0] = step_placements_part[a-1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
                 step_placements_part[a:b,1] = step_placements_part[a-1,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
                 step_placements_part[a:b, 6] += heading_shift
@@ -1812,7 +1812,6 @@ class Walker3DStepperEnv(EnvBase):
                 heading_shift = -(step_placements_part[0, 6] - step_placements[a-1, 6])
                 dx = step_placements_part[2:b-a+2,0] - step_placements_part[1,0]
                 dy = step_placements_part[2:b-a+2,1] - step_placements_part[1,1]
-                print(f"hopping {dx}, {dy}")
                 step_placements_part[2:b-a+2,0] = step_placements_part[1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
                 step_placements_part[2:b-a+2,1] = step_placements_part[1,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
                 step_placements_part[2:b-a+2, 6] += heading_shift
