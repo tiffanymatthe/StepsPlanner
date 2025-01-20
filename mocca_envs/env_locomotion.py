@@ -1798,6 +1798,7 @@ class Walker3DStepperEnv(EnvBase):
                 heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
                 dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
                 dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
+                print(f"none: {dx}, {dy}")
                 step_placements_part[a:b,0] = step_placements_part[a-1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
                 step_placements_part[a:b,1] = step_placements_part[a-1,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
                 step_placements_part[a:b, 6] += heading_shift
@@ -1809,17 +1810,18 @@ class Walker3DStepperEnv(EnvBase):
                 step_placements[a:b:, :] = step_placements_part[a:b:, :]
             else:
                 heading_shift = -(step_placements_part[0, 6] - step_placements[a-1, 6])
-                dx = step_placements_part[0:b-a,0] - step_placements_part[0,0]
-                dy = step_placements_part[0:b-a,1] - step_placements_part[0,1]
-                step_placements_part[0:b-a,0] = step_placements_part[0,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
-                step_placements_part[0:b-a,1] = step_placements_part[0,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
-                step_placements_part[0:b-a, 6] += heading_shift
+                dx = step_placements_part[2:b-a+2,0] - step_placements_part[1,0]
+                dy = step_placements_part[2:b-a+2,1] - step_placements_part[1,1]
+                print(f"hopping {dx}, {dy}")
+                step_placements_part[2:b-a+2,0] = step_placements_part[1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
+                step_placements_part[2:b-a+2,1] = step_placements_part[1,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
+                step_placements_part[2:b-a+2, 6] += heading_shift
 
-                x_shift = step_placements_part[0, 0] - step_placements[a-1, 0]
-                step_placements_part[0:b-a, 0] -= x_shift
-                y_shift = step_placements_part[0, 1] - step_placements[a-1, 1]
-                step_placements_part[0:b-a, 1] -= y_shift
-                step_placements[a:b:, :] = step_placements_part[0:b-a:, :]
+                x_shift = step_placements_part[1, 0] - step_placements[a-1, 0]
+                step_placements_part[2:b-a+2, 0] -= x_shift
+                y_shift = step_placements_part[1, 1] - step_placements[a-1, 1]
+                step_placements_part[2:b-a+2, 1] -= y_shift
+                step_placements[a:b:, :] = step_placements_part[2:b-a+2:, :]
         return step_placements
 
     def generate_step_placements(self):
