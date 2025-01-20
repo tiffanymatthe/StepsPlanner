@@ -1459,6 +1459,11 @@ class Walker3DStepperEnv(EnvBase):
 
         dr = np.zeros(N) + self.dr_spacing
 
+        # dr[3:8] = 0.4
+        # dr[8:13] = 0.7
+        # dr[13:16] = 0.4
+        # dr[16:] = 0.7
+
         dphi = self.np_random.uniform(*yaw_range, size=N)
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -1527,7 +1532,9 @@ class Walker3DStepperEnv(EnvBase):
 
         path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
 
-        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
+        # heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
+        # pigeon-toed
+        heading_targets[4:] += np.tile([np.pi/4, -np.pi/4], reps=(N-4) // 2)
 
         dphi *= 0
 
