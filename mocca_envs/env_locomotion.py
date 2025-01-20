@@ -370,7 +370,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [False, 0.5, False],
+            "timing": [False, 0.5, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],
@@ -1459,10 +1459,12 @@ class Walker3DStepperEnv(EnvBase):
 
         dr = np.zeros(N) + self.dr_spacing
 
-        # dr[3:8] = 0.4
-        # dr[8:13] = 0.7
-        # dr[13:16] = 0.4
-        # dr[16:] = 0.7
+        dr[3:38] = np.tile([0.4,0.4,0.4,0.4,0.4,0.8,0.8], reps=5)
+        # dr[3:8] = 0.3
+        # dr[8:10] = 0.75
+        # dr[10:15] = 0.3
+        # dr[15:17] = 0.75
+        # dr[17:] = 0.3
 
         dphi = self.np_random.uniform(*yaw_range, size=N)
         dtheta = self.np_random.uniform(*pitch_range, size=N)
@@ -1506,9 +1508,9 @@ class Walker3DStepperEnv(EnvBase):
 
         foot_sep_range = self.foot_sep_range[behavior] * ratio
         if self.np_random.rand() < 0.2:
-            foot_seps = self.foot_sep + self.np_random.uniform(*foot_sep_range, size=N)
+            foot_seps = (self.foot_sep + 0.04) * np.ones(N) # + self.np_random.uniform(*foot_sep_range, size=N)
         else:
-            foot_seps = self.foot_sep + self.np_random.choice(foot_sep_range, size=N)
+            foot_seps = (self.foot_sep + 0.04) * np.ones(N) # + self.np_random.choice(foot_sep_range, size=N)
 
         # Calculate shifts
         left_shifts = np.array([np.cos(heading_targets + np.pi / 2), np.sin(heading_targets + np.pi / 2)])
@@ -1532,9 +1534,12 @@ class Walker3DStepperEnv(EnvBase):
 
         path_angle_possibilities = np.linspace(-self.path_angle, self.path_angle, num=curriculum * 2 + 3, endpoint=True)
 
-        # heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
+        heading_targets[3:] += self.np_random.choice(path_angle_possibilities, size=(N-3))
         # pigeon-toed
-        heading_targets[4:] += np.tile([np.pi/4, -np.pi/4], reps=(N-4) // 2)
+        # heading_targets[4:8] += np.tile([np.pi/4, -np.pi/4], reps=2)
+        # heading_targets[8:12] += np.tile([-np.pi/4, np.pi/4], reps=2)
+        # heading_targets[12:16] += np.tile([np.pi/4, -np.pi/4], reps=2)
+        # heading_targets[16:20] += np.tile([-np.pi/4, np.pi/4], reps=2)
 
         dphi *= 0
 

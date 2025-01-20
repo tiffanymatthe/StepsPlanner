@@ -423,7 +423,8 @@ class Camera:
 
         
         def pause_global_step(self):
-            time.sleep(camera._target_period)
+            # print("HERE")
+            # time.sleep(camera._target_period)
 
             camera.env_should_wait = False
             self.cpp_world.step()
