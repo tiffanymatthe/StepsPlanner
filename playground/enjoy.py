@@ -345,11 +345,14 @@ def main():
                     actual_start_foot = []
                     actual_other_foot = []
                     index_switch = []
-                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f}")
+                print(f"--- Episode reward: {ep_reward} and average heading error: {nanmean(env.heading_errors) * RAD2DEG:.2f} deg and timing acc: {nanmean(env.met_times):.2f} and steps: {env.next_step_index}")
                 timing_mets.append(nanmean(env.met_times))
                 heading_errs.append(nanmean(env.heading_errors))
                 dist_errs.append(nanmean(env.dist_errors))
                 curriculum_metrics.append(env.next_step_index)
+                if env.next_step_index == env.num_steps - 1:
+                    if env.target_reached_count >= 0:
+                        runner.done = True
 
                 obs = env.reset(reset_runner=False)
                 if args.heading:

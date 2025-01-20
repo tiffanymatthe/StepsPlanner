@@ -462,7 +462,6 @@ class Camera:
         )
 
     def dump_rgb_array(self):
-
         if self.use_egl:
             # use_egl
             width, height = 1920, 1080

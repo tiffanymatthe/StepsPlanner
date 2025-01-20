@@ -309,7 +309,7 @@ class Walker3DStepperEnv(EnvBase):
     control_step = 1 / 60
     llc_frame_skip = 1
     sim_frame_skip = 4
-    max_timestep = 1000
+    max_timestep = 2000
 
     robot_class = Walker3D
     robot_random_start = True
@@ -317,7 +317,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 30
+    num_steps = 56
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -1771,7 +1771,12 @@ class Walker3DStepperEnv(EnvBase):
             (self.generate_side_step_step_placements, "side_step"),
             (self.generate_turn_in_place_step_placements, "turn_in_place"),
             (self.generate_hopping_step_placements, "hopping"),
-            (self.generate_random_walks_step_placements, "random_walks")
+            (self.generate_random_walks_step_placements, "random_walks"),
+            (self.generate_turn_in_place_step_placements, "turn_in_place"),
+            (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
+            (self.generate_random_walks_step_placements, "random_walks"),
+            (self.generate_hopping_step_placements, "hopping"),
+            (self.generate_side_step_step_placements, "side_step"),
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
@@ -1779,15 +1784,19 @@ class Walker3DStepperEnv(EnvBase):
 
         step_placements = None
 
-        transition_indices = [4,8,12,18,25,self.num_steps]
+        transition_indices = [4,8,12,18,25,27,33,37,40,47,self.num_steps]
 
         for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
             selected_step_placement_fcn, behavior_str = selected_step_placement_fcn_tuple
-            if i == 3:
+            if behavior_str == "turn_in_place":
                 selected_step_curriculum = 7
-            elif i == 4:
+            elif behavior_str == "hopping":
                 selected_step_curriculum = 0
+            elif behavior_str == "random_walks_backward":
+                selected_step_curriculum = self.np_random.choice(list(range(0,3)))
             elif i == 5:
+                selected_step_curriculum = 0
+            elif i == 8:
                 selected_step_curriculum = 0
             else:
                 selected_step_curriculum = self.np_random.choice(list(range(0,curriculum+1)))
@@ -1802,7 +1811,7 @@ class Walker3DStepperEnv(EnvBase):
                 step_placements = step_placements_part
             a = transition_indices[i-1]
             b = transition_indices[i]
-            if i != 4:
+            if behavior_str != "hopping":
                 heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
                 dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
                 dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
@@ -2252,7 +2261,8 @@ class Walker3DStepperEnv(EnvBase):
         if self.body_stationary_count > count or self.swing_leg_has_fallen or self.other_leg_has_fallen:
             self.legs_bonus -= 2
 
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen or self.finished_all or (self.body_stationary_count > count)
+        # self.swing_leg_has_fallen or self.other_leg_has_fallen
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.finished_all or (self.body_stationary_count > count)
 
         # if self.done:
         #     print(f"Terminated because of {self.tall_bonus < 0 or abs_height < -3}, {self.swing_leg_has_fallen}, {self.other_leg_has_fallen}, {(self.body_stationary_count > count)}")
