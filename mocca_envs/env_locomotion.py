@@ -1761,7 +1761,8 @@ class Walker3DStepperEnv(EnvBase):
             (self.generate_side_step_step_placements, "side_step"),
             (self.generate_random_walks_step_placements, "random_walks"),
             (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
-            (self.generate_one_step_plant_step_placements, "one_step_plant")
+            (self.generate_one_step_plant_step_placements, "one_step_plant"),
+            (self.generate_hopping_step_placements, "hopping")
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
@@ -1828,8 +1829,6 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.selected_behavior in self.generated_paths_cache and self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)] is not None:
             return self.generated_paths_cache[self.selected_behavior][self.selected_curriculum][int(self.robot.mirrored)]
-        
-        self.selected_behavior = "hopping"
 
         if self.selected_behavior == "to_standstill":
             if self.np_random.rand() < 0.8:
@@ -1852,7 +1851,11 @@ class Walker3DStepperEnv(EnvBase):
             self.selected_behavior = "transition_all"
             path = self.generate_transition_all_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "timing_gaits":
-            path = self.generate_timing_gaits_step_placements(self.selected_curriculum)
+            if self.np_random.rand() < 0.5:
+                path = self.generate_timing_gaits_step_placements(self.selected_curriculum)
+            else:
+                self.selected_behavior == "hopping"
+                path = self.generate_hopping_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "one_step_plant":
             path = self.generate_one_step_plant_step_placements(self.selected_curriculum)
         elif self.selected_behavior == "hopping":
@@ -1975,7 +1978,7 @@ class Walker3DStepperEnv(EnvBase):
             self.mask_info["heading"][2] = self.np_random.rand() < self.mask_info["heading"][1]
         if "combine_all_heading" == self.behaviors[self.behavior_curriculum]:
             # max ratio is 50%, so divide by 2
-            self.mask_info["heading"][2] = self.np_random.rand() < self.curriculum / self.max_curriculum / 2
+            self.mask_info["heading"][2] = self.np_random.rand() < 0.5 # self.curriculum / self.max_curriculum / 2
         if self.selected_behavior in {"one_step_plant", "hopping"}:
             self.mask_info["timing"][2] = False
             self.mask_info["heading"][2] = False
