@@ -11,7 +11,7 @@ columns_to_plot = ['curriculum_metric'] #, 'timing_met', 'heading_err', 'dist_er
 num_behavior_curricula = 12
 num_curricula = 10
 
-folders = ["no_plasticity", "reset_all"]
+folders = ["no_plasticity", "reset_actor"] # "reset_all"]
 
 output_string = ""
 output_string_second_table = ""
@@ -76,7 +76,7 @@ for bi, behavior_curriculum in enumerate(behavior_curriculum_all):
         if column_to_plot == "curriculum_metric":
             for key in means_timing_nan.keys():
                 print(f"{bi}: {[np.round(x, 4) for x in means_timing_nan[key]]} with {key}")
-            print(np.sum(np.array(means_timing_nan["reset_all"]) >= np.array(means_timing_nan["no_plasticity"])) / 10)
+            print(np.sum(np.array(means_timing_nan["reset_actor"]) >= np.array(means_timing_nan["no_plasticity"])) / 10)
 
         avg_none_nan = np.array([
             np.average(np.ma.masked_array(means_none_nan[folder], np.isnan(means_none_nan[folder])), weights=weights)

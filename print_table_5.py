@@ -11,7 +11,8 @@ columns_to_plot = ['curriculum_metric', 'timing_met', 'heading_err', 'dist_err']
 num_behavior_curricula = 10
 num_curricula = 10
 
-folders = ["reset_all", "reset_all_with_heading"]
+# folders = ["reset_all", "reset_all_with_heading"]
+folders = ["reset_actor", "reset_actor_final_with_heading"]
 
 output_string = ""
 output_string_second_table = ""
@@ -80,11 +81,11 @@ for bi, behavior_curriculum in enumerate(behavior_curriculum_all):
             for folder in folders
         ]
         avg_heading_nan = np.average(
-            np.ma.masked_array(means_heading_nan["reset_all_with_heading"], np.isnan(means_heading_nan["reset_all_with_heading"])),
+            np.ma.masked_array(means_heading_nan["reset_actor_final_with_heading"], np.isnan(means_heading_nan["reset_actor_final_with_heading"])),
             weights=weights
         )
         avg_both_nan = np.average(
-            np.ma.masked_array(means_both_nan["reset_all_with_heading"], np.isnan(means_both_nan["reset_all_with_heading"])),
+            np.ma.masked_array(means_both_nan["reset_actor_final_with_heading"], np.isnan(means_both_nan["reset_actor_final_with_heading"])),
             weights=weights
         )
 

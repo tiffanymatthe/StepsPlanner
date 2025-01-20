@@ -11,7 +11,7 @@ columns_to_plot = ['curriculum_metric', 'timing_met', 'heading_err', 'dist_err']
 num_behavior_curricula = 10
 num_curricula = 10
 
-folders = ["no_distill_data_all", "fatter_0_to_8_9", "mike_final_policy_with_heading"]
+folders = ["reset_actor_final_with_heading", "fatter_0_to_8_9", "mike_final_policy_with_heading"]
 
 output_string = ""
 
