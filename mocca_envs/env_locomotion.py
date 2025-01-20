@@ -317,7 +317,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 20
+    num_steps = 30
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -369,7 +369,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.mask_info = {
             "xy": [False, 0.5, False],
-            "heading": [False, 0.5, False],
+            "heading": [False, 0.5, True],
             "timing": [False, 0.5, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
@@ -1540,6 +1540,8 @@ class Walker3DStepperEnv(EnvBase):
         heading_targets[8:12] += np.tile([-np.pi/4, np.pi/4], reps=2)
         heading_targets[12:16] += np.tile([np.pi/4, -np.pi/4], reps=2)
         heading_targets[16:20] += np.tile([-np.pi/4, np.pi/4], reps=2)
+        heading_targets[20:24] += np.tile([np.pi/4, -np.pi/4], reps=2)
+        heading_targets[24:28] += np.tile([-np.pi/4, np.pi/4], reps=2)
 
         dphi *= 0
 
@@ -2021,7 +2023,7 @@ class Walker3DStepperEnv(EnvBase):
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
 
-        self.mask_info["heading"][2] = False
+        self.mask_info["heading"][2] = True
 
         if self.mask_info["timing"][0]:
             threshold = self.mask_info["timing"][1]

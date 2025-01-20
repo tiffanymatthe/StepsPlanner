@@ -155,7 +155,7 @@ def main():
 
         obs = env.reset(force=True)
         if args.render:
-            env.camera._cam_yaw = 90
+            env.camera._cam_yaw = 180
         ep_reward = 0
 
         left_foot_headings = []
@@ -233,7 +233,10 @@ def main():
 
             obs, reward, done, _ = env.step(cpu_actions)
             if args.render:
-                env.camera.lookat(env.robot.body_xyz)
+                position = copy.copy(env.robot.body_xyz)
+                position[1] -= 0.7
+                position[2]-= 0.5
+                env.camera.lookat(position)
 
             ep_reward += reward
 
