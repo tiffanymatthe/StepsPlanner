@@ -317,10 +317,10 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 20
+    num_steps = 30
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 4
+    rendered_step_count = num_steps
     init_step_separation = 0.70
 
     step_delay = 4
@@ -329,7 +329,7 @@ class Walker3DStepperEnv(EnvBase):
     lookbehind = 1
     walk_target_index = -1
     step_bonus_smoothness = 1
-    stop_steps = [18, 19] # list(range(4,20))
+    stop_steps = [num_steps - 2, num_steps - 1] # list(range(4,20))
 
     def __init__(self, **kwargs):
         # Handle non-robot kwargs
@@ -1697,8 +1697,8 @@ class Walker3DStepperEnv(EnvBase):
         dy = dr * np.sin(dtheta) * np.cos(dphi)
         dx = dr * np.sin(dtheta) * np.sin(dphi)
         dx[2:] += self.dr_spacing
-        dx_flip = self.get_random_flip_array_every_5(N)
-        dx[dx_flip.astype(bool)] *= -1
+        # dx_flip = self.get_random_flip_array_every_5(N)
+        # dx[dx_flip.astype(bool)] *= -1
         dz = dr * np.cos(dtheta)
 
         dy[self.stop_steps[1::2]] = 0
@@ -1755,18 +1755,26 @@ class Walker3DStepperEnv(EnvBase):
         # Check just in case
         curriculum = min(curriculum, self.max_curriculum)
         
+        # step_placement_fcns = [
+        #     (self.generate_to_standstill_step_placements, "to_standstill"),
+        #     (self.generate_turn_in_place_step_placements, "turn_in_place"),
+        #     (self.generate_side_step_step_placements, "side_step"),
+        #     (self.generate_random_walks_step_placements, "random_walks"),
+        #     (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
+        #     (self.generate_one_step_plant_step_placements, "one_step_plant"),
+        #     (self.generate_hopping_step_placements, "hopping")
+        # ]
+
         step_placement_fcns = [
-            (self.generate_to_standstill_step_placements, "to_standstill"),
-            (self.generate_turn_in_place_step_placements, "turn_in_place"),
-            (self.generate_side_step_step_placements, "side_step"),
             (self.generate_random_walks_step_placements, "random_walks"),
             (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
-            (self.generate_one_step_plant_step_placements, "one_step_plant"),
+            (self.generate_side_step_step_placements, "side_step"),
+            (self.generate_turn_in_place_step_placements, "turn_in_place"),
             (self.generate_hopping_step_placements, "hopping")
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
-        selected_step_placement_fcns = self.np_random.choice(step_placement_fcns, 5)
+        selected_step_placement_fcns = step_placement_fcns # self.np_random.choice(step_placement_fcns, 5)
 
         step_placements = None
 
@@ -1786,18 +1794,32 @@ class Walker3DStepperEnv(EnvBase):
                 step_placements = step_placements_part
             a = transition_indices[i-1]
             b = transition_indices[i]
-            heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
-            dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
-            dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
-            step_placements_part[a:b,0] = step_placements_part[a-1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
-            step_placements_part[a:b,1] = step_placements_part[a-1,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
-            step_placements_part[a:b, 6] += heading_shift
+            if i != 4:
+                heading_shift = -(step_placements_part[a-1, 6] - step_placements[a-1, 6])
+                dx = step_placements_part[a:b,0] - step_placements_part[a-1,0]
+                dy = step_placements_part[a:b,1] - step_placements_part[a-1,1]
+                step_placements_part[a:b,0] = step_placements_part[a-1,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
+                step_placements_part[a:b,1] = step_placements_part[a-1,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
+                step_placements_part[a:b, 6] += heading_shift
 
-            x_shift = step_placements_part[a-1, 0] - step_placements[a-1, 0]
-            step_placements_part[a:b, 0] -= x_shift
-            y_shift = step_placements_part[a-1, 1] - step_placements[a-1, 1]
-            step_placements_part[a:b, 1] -= y_shift
-            step_placements[a:b:, :] = step_placements_part[a:b:, :]
+                x_shift = step_placements_part[a-1, 0] - step_placements[a-1, 0]
+                step_placements_part[a:b, 0] -= x_shift
+                y_shift = step_placements_part[a-1, 1] - step_placements[a-1, 1]
+                step_placements_part[a:b, 1] -= y_shift
+                step_placements[a:b:, :] = step_placements_part[a:b:, :]
+            else:
+                heading_shift = -(step_placements_part[0, 6] - step_placements[a-1, 6])
+                dx = step_placements_part[0:b-a,0] - step_placements_part[0,0]
+                dy = step_placements_part[0:b-a,1] - step_placements_part[0,1]
+                step_placements_part[0:b-a,0] = step_placements_part[0,0] + dx * np.cos(heading_shift) - dy * np.sin(heading_shift)
+                step_placements_part[0:b-a,1] = step_placements_part[0,1] + dx * np.sin(heading_shift) + dy * np.cos(heading_shift)
+                step_placements_part[0:b-a, 6] += heading_shift
+
+                x_shift = step_placements_part[0, 0] - step_placements[a-1, 0]
+                step_placements_part[0:b-a, 0] -= x_shift
+                y_shift = step_placements_part[0, 1] - step_placements[a-1, 1]
+                step_placements_part[0:b-a, 1] -= y_shift
+                step_placements[a:b:, :] = step_placements_part[0:b-a:, :]
         return step_placements
 
     def generate_step_placements(self):
