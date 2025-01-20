@@ -347,7 +347,7 @@ class Walker3DStepperEnv(EnvBase):
         # each behavior curriculum has a smaller size-9 curriculum
         self.behavior_curriculum = kwargs.pop("start_behavior_curriculum", 0)
         self.behaviors = ["heading_var", "timing_gaits", "to_standstill", "backward", "random_walks_backward", "random_walks", "turn_in_place", "side_step", "one_step_plant", "combine_all", "combine_all_heading", "transition_all", "hopping"]
-        self.behavior_timing_thresholds = [1.85, 1.8, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
+        self.behavior_timing_thresholds = [1.85, 1.8, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
         assert len(self.behaviors) == len(self.behavior_timing_thresholds)
         self.max_behavior_curriculum = len(self.behaviors) - 1
 
@@ -370,7 +370,7 @@ class Walker3DStepperEnv(EnvBase):
         self.mask_info = {
             "xy": [False, 0.5, False],
             "heading": [False, 0.5, False],
-            "timing": [False, 0.5, False],
+            "timing": [True, 0.5, False],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
             "vel": [False, 0.5, True],

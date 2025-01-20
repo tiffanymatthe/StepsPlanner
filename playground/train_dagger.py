@@ -1,7 +1,5 @@
 '''
-python3 -m playground.train_dagger --env Walker3DStepperEnv-v0 --net runs/dream/sep_30/timing_50_simplifed_cont_c9/models/Walker3DStepperEnv-v0_curr_10_9.pt --student_net runs/dream/sep_4/timing_w_hopping_cont_gpu/models/Walker3DStepperEnv-v0_curr_1_4.pt
-
-python3 -m playground.train_dagger --env Walker3DStepperEnv-v0 --net runs/dream/jan_13/only_reset_actor_cont_threshold_change/models/Walker3DStepperEnv-v0_375000000.pt --student_net runs/dream/sep_4/timing_w_hopping_cont_gpu/models/Walker3DStepperEnv-v0_curr_1_4.pt
+python3 -m playground.train_dagger --env Walker3DStepperEnv-v0 --student_net runs/dream/jan_13/only_reset_actor_cont_threshold_change/models/Walker3DStepperEnv-v0_375000000.pt --net runs/dream/sep_4/timing_w_hopping_cont_gpu/models/Walker3DStepperEnv-v0_curr_1_4.pt --num_epochs 40
 '''
 
 import argparse
@@ -13,10 +11,11 @@ os.sys.path.insert(0, parent_dir)
 import numpy as np
 import torch
 import mocca_envs
+from common.controller import SoftsignActor, Policy
 from algorithms.dagger import train
 
 from common.envs_utils import (
-    make_vec_envs,
+    make_vec_envs, make_env
 )
 
 def main():
@@ -59,17 +58,46 @@ def main():
 
     torch.set_num_threads(1)
 
+    env_per_task_kwargs = [env_kwargs, env_kwargs_normal]
 
-    actor_critic = torch.load(args.net, map_location=torch.device(device))
+    envs_per_task = [
+        make_vec_envs(
+            args.env, args.seed, args.num_processes, None, **env_per_task_kwargs[i]
+        )
+        for i in range(2)
+    ]
+ 
+    dummy_env = make_env(args.env, **env_per_task_kwargs[0])
+
+    # envs_per_task = [
+    #     make_env(args.env, seed=args.seed, **env_per_task_kwargs[i])
+    #     # make_vec_envs(
+    #     #     env_name, seed, num_processes, None, **env_per_task_kwargs[i]
+    #     # )
+    #     for i in range(2)
+    # ]
+
+    try:
+        controller = SoftsignActor(dummy_env)
+        actor_critic = Policy(controller)
+        actor_critic.load_state_dict(torch.load(args.net, map_location=torch.device(device)))
+    except:
+        actor_critic = torch.load(args.net, map_location=torch.device(device))
+
     if args.student_net is not None:
-        actor_critic_student = torch.load(args.student_net, map_location=torch.device(device))
+        try:
+            controller = SoftsignActor(dummy_env)
+            actor_critic_student = Policy(controller)
+            actor_critic_student.load_state_dict(torch.load(args.student_net, map_location=torch.device(device)))
+        except:
+            actor_critic_student = torch.load(args.student_net, map_location=torch.device(device))
     else:
         actor_critic_student = None
 
     train(
         actor_critic,
         actor_critic_student,
-        args.env,
+        envs_per_task,
         [env_kwargs, env_kwargs_normal],
         device=device,
         seed=args.seed,
