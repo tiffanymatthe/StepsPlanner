@@ -317,7 +317,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_velocity = None
 
     plank_class = VeryLargePlank  # Pillar, Plank, LargePlank
-    num_steps = 30
+    num_steps = 40
     step_radius = 0.25
     foot_sep = 0.16
     rendered_step_count = 3
@@ -1797,13 +1797,13 @@ class Walker3DStepperEnv(EnvBase):
             (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
             (self.generate_side_step_step_placements, "side_step"),
             (self.generate_turn_in_place_step_placements, "turn_in_place"),
-            (self.generate_hopping_step_placements, "hopping"),
+            # (self.generate_hopping_step_placements, "hopping"),
+            # (self.generate_random_walks_step_placements, "random_walks"),
+            # (self.generate_turn_in_place_step_placements, "turn_in_place"),
+            # (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
             (self.generate_random_walks_step_placements, "random_walks"),
-            (self.generate_turn_in_place_step_placements, "turn_in_place"),
-            (self.generate_random_walks_backward_step_placements, "random_walks_backward"),
-            (self.generate_random_walks_step_placements, "random_walks"),
-            (self.generate_hopping_step_placements, "hopping"),
-            (self.generate_side_step_step_placements, "side_step"),
+            # (self.generate_hopping_step_placements, "hopping"),
+            # (self.generate_side_step_step_placements, "side_step"),
         ]
 
         # randomly pick 3, rotate steps to match last heading of previous and shift
@@ -1811,7 +1811,7 @@ class Walker3DStepperEnv(EnvBase):
 
         step_placements = None
 
-        transition_indices = [4,8,12,18,25,27,33,37,40,47,self.num_steps]
+        transition_indices = [4,10,16,22,28] # [4,8,12,18,25,27,33,37,40,47,self.num_steps]
 
         for i, selected_step_placement_fcn_tuple in enumerate(selected_step_placement_fcns):
             selected_step_placement_fcn, behavior_str = selected_step_placement_fcn_tuple
