@@ -369,7 +369,7 @@ class Walker3DStepperEnv(EnvBase):
 
         self.mask_info = {
             "xy": [False, 0.5, False],
-            "heading": [False, 0.5, True],
+            "heading": [False, 0.5, False],
             "timing": [False, 0.5, True],
             "leg": [False, 0.5, False],
             "dir": [False, 0.5, True],
@@ -2023,7 +2023,7 @@ class Walker3DStepperEnv(EnvBase):
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(replace)
 
-        self.mask_info["heading"][2] = True
+        self.mask_info["heading"][2] = False
 
         if self.mask_info["timing"][0]:
             threshold = self.mask_info["timing"][1]
