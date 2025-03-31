@@ -348,10 +348,10 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
 
         # Terrain info
-        self.dist_range = np.array([0.65, 1.25])
-        self.pitch_range = np.array([-30, +30])  # degrees
-        self.yaw_range = np.array([-20, 20])
-        self.tilt_range = np.array([-15, 15])
+        self.dist_range = np.array([0.65, 0])
+        self.pitch_range = np.array([0, 0])  # degrees
+        self.yaw_range = np.array([0,0])
+        self.tilt_range = np.array([0, 0])
         self.step_param_dim = 5
         # Important to do this once before reset!
         self.terrain_info = self.generate_step_placements()
@@ -375,7 +375,7 @@ class Walker3DStepperEnv(EnvBase):
         self.in_air_count = 0
         self.reached_last_step = False
 
-    def generate_step_placements(self):
+    def generate_side_step_placements(self):
 
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
@@ -454,7 +454,7 @@ class Walker3DStepperEnv(EnvBase):
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
-    def generate_straight_step_placements(self):
+    def generate_step_placements(self):
 
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
@@ -492,9 +492,9 @@ class Walker3DStepperEnv(EnvBase):
         dy = dr * np.sin(dtheta) * np.sin(dphi)
         dz = dr * np.cos(dtheta)
 
-        # Fix overlapping steps
-        dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
-        dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
+        # # Fix overlapping steps
+        # dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
+        # dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
 
         x = np.cumsum(dx)
         y = np.cumsum(dy)
