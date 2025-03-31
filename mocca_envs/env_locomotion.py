@@ -931,9 +931,7 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
-        step_radius = self.step_radius if not (self.task == 0 and self.curriculum == 0) else 0.4
-
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < step_radius and (self.swing_leg_lifted or self.reached_last_step)
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
         # At least one foot is on the plank
         if self.target_reached:
@@ -1031,13 +1029,13 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_full = self.terrain_info[self.next_step_index]
         self.walk_target = np.copy(walk_target_full[0:3])
-        heading = walk_target_full[3]
-        if self.next_step_index % 2 == int(self.robot.mirrored):
-            self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
-        else:
-            self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
+        # heading = walk_target_full[3]
+        # if self.next_step_index % 2 == int(self.robot.mirrored):
+        #     self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
+        #     self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
+        # else:
+        #     self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
+        #     self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
