@@ -336,7 +336,7 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = 12  # steps_reached
 
-        self.task = 2
+        self.task = 1
         self.max_task = 3
 
         # Robot settings
