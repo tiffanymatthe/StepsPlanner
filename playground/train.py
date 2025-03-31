@@ -159,8 +159,10 @@ def main(_seed, _config, _run):
     if args.use_curriculum:
         current_curriculum = dummy_env.unwrapped.curriculum
         max_curriculum = dummy_env.unwrapped.max_curriculum
+        current_task = dummy_env.unwrapped.task
+        max_task = dummy_env.unwrapped.max_task
         advance_threshold = dummy_env.unwrapped.advance_threshold
-        envs.set_env_params({"curriculum": current_curriculum})
+        envs.set_env_params({"task": current_task})
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))
@@ -228,10 +230,18 @@ def main(_seed, _config, _run):
                 and len(curriculum_metrics) > 0
                 and (sum(curriculum_metrics) / len(curriculum_metrics))
                 > advance_threshold
-                and current_curriculum < max_curriculum
             ):
-                current_curriculum += 1
-                envs.set_env_params({"curriculum": current_curriculum})
+                if current_curriculum < max_curriculum:
+                    current_curriculum += 1
+                    envs.set_env_params({"curriculum": current_curriculum})
+                    model_name = f"{save_name}_{int(current_task)}_{int(current_curriculum)}.pt"
+                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                elif current_task < max_task:
+                    current_task += 1
+                    envs.set_env_params({"task": current_task})
+                    model_name = f"{save_name}_{int(current_task)}_{int(current_curriculum)}.pt"
+                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)
 
@@ -264,6 +274,7 @@ def main(_seed, _config, _run):
                 {
                     "iter": iteration + 1,
                     "curriculum": current_curriculum if args.use_curriculum else 0,
+                    "task": current_task if args.use_curriculum else 0,
                     "curriculum_metric": mean_metric,
                     "total_num_steps": frame_count,
                     "fps": int(frame_count / (end - start)),

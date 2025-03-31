@@ -42,6 +42,7 @@ class ConsoleCSVLogger(CSVLogger):
         print(
             (
                 f'Updates {data["iter"]}, '
+                f'task {data["task"]}, '
                 f'curriculum {data["curriculum"]}, '
                 f'curriculum metric {data["curriculum_metric"]:.2f}, '
                 f'num timesteps {data["total_num_steps"]}, '

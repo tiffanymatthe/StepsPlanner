@@ -337,6 +337,7 @@ class Walker3DStepperEnv(EnvBase):
         self.advance_threshold = 12  # steps_reached
 
         self.task = 0
+        self.max_task = 3
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -470,7 +471,7 @@ class Walker3DStepperEnv(EnvBase):
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
         N = self.num_steps
-        dr = self.np_random.uniform(*dist_range, size=N)
+        dr = self.np_random.uniform(dist_range[1], dist_range[0], size=N)
         dphi = self.np_random.uniform(*yaw_range, size=N)
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
