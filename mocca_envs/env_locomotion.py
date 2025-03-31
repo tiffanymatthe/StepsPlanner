@@ -16,6 +16,7 @@ from mocca_envs.bullet_objects import (
     LargePlank,
     HeightField,
     MonkeyBar,
+    VCylinder,
 )
 from mocca_envs.robots import Child3D, Laikago, Mike, Monkey3D, Walker2D, Walker3D
 
@@ -478,8 +479,9 @@ class Walker3DStepperEnv(EnvBase):
     def randomize_terrain(self, replace=True):
         if replace:
             self.terrain_info = self.generate_step_placements()
-        for index in range(self.rendered_step_count):
-            self.set_step_state(index, index)
+        if self.is_rendered or self.use_egl:
+            for index in range(self.rendered_step_count):
+                self.set_step_state(index, index)
 
     def update_steps(self):
         if self.rendered_step_count == self.num_steps or not (self.is_rendered or self.use_egl):
