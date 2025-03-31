@@ -313,6 +313,7 @@ class Walker3DStepperEnv(EnvBase):
     plank_class = LargePlank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
+    foot_sep = 0.16
     rendered_step_count = 3
     init_step_separation = 0.75
 
@@ -431,10 +432,8 @@ class Walker3DStepperEnv(EnvBase):
         left_shifts = np.flip(left_shifts, axis=0)
         right_shifts = np.flip(right_shifts, axis=0)
 
-        foot_sep = 0.16
-
-        y += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * foot_sep
-        x += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * foot_sep
+        y += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * self.foot_sep
+        x += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * self.foot_sep
 
         if not self.robot.mirrored:
             y *= -1
@@ -778,7 +777,15 @@ class Walker3DStepperEnv(EnvBase):
         else:
             targets = self._targets
 
-        self.walk_target = targets[self.walk_target_index, 0:3]
+        walk_target_full = self.terrain_info[self.next_step_index]
+        self.walk_target = np.copy(walk_target_full[0:3])
+        heading = walk_target_full[3]
+        if self.next_step_index % 2 == int(self.robot.mirrored):
+            self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
+            self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
+        else:
+            self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
+            self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
