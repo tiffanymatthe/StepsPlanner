@@ -310,11 +310,11 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_position = [0.3, 0, 1.32]
     robot_init_velocity = None
 
-    plank_class = LargePlank  # Pillar, Plank, LargePlank
+    plank_class = Plank  # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 10
+    rendered_step_count = 3
     init_step_separation = 0.75
 
     lookahead = 2
@@ -328,7 +328,7 @@ class Walker3DStepperEnv(EnvBase):
         plank_name = kwargs.pop("plank_class", None)
         self.plank_class = globals().get(plank_name, self.plank_class)
 
-        super().__init__(self.robot_class, remove_ground=False, **kwargs)
+        super().__init__(self.robot_class, remove_ground=True, **kwargs)
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
@@ -336,7 +336,7 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = 12  # steps_reached
 
-        self.task = 1
+        self.task = 0
         self.max_task = 3
 
         # Robot settings
@@ -709,11 +709,11 @@ class Walker3DStepperEnv(EnvBase):
 
         if self.is_rendered or self.use_egl:
             for index in range(self.rendered_step_count):
-                # p = self.plank_class(self._p, self.step_radius, options=options)
-                # self.steps.append(p)
-                # step_ids = step_ids | {(p.id, p.base_id)}
-                # cover_ids = cover_ids | {(p.id, p.cover_id)}
-                self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
+                p = self.plank_class(self._p, self.step_radius, options=options)
+                self.steps.append(p)
+                step_ids = step_ids | {(p.id, p.base_id)}
+                cover_ids = cover_ids | {(p.id, p.cover_id)}
+                # self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
 
         # Need set for detecting contact
         self.all_contact_object_ids = set(step_ids) | set(cover_ids)
@@ -725,18 +725,18 @@ class Walker3DStepperEnv(EnvBase):
         pos = self.terrain_info[info_index, 0:3]
         phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
-        self.rendered_steps[step_index].set_position(pos=pos)
-        # self.steps[step_index].set_position(pos=pos, quat=quaternion)
+        # self.rendered_steps[step_index].set_position(pos=pos)
+        self.steps[step_index].set_position(pos=pos, quat=quaternion)
 
     def randomize_terrain(self, replace=True):
         if replace:
             self.terrain_info = self.generate_step_placements()
-        if self.is_rendered or self.use_egl:
-            for index in range(self.rendered_step_count):
-                self.set_step_state(index, index)
+        # if self.is_rendered or self.use_egl:
+        for index in range(self.rendered_step_count):
+            self.set_step_state(index, index)
 
     def update_steps(self):
-        if self.rendered_step_count == self.num_steps or not (self.is_rendered or self.use_egl):
+        if self.rendered_step_count == self.num_steps: # or not (self.is_rendered or self.use_egl):
             return
 
         if self.next_step_index >= self.rendered_step_count:
@@ -886,9 +886,14 @@ class Walker3DStepperEnv(EnvBase):
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 # or self.swing_leg_has_fallen or self.other_leg_has_fallen
 
     def calc_feet_state(self):
+        # Calculate contact separately for step
+        target_cover_index = self.next_step_index % self.rendered_step_count
+        next_step = self.steps[target_cover_index]
+        # target_cover_id = {(next_step.id, next_step.cover_id)}
+
         self.foot_dist_to_target = np.sqrt(
             ss(
                 self.robot.feet_xyz[:, 0:2]
@@ -899,9 +904,11 @@ class Walker3DStepperEnv(EnvBase):
 
         robot_id = self.robot.id
         client_id = self._p._client
-        ground_ids = next(iter(self.ground_ids))
-        target_id_list = [ground_ids[0]]
-        target_cover_id_list = [ground_ids[1]]
+        # ground_ids = next(iter(self.ground_ids))
+        # target_id_list = [ground_ids[0]]
+        # target_cover_id_list = [ground_ids[1]]
+        target_id_list = [next_step.id]
+        target_cover_id_list = [next_step.cover_id] #next_step.cover_id]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -937,7 +944,7 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius # and (self.swing_leg_lifted or self.reached_last_step)
 
         if self.next_step_index > 1:
             dist_to_prev_target = np.sqrt(
@@ -1056,13 +1063,13 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_full = self.terrain_info[self.next_step_index]
         self.walk_target = np.copy(walk_target_full[0:3])
-        heading = walk_target_full[3]
-        if self.next_step_index % 2 == int(self.robot.mirrored):
-            self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
-        else:
-            self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
+        # heading = walk_target_full[3]
+        # if self.next_step_index % 2 == int(self.robot.mirrored):
+        #     self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
+        #     self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
+        # else:
+        #     self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
+        #     self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
