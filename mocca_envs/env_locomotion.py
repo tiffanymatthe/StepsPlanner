@@ -688,9 +688,9 @@ class Walker3DStepperEnv(EnvBase):
     def generate_step_placements(self):
         if self.task == 0:
             return self.generate_to_standstill_step_placements()
-        elif self.task == 1:
-            return self.generate_side_step_placements()
         elif self.task == 2:
+            return self.generate_side_step_placements()
+        elif self.task == 1:
             return self.generate_backward_step_placements()
         elif self.task == 3:
             return self.generate_turn_in_place_step_placements()

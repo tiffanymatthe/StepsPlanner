@@ -46,7 +46,7 @@ def main():
     title = "Results with smoothing %.1f" % args.smoothing
     if args.log_scale:
         title += " (Log Scale)"
-    plot = Plot(nrows=nrows, ncols=math.ceil(N / nrows), title=title)
+    plot = Plot(nrows=nrows, ncols=math.ceil(N / nrows)) #, title=title)
     plots = []
     for column in args.columns:
         if args.final:
