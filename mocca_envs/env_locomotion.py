@@ -389,6 +389,85 @@ class Walker3DStepperEnv(EnvBase):
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
         N = self.num_steps
+
+        dr_spacing = 0.2
+
+        dr = np.zeros(N) + dr_spacing
+
+        dphi = self.np_random.uniform(*yaw_range, size=N)
+        dtheta = self.np_random.uniform(*pitch_range, size=N)
+        x_tilt = self.np_random.uniform(*tilt_range, size=N)
+        y_tilt = self.np_random.uniform(*tilt_range, size=N)
+
+        # make first step below feet
+        dr[0] = 0.0
+        dphi[0] = 0.0
+        dtheta[0] = np.pi / 2
+
+        dr[1] = self.init_step_separation
+        dphi[1] = 0.0
+        dtheta[1] = np.pi / 2
+
+        x_tilt[0:3] = 0
+        y_tilt[0:3] = 0
+
+        dphi[self.stop_steps[1::2]] = 0
+        dphi = np.cumsum(dphi)
+
+        dy = dr * np.sin(dtheta) * np.cos(dphi)
+        dx = dr * np.sin(dtheta) * np.sin(dphi)
+        dz = dr * np.cos(dtheta)
+
+        dx[2:] += dr_spacing
+
+        dy[self.stop_steps[1::2]] = 0
+        dx[self.stop_steps[1::2]] = 0
+
+        x = np.roll(np.repeat(np.cumsum(dx[:N//2]), 2),-1)
+        y = np.roll(np.repeat(dy[:N//2], 2),-1)
+        z = np.roll(np.repeat(dz[:N//2], 2),-1)
+        y[3:] += self.init_step_separation - dr_spacing
+        dphi = np.roll(np.repeat(dphi[:N//2], 2),-1)
+
+        swing_legs = np.ones(N, dtype=np.int8)
+        swing_legs[:N:2] = 0
+
+# Calculate shifts
+        left_shifts = np.array([np.cos(dphi + np.pi / 2), np.sin(dphi + np.pi / 2)])
+        right_shifts = np.array([np.cos(dphi - np.pi / 2), np.sin(dphi - np.pi / 2)])
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * self.foot_sep
+        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * self.foot_sep
+
+        x, y = y, x
+
+        if not self.robot.mirrored:
+            y *= -1
+        else:
+            swing_legs = 1 - swing_legs
+
+        dphi *= 0
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
+
+    def generate_straight_step_placements(self):
+
+        # Check just in case
+        self.curriculum = min(self.curriculum, self.max_curriculum)
+        ratio = self.curriculum / self.max_curriculum
+
+        # {self.max_curriculum + 1} levels in total
+        dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
+        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        yaw_range = self.yaw_range * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD
+
+        N = self.num_steps
         dr = self.np_random.uniform(*dist_range, size=N)
         dphi = self.np_random.uniform(*yaw_range, size=N)
         dtheta = self.np_random.uniform(*pitch_range, size=N)
