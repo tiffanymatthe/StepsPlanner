@@ -707,12 +707,12 @@ class Walker3DStepperEnv(EnvBase):
             "flags": self._p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         }
 
-        if self.is_rendered or self.use_egl:
-            for index in range(self.rendered_step_count):
-                p = self.plank_class(self._p, self.step_radius, options=options)
-                self.steps.append(p)
-                step_ids = step_ids | {(p.id, p.base_id)}
-                cover_ids = cover_ids | {(p.id, p.cover_id)}
+        # if self.is_rendered or self.use_egl:
+        for index in range(self.rendered_step_count):
+            p = self.plank_class(self._p, self.step_radius, options=options)
+            self.steps.append(p)
+            step_ids = step_ids | {(p.id, p.base_id)}
+            cover_ids = cover_ids | {(p.id, p.cover_id)}
                 # self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
 
         # Need set for detecting contact
