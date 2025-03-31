@@ -858,13 +858,13 @@ class Walker3DStepperEnv(EnvBase):
 
         walk_target_full = self.terrain_info[self.next_step_index]
         self.walk_target = np.copy(walk_target_full[0:3])
-        heading = walk_target_full[3]
-        if self.next_step_index % 2 == int(self.robot.mirrored):
-            self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
-        else:
-            self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
-            self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
+        # heading = walk_target_full[3]
+        # if self.next_step_index % 2 == int(self.robot.mirrored):
+        #     self.walk_target[0] += np.cos(heading - np.pi / 2) * self.foot_sep
+        #     self.walk_target[1] += np.sin(heading - np.pi / 2) * self.foot_sep
+        # else:
+        #     self.walk_target[0] += np.cos(heading + np.pi / 2) * self.foot_sep
+        #     self.walk_target[1] += np.sin(heading + np.pi / 2) * self.foot_sep
 
         delta_pos = targets[:, 0:3] - self.robot.body_xyz
         target_thetas = np.arctan2(delta_pos[:, 1], delta_pos[:, 0])
