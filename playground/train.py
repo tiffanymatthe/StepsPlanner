@@ -232,15 +232,17 @@ def main(_seed, _config, _run):
                 > advance_threshold
             ):
                 if current_curriculum < max_curriculum:
+                    model_name = f"{save_name}_{int(current_task)}_{int(current_curriculum)}.pt"
+                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
                     current_curriculum += 1
                     envs.set_env_params({"curriculum": current_curriculum})
-                    model_name = f"{save_name}_{int(current_task)}_{int(current_curriculum)}.pt"
-                    torch.save(actor_critic, os.path.join(args.save_dir, model_name))
                 elif current_task < max_task:
-                    current_task += 1
-                    envs.set_env_params({"task": current_task})
                     model_name = f"{save_name}_{int(current_task)}_{int(current_curriculum)}.pt"
                     torch.save(actor_critic, os.path.join(args.save_dir, model_name))
+                    current_task += 1
+                    current_curriculum = 0
+                    envs.set_env_params({"curriculum": current_curriculum})
+                    envs.set_env_params({"task": current_task})
 
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.gae_lambda)

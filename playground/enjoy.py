@@ -123,6 +123,7 @@ def main():
             cpu_actions = action.squeeze().cpu().numpy()
             obs, reward, done, _ = env.step(cpu_actions)
             env.camera.track(env.robot.body_xyz)
+            env.camera.lookat(env.robot.body_xyz)
             ep_reward += reward
 
             if done:

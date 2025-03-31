@@ -377,6 +377,8 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted_count = 0
         self.in_air_count = 0
         self.reached_last_step = False
+        self.swing_leg_has_fallen = False
+        self.other_leg_has_fallen = False
 
     def generate_side_step_placements(self):
 
@@ -393,7 +395,8 @@ class Walker3DStepperEnv(EnvBase):
 
         N = self.num_steps
 
-        dr_spacing = 0.2
+        dr_spacing_curr = np.linspace(0.2, 0.7, self.max_curriculum + 1)
+        dr_spacing = dr_spacing_curr[self.curriculum]
 
         dr = np.zeros(N) + dr_spacing
 
@@ -435,7 +438,7 @@ class Walker3DStepperEnv(EnvBase):
         swing_legs = np.ones(N, dtype=np.int8)
         swing_legs[:N:2] = 0
 
-# Calculate shifts
+        # Calculate shifts
         left_shifts = np.array([np.cos(dphi + np.pi / 2), np.sin(dphi + np.pi / 2)])
         right_shifts = np.array([np.cos(dphi - np.pi / 2), np.sin(dphi - np.pi / 2)])
 
@@ -471,7 +474,7 @@ class Walker3DStepperEnv(EnvBase):
         tilt_range = self.tilt_range * ratio * DEG2RAD
 
         N = self.num_steps
-        dr = self.np_random.uniform(dist_range[1], dist_range[0], size=N)
+        dr = np.zeros(N) + dist_upper[self.curriculum]
         dphi = self.np_random.uniform(*yaw_range, size=N)
         dtheta = self.np_random.uniform(*pitch_range, size=N)
         x_tilt = self.np_random.uniform(*tilt_range, size=N)
@@ -756,6 +759,8 @@ class Walker3DStepperEnv(EnvBase):
         self.swing_leg_lifted_count = 0
         self.in_air_count = 0
         self.reached_last_step = False
+        self.swing_leg_has_fallen = False
+        self.other_leg_has_fallen = False
 
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         self.robot_state = self.robot.reset(
@@ -770,6 +775,7 @@ class Walker3DStepperEnv(EnvBase):
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
         self.randomize_terrain(True) # replace)
+        self.prev_leg_pos = self.robot.feet_xyz[:, 0:2]
         self.calc_feet_state()
 
         # Reset camera
@@ -880,7 +886,7 @@ class Walker3DStepperEnv(EnvBase):
         terminal_height = self.terminal_height_curriculum[self.curriculum]
         self.tall_bonus = 2.0 if self.robot_state[0] > terminal_height else -1.0
         abs_height = self.robot.body_xyz[2] - self.terrain_info[self.next_step_index, 2]
-        self.done = self.done or self.tall_bonus < 0 or abs_height < -3
+        self.done = self.done or self.tall_bonus < 0 or abs_height < -3 or self.swing_leg_has_fallen or self.other_leg_has_fallen
 
     def calc_feet_state(self):
         self.foot_dist_to_target = np.sqrt(
@@ -933,6 +939,26 @@ class Walker3DStepperEnv(EnvBase):
 
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
+        if self.next_step_index > 1:
+            dist_to_prev_target = np.sqrt(
+                ss(
+                    self.robot.feet_xyz[:, 0:2]
+                    - self.prev_leg_pos[:, 0:2],
+                    axis=1,
+                )
+            )
+            foot_in_target = self.foot_dist_to_target[self.swing_leg] < self.step_radius
+            foot_in_prev_target = dist_to_prev_target[self.swing_leg] < self.step_radius
+            other_foot_in_prev_target = dist_to_prev_target[1-self.swing_leg] < self.step_radius + 0.1
+            swing_leg_not_on_steps = not foot_in_target and not foot_in_prev_target
+
+        swing_leg_in_air = self._foot_target_contacts[self.swing_leg, 0] == 0
+        other_leg_in_air = self._foot_target_contacts[1-self.swing_leg, 0] == 0
+        # if swing leg is not on previous step and not on current step and not in air, should terminate
+        self.swing_leg_has_fallen = self.next_step_index > 1 and not swing_leg_in_air and swing_leg_not_on_steps
+        # self.swing_leg_has_fallen = not swing_leg_in_air and swing_leg_not_on_steps # self.next_step_index > 1
+        self.other_leg_has_fallen = self.next_step_index > 1 and not other_leg_in_air and not other_foot_in_prev_target
+
         # At least one foot is on the plank
         if self.target_reached:
             self.target_reached_count += 1
@@ -946,6 +972,7 @@ class Walker3DStepperEnv(EnvBase):
             # Needed for not over counting step bonus
             if self.target_reached_count >= 2:
                 if not self.stop_on_next_step:
+                    self.prev_leg_pos[self.swing_leg] = self.terrain_info[self.next_step_index, 0:2]
                     self.swing_leg = (self.swing_leg + 1) % 2
                     self.next_step_index += 1
                     self.target_reached_count = 0
