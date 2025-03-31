@@ -326,7 +326,7 @@ class Walker3DStepperEnv(EnvBase):
         plank_name = kwargs.pop("plank_class", None)
         self.plank_class = globals().get(plank_name, self.plank_class)
 
-        super().__init__(self.robot_class, remove_ground=True, **kwargs)
+        super().__init__(self.robot_class, remove_ground=False, **kwargs)
         self.robot.set_base_pose(pose="running_start")
 
         # Fix-ordered Curriculum
@@ -367,6 +367,11 @@ class Walker3DStepperEnv(EnvBase):
         F = len(self.robot.feet)
         self._foot_target_contacts = np.zeros((F, 1), dtype=np.float32)
         self.foot_dist_to_target = np.zeros(F, dtype=np.float32)
+
+        self.swing_leg_lifted = False
+        self.swing_leg_lifted_count = 0
+        self.in_air_count = 0
+        self.reached_last_step = False
 
     def generate_step_placements(self):
 
@@ -414,11 +419,33 @@ class Walker3DStepperEnv(EnvBase):
         y = np.cumsum(dy)
         z = np.cumsum(dz)
 
+        swing_legs = np.ones(N, dtype=np.int8)
+        swing_legs[:N:2] = 0
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(dphi + np.pi / 2), np.sin(dphi + np.pi / 2)])
+        right_shifts = np.array([np.cos(dphi - np.pi / 2), np.sin(dphi - np.pi / 2)])
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        foot_sep = 0.16
+
+        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * foot_sep
+        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * foot_sep
+
+        if self.robot.mirrored:
+            x *= -1
+        else:
+            swing_legs = 1 - swing_legs
+
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
     def create_terrain(self):
 
         self.steps = []
+        self.rendered_steps = []
         step_ids = set()
         cover_ids = set()
 
@@ -427,11 +454,13 @@ class Walker3DStepperEnv(EnvBase):
             "flags": self._p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         }
 
-        for index in range(self.rendered_step_count):
-            p = self.plank_class(self._p, self.step_radius, options=options)
-            self.steps.append(p)
-            step_ids = step_ids | {(p.id, p.base_id)}
-            cover_ids = cover_ids | {(p.id, p.cover_id)}
+        if self.is_rendered or self.use_egl:
+            for index in range(self.rendered_step_count):
+                # p = self.plank_class(self._p, self.step_radius, options=options)
+                # self.steps.append(p)
+                # step_ids = step_ids | {(p.id, p.base_id)}
+                # cover_ids = cover_ids | {(p.id, p.cover_id)}
+                self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
 
         # Need set for detecting contact
         self.all_contact_object_ids = set(step_ids) | set(cover_ids)
@@ -443,7 +472,8 @@ class Walker3DStepperEnv(EnvBase):
         pos = self.terrain_info[info_index, 0:3]
         phi, x_tilt, y_tilt = self.terrain_info[info_index, 3:6]
         quaternion = np.array(pybullet.getQuaternionFromEuler([x_tilt, y_tilt, phi]))
-        self.steps[step_index].set_position(pos=pos, quat=quaternion)
+        self.rendered_steps[step_index].set_position(pos=pos)
+        # self.steps[step_index].set_position(pos=pos, quat=quaternion)
 
     def randomize_terrain(self, replace=True):
         if replace:
@@ -452,7 +482,7 @@ class Walker3DStepperEnv(EnvBase):
             self.set_step_state(index, index)
 
     def update_steps(self):
-        if self.rendered_step_count == self.num_steps:
+        if self.rendered_step_count == self.num_steps or not (self.is_rendered or self.use_egl):
             return
 
         if self.next_step_index >= self.rendered_step_count:
@@ -470,6 +500,11 @@ class Walker3DStepperEnv(EnvBase):
 
         self.set_stop_on_next_step = False
         self.stop_on_next_step = False
+
+        self.swing_leg_lifted = False
+        self.swing_leg_lifted_count = 0
+        self.in_air_count = 0
+        self.reached_last_step = False
 
         self.robot.applied_gain = self.applied_gain_curriculum[self.curriculum]
         self.robot_state = self.robot.reset(
@@ -597,11 +632,6 @@ class Walker3DStepperEnv(EnvBase):
         self.done = self.done or self.tall_bonus < 0 or abs_height < -3
 
     def calc_feet_state(self):
-        # Calculate contact separately for step
-        target_cover_index = self.next_step_index % self.rendered_step_count
-        next_step = self.steps[target_cover_index]
-        # target_cover_id = {(next_step.id, next_step.cover_id)}
-
         self.foot_dist_to_target = np.sqrt(
             ss(
                 self.robot.feet_xyz[:, 0:2]
@@ -612,8 +642,9 @@ class Walker3DStepperEnv(EnvBase):
 
         robot_id = self.robot.id
         client_id = self._p._client
-        target_id_list = [next_step.id]
-        target_cover_id_list = [next_step.cover_id]
+        ground_ids = next(iter(self.ground_ids))
+        target_id_list = [ground_ids[0]]
+        target_cover_id_list = [ground_ids[1]]
         self._foot_target_contacts.fill(0)
 
         for i, (foot, contact) in enumerate(
@@ -633,7 +664,23 @@ class Walker3DStepperEnv(EnvBase):
             and self.next_step_index - 2 in self.stop_steps
         ):
             self.swing_leg = nanargmax(self._foot_target_contacts[:, 0])
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0
+
+        if self.next_step_index == 1 or self.swing_leg_lifted:
+            # if first step or already lifted, say true
+            self.swing_leg_lifted = True
+        if self._foot_target_contacts[self.swing_leg, 0] == 0:
+            # if in the air, increase count
+            self.swing_leg_lifted_count += 1
+            self.in_air_count += 1
+        else:
+            self.swing_leg_lifted_count = 0
+
+        if not self.swing_leg_lifted:
+            # if not lifted yet and over count, True
+            if self.swing_leg_lifted_count >= 1:
+                self.swing_leg_lifted = True
+
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius and (self.swing_leg_lifted or self.reached_last_step)
 
         # At least one foot is on the plank
         if self.target_reached:
@@ -653,6 +700,8 @@ class Walker3DStepperEnv(EnvBase):
                     self.target_reached_count = 0
                     self.update_steps()
                 self.stop_on_next_step = self.set_stop_on_next_step
+
+                self.reached_last_step = self.reached_last_step or self.next_step_index >= len(self.terrain_info) - 1
 
             # Prevent out of bound
             if self.next_step_index >= len(self.terrain_info):
