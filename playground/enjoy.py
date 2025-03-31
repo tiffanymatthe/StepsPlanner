@@ -65,7 +65,7 @@ def main():
     print("Env: {}".format(args.env))
     print("Model: {}".format(os.path.basename(model_path)))
 
-    actor_critic = torch.load(model_path).to("cpu")
+    actor_critic = torch.load(model_path, map_location=torch.device('cpu')).to("cpu")
     actor = actor_critic.actor
 
     if type(actor) == MixedActor and args.plot:

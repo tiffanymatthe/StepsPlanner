@@ -433,11 +433,11 @@ class Walker3DStepperEnv(EnvBase):
 
         foot_sep = 0.16
 
-        x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * foot_sep
-        y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * foot_sep
+        y += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * foot_sep
+        x += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * foot_sep
 
-        if self.robot.mirrored:
-            x *= -1
+        if not self.robot.mirrored:
+            y *= -1
         else:
             swing_legs = 1 - swing_legs
 
@@ -520,7 +520,7 @@ class Walker3DStepperEnv(EnvBase):
         replace = self.next_step_index >= self.num_steps / 2
         self.next_step_index = self.lookbehind
         self._prev_next_step_index = self.next_step_index - 1
-        self.randomize_terrain(replace)
+        self.randomize_terrain(True) # replace)
         self.calc_feet_state()
 
         # Reset camera
