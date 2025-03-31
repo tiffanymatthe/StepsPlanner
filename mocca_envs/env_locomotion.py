@@ -336,7 +336,7 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = 12  # steps_reached
 
-        self.task = 1
+        self.task = 2
         self.max_task = 3
 
         # Robot settings
@@ -529,7 +529,7 @@ class Walker3DStepperEnv(EnvBase):
     
     def generate_backward_step_placements(self):
 
-        dist_range = np.array([0, -0.43])
+        dist_range = np.array([-0.43, -0.43])
 
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
