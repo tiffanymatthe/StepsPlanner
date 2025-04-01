@@ -739,11 +739,14 @@ class Walker3DStepperEnv(EnvBase):
 
         heading_targets = np.copy(dphi)
 
-        x = np.roll(np.repeat(dx[:N//2], 2),-1)
-        y = np.roll(np.repeat(dy[:N//2], 2),-1)
+        x = np.roll(np.repeat(dx[:N//2 + 1], 2),-1)
+        x = x[:N]
+        y = np.roll(np.repeat(dy[:N//2 + 1], 2),-1)
+        y = y[:N]
         z = np.roll(np.repeat(dz[:N//2], 2),-1)
         y[3:] += self.init_step_separation - dr_spacing
-        heading_targets = np.roll(np.repeat(heading_targets[:N//2], 2),-1)
+        heading_targets = np.roll(np.repeat(heading_targets[:N//2 + 1], 2),-1)
+        heading_targets = heading_targets[:N]
 
         foot_seps = self.foot_sep + np.zeros(N)
 
