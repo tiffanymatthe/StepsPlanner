@@ -310,7 +310,7 @@ class Walker3DStepperEnv(EnvBase):
     robot_init_position = [0.3, 0, 1.32]
     robot_init_velocity = None
 
-    plank_class = Plank # Pillar, Plank, LargePlank
+    plank_class = Pillar # Pillar, Plank, LargePlank
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
@@ -336,7 +336,7 @@ class Walker3DStepperEnv(EnvBase):
         self.max_curriculum = 9
         self.advance_threshold = 12  # steps_reached
 
-        self.task = 0
+        self.task = 3
         self.max_task = 4
 
         # Robot settings
