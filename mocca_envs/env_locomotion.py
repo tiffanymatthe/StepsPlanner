@@ -337,7 +337,7 @@ class Walker3DStepperEnv(EnvBase):
         self.advance_threshold = 12  # steps_reached
 
         self.task = 0
-        self.max_task = 3
+        self.max_task = 4
 
         # Robot settings
         N = self.max_curriculum + 1
@@ -457,6 +457,86 @@ class Walker3DStepperEnv(EnvBase):
             swing_legs = 1 - swing_legs
 
         dphi *= 0
+
+        return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
+    
+    def generate_hopping_step_placements(self):
+
+        # Check just in case
+        self.curriculum = min(self.curriculum, self.max_curriculum)
+        ratio = self.curriculum / self.max_curriculum
+
+        dist_range = np.array([0.4, 0.65])
+
+        # {self.max_curriculum + 1} levels in total
+        dist_upper = np.linspace(*self.dist_range, self.max_curriculum + 1)
+        dist_range = np.array([self.dist_range[0], dist_upper[self.curriculum]])
+        yaw_range = self.yaw_range * ratio * DEG2RAD
+        pitch_range = self.pitch_range * ratio * DEG2RAD + np.pi / 2
+        tilt_range = self.tilt_range * ratio * DEG2RAD
+
+        N = self.num_steps
+        dr = np.zeros(N) + dist_upper[self.curriculum]
+        dphi = self.np_random.uniform(*yaw_range, size=N)
+        dtheta = self.np_random.uniform(*pitch_range, size=N)
+        x_tilt = self.np_random.uniform(*tilt_range, size=N)
+        y_tilt = self.np_random.uniform(*tilt_range, size=N)
+
+        # make first step below feet
+        dr[0] = 0.0
+        dphi[0] = 0.0
+        dtheta[0] = np.pi / 2
+
+        dr[1:3] = self.init_step_separation
+        dphi[1:3] = 0.0
+        dtheta[1:3] = np.pi / 2
+
+        x_tilt[0:3] = 0
+        y_tilt[0:3] = 0
+
+        dphi = np.cumsum(dphi)
+
+        dx = dr * np.sin(dtheta) * np.cos(dphi)
+        dy = dr * np.sin(dtheta) * np.sin(dphi)
+        dz = dr * np.cos(dtheta)
+
+        # # Fix overlapping steps
+        # dx_max = np.maximum(np.abs(dx[2:]), self.step_radius * 2.5)
+        # dx[2:] = np.sign(dx[2:]) * np.minimum(dx_max, self.dist_range[1])
+
+        x = np.cumsum(dx)
+        y = np.cumsum(dy)
+        z = np.cumsum(dz)
+
+        swing_legs = np.ones(N, dtype=np.int8)
+        swing_legs[:N:2] = 0 # Set swing_legs to 1 at every second index starting from 0
+        # start hopping at index 4
+        swing_legs[4:6] = swing_legs[3]
+        # walking
+        swing_legs[[6,8]] = 1 - swing_legs[3]
+        swing_legs[7] = swing_legs[3]
+        # hopping
+        swing_legs[9:13] = swing_legs[8]
+        # walking
+        swing_legs[13] = 1 - swing_legs[8]
+        # hopping
+        swing_legs[14:] = swing_legs[13]
+
+        # Calculate shifts
+        left_shifts = np.array([np.cos(dphi + np.pi / 2), np.sin(dphi + np.pi / 2)])
+        right_shifts = np.array([np.cos(dphi - np.pi / 2), np.sin(dphi - np.pi / 2)])
+
+        # Flip the shifts
+        left_shifts = np.flip(left_shifts, axis=0)
+        right_shifts = np.flip(right_shifts, axis=0)
+
+        y += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * self.foot_sep
+        x += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * self.foot_sep
+
+        if not self.robot.mirrored:
+            y *= -1
+        else:
+            swing_legs = 1 - swing_legs
 
         return np.stack((x, y, z, dphi, x_tilt, y_tilt), axis=1)
 
@@ -694,6 +774,8 @@ class Walker3DStepperEnv(EnvBase):
             return self.generate_backward_step_placements()
         elif self.task == 3:
             return self.generate_turn_in_place_step_placements()
+        elif self.task == 4:
+            return self.generate_hopping_step_placements()
 
     def create_terrain(self):
 
