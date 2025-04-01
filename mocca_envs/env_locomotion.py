@@ -609,7 +609,7 @@ class Walker3DStepperEnv(EnvBase):
     
     def generate_backward_step_placements(self):
 
-        dist_range = np.array([-0.43, -0.43])
+        dist_range = np.array([-0.13, -0.43])
 
         # Check just in case
         self.curriculum = min(self.curriculum, self.max_curriculum)
@@ -1039,7 +1039,7 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
-        step_radius = self.step_radius if self.task != 3 else self.step_radius + 0.1
+        step_radius = self.step_radius if self.task not in {2,3} else self.step_radius + 0.1
         self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < step_radius
         # print(f"{self.next_step_index}: {self.target_reached} for swing {self.swing_leg}")
 
