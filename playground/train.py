@@ -165,7 +165,9 @@ def main(_seed, _config, _run):
         current_task = dummy_env.unwrapped.task
         max_task = dummy_env.unwrapped.max_task
         advance_threshold = dummy_env.unwrapped.advance_threshold
+        envs.set_env_params({"curriculum": current_curriculum})
         envs.set_env_params({"task": current_task})
+        envs.set_env_params({"plank_class": args.plank_class})
 
     obs = envs.reset()
     rollouts.observations[0].copy_(torch.from_numpy(obs))

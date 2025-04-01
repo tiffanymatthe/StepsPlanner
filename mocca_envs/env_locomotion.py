@@ -314,7 +314,7 @@ class Walker3DStepperEnv(EnvBase):
     num_steps = 20
     step_radius = 0.25
     foot_sep = 0.16
-    rendered_step_count = 3
+    rendered_step_count = 20
     init_step_separation = 0.75
 
     lookahead = 2
@@ -685,7 +685,8 @@ class Walker3DStepperEnv(EnvBase):
     def generate_turn_in_place_step_placements(self):
         N = self.num_steps
 
-        path_angles = np.linspace(0, np.pi / 2, N)
+        path_angles = np.linspace(0, np.pi / 2, N + 1)
+        path_angles = path_angles[1:]
         dr_curriculum = np.linspace(0.7, 0.1, N)
 
         # Check just in case
@@ -757,7 +758,7 @@ class Walker3DStepperEnv(EnvBase):
         x += np.where(swing_legs == 1, left_shifts[0], right_shifts[0]) * foot_seps
         y += np.where(swing_legs == 1, left_shifts[1], right_shifts[1]) * foot_seps
 
-        if self.robot.mirrored:
+        if not self.robot.mirrored:
             x *= -1
         else:
             swing_legs = 1 - swing_legs
@@ -992,19 +993,24 @@ class Walker3DStepperEnv(EnvBase):
         target_id_list = [next_step.id]
         target_cover_id_list = [next_step.cover_id] #next_step.cover_id]
         self._foot_target_contacts.fill(0)
-
-        for i, (foot, contact) in enumerate(
-            zip(self.robot.feet, self._foot_target_contacts)
-        ):
-            self.robot.feet_contact[i] = pybullet.getContactStates(
-                bodyA=robot_id,
-                linkIndexA=foot.bodyPartIndex,
-                bodiesB=target_id_list,
-                linkIndicesB=target_cover_id_list,
-                results=contact,
-                physicsClientId=client_id,
-            )
-
+        
+        for i in range(-1,2):
+            target_cover_index = (self.next_step_index + i) % self.rendered_step_count
+            next_step = self.steps[target_cover_index]
+            target_id_list = [next_step.id]
+            target_cover_id_list = [next_step.cover_id]
+            for i, (foot, contact) in enumerate(
+                zip(self.robot.feet, self._foot_target_contacts)
+            ):
+                self.robot.feet_contact[i] = pybullet.getContactStates(
+                    bodyA=robot_id,
+                    linkIndexA=foot.bodyPartIndex,
+                    bodiesB=target_id_list,
+                    linkIndicesB=target_cover_id_list,
+                    results=contact,
+                    physicsClientId=client_id,
+                )
+        
         if (
             self.next_step_index - 1 in self.stop_steps
             and self.next_step_index - 2 in self.stop_steps
@@ -1026,7 +1032,9 @@ class Walker3DStepperEnv(EnvBase):
             if self.swing_leg_lifted_count >= 1:
                 self.swing_leg_lifted = True
 
-        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < self.step_radius # and (self.swing_leg_lifted or self.reached_last_step)
+        step_radius = self.step_radius if self.task != 3 else self.step_radius + 0.1
+        self.target_reached = self._foot_target_contacts[self.swing_leg, 0] > 0 and self.foot_dist_to_target[self.swing_leg] < step_radius
+        # print(f"{self.next_step_index}: {self.target_reached} for swing {self.swing_leg}")
 
         if self.next_step_index > 1:
             dist_to_prev_target = np.sqrt(
