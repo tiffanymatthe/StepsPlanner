@@ -40,7 +40,10 @@ def configs():
     # Env settings
     use_mirror = True
     use_curriculum = False
-    plank_class = "LargePlank"
+    plank_class = "Plank"
+
+    curriculum = 0
+    task = 0
 
     # Network settings
     actor_class = "SoftsignActor"
@@ -90,7 +93,7 @@ def main(_seed, _config, _run):
     env_name_parts = env_name.split(":")
     save_name = "-".join(env_name_parts) if len(env_name_parts) > 1 else env_name
 
-    env_kwargs = {"plank_class": args.plank_class}
+    env_kwargs = {"plank_class": args.plank_class, "curriculum": args.curriculum, "task": args.task}
 
     dummy_env = make_env(env_name, **env_kwargs)
 
