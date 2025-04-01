@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--env", type=str, required=True)
     parser.add_argument("--net", type=str, required=True)
     parser.add_argument("--curriculum", type=int, default=None)
+    parser.add_argument("--task", type=int, default=None)
     parser.add_argument("--len", type=int, default=float("inf"))
     parser.add_argument("--plank_class", type=str, default="Plank")
     parser.add_argument("--plot", type=int, default=1)
@@ -101,7 +102,9 @@ def main():
 
         max_curriculum = getattr(env.unwrapped, "max_curriculum", 10)
         curriculum = args.curriculum if args.curriculum is not None else max_curriculum
+        task = args.task if args.task is not None else 0
         env.set_env_params({"curriculum": int(curriculum)})
+        env.set_env_params({"task": int(task)})
 
         obs = env.reset()
         ep_reward = 0
