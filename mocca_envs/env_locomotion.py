@@ -799,7 +799,8 @@ class Walker3DStepperEnv(EnvBase):
             self.steps.append(p)
             step_ids = step_ids | {(p.id, p.base_id)}
             cover_ids = cover_ids | {(p.id, p.cover_id)}
-                # self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
+        
+        self.rendered_steps.append(VCylinder(self._p, radius=self.step_radius, length=0.005, pos=None))
 
         # Need set for detecting contact
         self.all_contact_object_ids = set(step_ids) | set(cover_ids)
@@ -910,6 +911,9 @@ class Walker3DStepperEnv(EnvBase):
                 if self.distance_to_target < 0.15
                 else Colors["crimson"]
             )
+            self.rendered_steps[0].set_color(Colors["dodgerblue"])
+            pos = self.terrain_info[self.next_step_index, 0:3]
+            self.rendered_steps[0].set_position(pos=pos)
 
         info = {}
         if self.done or self.timestep == self.max_timestep - 1:
